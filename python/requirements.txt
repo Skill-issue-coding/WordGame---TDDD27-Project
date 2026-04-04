@@ -1,0 +1,4 @@
+fasttext==0.9.3
+numpy==2.4.4
+pybind11==3.0.3
+setuptools==82.0.1
