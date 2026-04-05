@@ -1,5 +1,9 @@
 # WordGame - TDDD27 Project
 
+## Word Vectors
+
+- **FastText:** The swedish word vector has to be downloaded from [fasttext.cc/docs/en/crawl-vectors](https://fasttext.cc/docs/en/crawl-vectors).
+
 ## Acknowledgments
 
 - **Swedish Stopwords:** The list of swedish stopwords (`python/stoppord.csv`) is sourced from [peterdalle/svensktext](https://github.com/peterdalle/svensktext) repository.
