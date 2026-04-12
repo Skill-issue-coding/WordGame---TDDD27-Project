@@ -1,19 +1,46 @@
 package main
 
 import (
-	"colly-crawler/internal/scraper"
-	"encoding/csv"
-	"fmt"
+	//"colly-crawler/internal/scraper"
+	"colly-crawler/internal/formatter"
+	//"encoding/csv"
+	//"fmt"
 	"log"
-	"os"
-	"strings"
+	//"os"
+	//"strings"
 )
 
 func main() {
 
+	files := []string{
+		"maktbarometern-2025-facebook.csv",
+		"maktbarometern-2025-instagram.csv",
+		"maktbarometern-2025-youtube.csv",
+		"maktbarometern-2025-x.csv",
+		"maktbarometern-2025-tiktok.csv",
+		"arets-makthavare-2025.csv",
+	}
+
+	for _, f := range files {
+		err := formatter.CleanCSV(f)
+		if err != nil {
+			log.Printf("Failed to clean %s: %v", f, err)
+		} else {
+			log.Printf("Successfully cleaned %s", f)
+		}
+	}
+
 	//https://medieakademin.se/maktbarometern/
 
-	urls := [6]string{"https://medieakademin.se/maktbarometern-2025-facebook/", "https://medieakademin.se/maktbarometern-2025-instagram/", "https://medieakademin.se/maktbarometern-2025-youtube/", "https://medieakademin.se/maktbarometern-2025-x/", "https://medieakademin.se/maktbarometern-2025-tiktok/", "https://medieakademin.se/arets-makthavare-2025/"}
+	/*
+	urls := [6]string{
+		"https://medieakademin.se/maktbarometern-2025-facebook/", 
+		"https://medieakademin.se/maktbarometern-2025-instagram/", 
+		"https://medieakademin.se/maktbarometern-2025-youtube/", 
+		"https://medieakademin.se/maktbarometern-2025-x/", 
+		"https://medieakademin.se/maktbarometern-2025-tiktok/", 
+		"https://medieakademin.se/arets-makthavare-2025/",
+	}
 
 	for _, url := range urls {
 		err := func() error {
@@ -54,4 +81,5 @@ func main() {
 			log.Println(err)
 		}
     }
+	*/
 }
