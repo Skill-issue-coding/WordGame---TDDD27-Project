@@ -24,8 +24,12 @@ Vi har lite olika idéer för vårt projekt men man kan egentligen generalisera 
 
 Vi ska använda den svenska färdig tränade fasttext modellen och ta ut ett antal svenska ord, företag, kändisar osv. Sedan göra ett spel med det. Vad exakt för slags spel diskuterar vi fortfarande om, men vi har i alla fall kommit fram till en tech stack:
 
+**Stack:**
+
 Preprocessing: Python + FastText modell
+
 Backend: Go
+
 Frontend: Next.js
 
 Vi kommer använda Python för "preprocessing" och då får vi en fil vi kan ladda in i en Go backend (med svenska ord sammankopplade med vektorer). Vår tanke är då att användaren ansluter till "tjänsten"/hemsidan och vår next.js frontend ansluter sig till vår backend genom websockets. Användaren kan då likt många online spel idag, skapa eller gå med i en lobby/ett rum och bjuda in sina vänner. Eventuellt ändra spelregler, "gamemode" eller liknande. Sedan starta spelet osv.
