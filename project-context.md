@@ -14,7 +14,7 @@ The game features a standard multiplayer lobby system where players can create r
 ## 2. Tech Stack
 
 - **Frontend:** React (Next.js)
-- **Backend:** Go (Handles game logic, real-time WebSocket connections, lobby state, and distance calculations).
+- **Backend:** Go (Handles game logic, real-time WebSocket connections, lobby state, and distance calculations) with Gin as the framework.
 - **Data Preprocessing & NLP:** Python. Used for preparing data pipelines, utilizing Korp (Språkbanken), Maktbarometern, custom CSV lists, and fastText models for Swedish.
 
 ## 3. Game Modes

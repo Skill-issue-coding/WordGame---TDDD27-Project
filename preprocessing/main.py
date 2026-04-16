@@ -4,13 +4,14 @@ import pandas as pd
 import spacy
 import xml.etree.ElementTree as ET
 import re
-import os
+import os 
 
 MODEL_NAME = 'cc.sv.300.bin'
 OUTPUT_BASE = "../server/words/"
 
 print(f"Ensuring output directory exists: {OUTPUT_BASE}")
 os.makedirs(OUTPUT_BASE, exist_ok=True)
+
 ################## 1. LOAD MODELS ##################
 
 print("Loading FastText model...")
@@ -25,7 +26,7 @@ except OSError:
     print("Spacy model inte hittad. Kör: python -m spacy download sv_core_news_sm")
     exit()
 
-# Helper function to get the vector for the csv string
+# Helper function to convert the vector into a string for the CSV
 def get_vector_string(word):
     vec = ft.get_word_vector(word)
     return " ".join(map(str, vec.tolist()))
@@ -42,18 +43,20 @@ for entry in root.iter('LexicalEntry'):
     
     if written_form is not None:
         word = written_form.get('val').lower()
-        # FIX FÖR FELET: Använd "" istället för None
         word_pos = pos.get('val') if pos is not None else ""
         
         if "noun" in word_pos or "adjective" in word_pos or "verb" in word_pos:
             kelly_words.append({
                 'Word': word,
+                'POS': word_pos, # <-- ADDED THIS TAG
                 'Vector': get_vector_string(word)
             })
 
 kelly_df = pd.DataFrame(kelly_words).drop_duplicates(subset=['Word'])
+# Reorder columns to ensure consistency
+kelly_df = kelly_df[['Word', 'POS', 'Vector']]
 kelly_df.to_csv(OUTPUT_BASE + 'kelly_vectors.csv', index=False)
-print(f"Sparade {len(kelly_df)} Kelly-ord till '{OUTPUT_BASE}kelly_vectors.csv'")
+print(f"Sparade {len(kelly_df)} Kelly-ord till 'kelly_vectors.csv'")
 
 ################## 3. COMPANIES ##################
 print("\n--- Bearbetar Företag ---")
@@ -75,12 +78,13 @@ def clean_company_name(name):
 comp_df['CleanName'] = comp_df['Name'].apply(clean_company_name)
 comp_df = comp_df.drop_duplicates(subset=['CleanName'])
 
-# Skapa vektorerna (Byt ut mellanslag mot underscore för fasttext, t.ex. "Saudi_Aramco")
 comp_df['Vector'] = comp_df['CleanName'].apply(lambda w: get_vector_string(w.replace(" ", "_")))
-comp_df = comp_df[['CleanName', 'Vector']].rename(columns={'CleanName': 'Word'})
+comp_df['POS'] = 'proper_noun'
+
+comp_df = comp_df[['CleanName', 'POS', 'Vector']].rename(columns={'CleanName': 'Word'})
 
 comp_df.to_csv(OUTPUT_BASE + 'companies_vectors.csv', index=False)
-print(f"Sparade {len(comp_df)} Företag till '{OUTPUT_BASE}companies_vectors.csv'")
+print(f"Sparade {len(comp_df)} Företag till 'companies_vectors.csv'")
 
 ################## 4. CELEBRITIES ##################
 print("\n--- Bearbetar Kändisar ---")
@@ -88,10 +92,12 @@ celeb_df = pd.read_csv('celebrity.csv', usecols=['name', 'popularity'])
 celeb_df = celeb_df.sort_values(by='popularity', ascending=False).head(2000)
 
 celeb_df['Vector'] = celeb_df['name'].apply(lambda w: get_vector_string(w.replace(" ", "_")))
-celeb_df = celeb_df[['name', 'Vector']].rename(columns={'name': 'Word'})
+celeb_df['POS'] = 'proper_noun'
+
+celeb_df = celeb_df[['name', 'POS', 'Vector']].rename(columns={'name': 'Word'})
 
 celeb_df.to_csv(OUTPUT_BASE + 'celebrities_vectors.csv', index=False)
-print(f"Sparade {len(celeb_df)} Kändisar till '{OUTPUT_BASE}celebrities_vectors.csv'")
+print(f"Sparade {len(celeb_df)} Kändisar till 'celebrities_vectors.csv'")
 
 ################## 5. MAKTBAROMETERN (Svenska Influencers/Media) ##################
 print("\n--- Bearbetar Maktbarometern ---")
@@ -117,31 +123,28 @@ if makt_dfs:
 
     def clean_makt_name(name):
         name = str(name)
-        # Regex för att ta bort emojis och specialtecken, behåller bokstäver + siffror
         name = re.sub(r'[^\w\såäöÅÄÖ-]', '', name)
         return name.strip()
 
     makt_df['CleanName'] = makt_df['name'].apply(clean_makt_name)
-    # Ta bort eventuella rader som blev tomma efter städning av emojis
     makt_df = makt_df[makt_df['CleanName'] != '']
     makt_df = makt_df.drop_duplicates(subset=['CleanName'])
 
-    # Byter ut mellanslag till underscores (t.ex. "Joakim_Lundell") för att FastText ska gilla det
     makt_df['Vector'] = makt_df['CleanName'].apply(lambda w: get_vector_string(w.replace(" ", "_")))
-    makt_df = makt_df[['CleanName', 'Vector']].rename(columns={'CleanName': 'Word'})
+    makt_df['POS'] = 'proper_noun'
+
+    makt_df = makt_df[['CleanName', 'POS', 'Vector']].rename(columns={'CleanName': 'Word'})
 
     makt_df.to_csv(OUTPUT_BASE + 'maktbarometern_vectors.csv', index=False)
-    print(f"Sparade {len(makt_df)} profiler från Maktbarometern till '{OUTPUT_BASE}maktbarometern_vectors.csv'")
-
+    print(f"Sparade {len(makt_df)} profiler från Maktbarometern till 'maktbarometern_vectors.csv'")
 
 ################## 6. KORP (Vanliga ord) ##################
 print("\n--- Bearbetar Korp-statistik ---")
 stop_df = pd.read_csv('stoppord-mycket.csv', header=None, names=['word'])
 stopwords = set(stop_df['word'].dropna().str.lower().tolist())
 
-# Uppdaterad skiprow/header för att förhindra fel
 korp_df = pd.read_csv('korp-statistics.csv', skiprows=[1,2,3,4], usecols=['word'])
-top_words_df = korp_df.dropna(subset=['word']).head(150000).copy()
+top_words_df = korp_df.dropna(subset=['word']).head(100000).copy()
 
 korp_words = []
 valid_word_pattern = re.compile(r'^[a-zåäö]+$')
@@ -161,14 +164,16 @@ for index, row in top_words_df.iterrows():
         if token.pos_ in ['ADJ', 'VERB', 'NOUN']:
             korp_words.append({
                 'Word': word,
+                'POS': token.pos_,
                 'Vector': get_vector_string(word)
             })
             
-    if len(korp_words) >= 100000:
+    if len(korp_words) >= 50000:
         break
 
 korp_final_df = pd.DataFrame(korp_words).drop_duplicates(subset=['Word'])
+korp_final_df = korp_final_df[['Word', 'POS', 'Vector']]
 korp_final_df.to_csv(OUTPUT_BASE + 'korp_vectors.csv', index=False)
-print(f"Sparade {len(korp_final_df)} Korp-ord till '{OUTPUT_BASE}korp_vectors.csv'")
+print(f"Sparade {len(korp_final_df)} Korp-ord till 'korp_vectors.csv'")
 
 print("\nAll preprocessing klar!")
