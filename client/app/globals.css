@@ -46,6 +46,15 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+
+  --color-neon-blue: var(--neon-blue);
+  --color-neon-pink: var(--neon-pink);
+  --color-neon-yellow: var(--neon-yellow);
+  --color-neon-green: var(--neon-green);
+  --color-game-surface: var(--game-surface);
+
+  --font-body: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
 }
 
 :root {
@@ -81,27 +90,35 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  --neon-blue: oklch(0.7294 0.1585 238.7);
+  --neon-pink: oklch(0.6942 0.2264 354.05);
+  --neon-yellow: oklch(0.9 0.1739 96.86);
+  --neon-green: oklch(0.8824 0.1992 160.14);
+  --game-surface: oklch(0.2428 0.0231 277.17);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
+  --background: oklch(0.1697 0.015 272.3);
+  --foreground: oklch(0.9683 0.0069 247.9);
+  --card: oklch(0.2117 0.02 275.76);
+  --card-foreground: oklch(0.9683 0.0069 247.9);
+  --popover: oklch(0.2117 0.02 275.76);
+  --popover-foreground: oklch(0.9683 0.0069 247.9);
+  --primary: oklch(0.8824 0.1992 160.14);
+  --primary-foreground: oklch(0.1697 0.015 272.3);
+  --secondary: oklch(0.5785 0.2175 284.85);
+  --secondary-foreground: oklch(0.9842 0.0034 247.86);
+  --muted: oklch(0.2842 0.0222 277.48);
+  --muted-foreground: oklch(0.6214 0.0466 257.16);
+  --accent: oklch(0.7827 0.1685 66.35);
+  --accent-foreground: oklch(0.1697 0.015 272.3);
+  --destructive: oklch(0.6364 0.2107 25.52);
+  --destructive-foreground: oklch(0.9842 0.0034 247.86);
+  --border: oklch(0.3038 0.0239 274.74);
+  --input: oklch(0.3038 0.0239 274.74);
+  --ring: oklch(0.8824 0.1992 160.14);
+  --radius: 0.75rem;
   --chart-1: oklch(0.87 0 0);
   --chart-2: oklch(0.556 0 0);
   --chart-3: oklch(0.439 0 0);
@@ -115,6 +132,12 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  --neon-blue: oklch(0.7294 0.1585 238.7);
+  --neon-pink: oklch(0.6942 0.2264 354.05);
+  --neon-yellow: oklch(0.9 0.1739 96.86);
+  --neon-green: oklch(0.8824 0.1992 160.14);
+  --game-surface: oklch(0.2428 0.0231 277.17);
 }
 
 @layer base {
@@ -122,9 +145,59 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground font-body antialiased;
   }
   html {
     @apply font-sans;
+  }
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    @apply font-display;
+  }
+}
+
+@layer utilities {
+  .text-glow-green {
+    text-shadow:
+      0 0 20px oklch(0.8824 0.1992 160.14 / 0.5),
+      0 0 40px oklch(0.8824 0.1992 160.14 / 0.2);
+  }
+
+  .text-glow-pink {
+    text-shadow:
+      0 0 20px oklch(0.6942 0.2264 354.05 / 0.5),
+      0 0 40px oklch(0.6942 0.2264 354.05 / 0.2);
+  }
+
+  .text-glow-blue {
+    text-shadow:
+      0 0 20px oklch(0.7294 0.1585 238.7 / 0.5),
+      0 0 40px oklch(0.7294 0.1585 238.7 / 0.2);
+  }
+
+  .glow-border-green {
+    box-shadow:
+      0 0 15px oklch(0.8824 0.1992 160.14 / 0.3),
+      inset 0 0 15px oklch(0.8824 0.1992 160.14 / 0.05);
+  }
+
+  .glow-border-pink {
+    box-shadow:
+      0 0 15px oklch(0.6942 0.2264 354.05 / 0.3),
+      inset 0 0 15px oklch(0.6942 0.2264 354.05 / 0.05);
+  }
+
+  .glow-border-blue {
+    box-shadow:
+      0 0 15px oklch(0.7294 0.1585 238.7 / 0.3),
+      inset 0 0 15px oklch(0.7294 0.1585 238.7 / 0.05);
+  }
+
+  .game-card {
+    @apply bg-game-surface border border-border rounded-xl p-6;
   }
 }

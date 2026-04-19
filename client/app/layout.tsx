@@ -1,11 +1,21 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Figtree } from "next/font/google";
+import { Geist, Geist_Mono, Figtree, Inter, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 
-const geistHeading = Geist({subsets:['latin'],variable:'--font-heading'});
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
-const figtree = Figtree({subsets:['latin'],variable:'--font-sans'});
+const spaceGrotesk = Space_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-space-grotesk",
+});
+
+const geistHeading = Geist({ subsets: ["latin"], variable: "--font-heading" });
+
+const figtree = Figtree({ subsets: ["latin"], variable: "--font-sans" });
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,8 +40,18 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable, geistHeading.variable)}
-    >
+      className={cn(
+        "h-full",
+        "antialiased",
+        "dark", // Temp for dark theme
+        geistSans.variable,
+        geistMono.variable,
+        "font-sans",
+        figtree.variable,
+        geistHeading.variable,
+        inter.variable,
+        spaceGrotesk.variable,
+      )}>
       <body className="min-h-full flex flex-col">{children}</body>
     </html>
   );
