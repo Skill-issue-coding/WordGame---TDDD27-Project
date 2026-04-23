@@ -46,6 +46,15 @@ export default function HomeView() {
   const [roomCode, setRoomCode] = useState("");
   const [selectMode, setSelectMode] = useState<string | null>(null);
 
+  const formatCode = (val: string) => {
+    const clean = val
+      .replace(/[^a-zA-Z0-9]/g, "")
+      .toUpperCase()
+      .slice(0, 8);
+    if (clean.length > 4) return clean.slice(0, 4) + "-" + clean.slice(4);
+    return clean;
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center p-6">
       <div className="w-full max-w-2xl animate-slide-up">
@@ -53,9 +62,7 @@ export default function HomeView() {
         <div className="text-center mb-12">
           <div className="flex items-center justify-center gap-3 mb-3">
             <Gamepad2 className="w-10 h-10 text-neon-green" />
-            <h1 className="font-display text-5xl font-bold text-glow-green text-neon-green">
-              WordArena
-            </h1>
+            <h1 className="font-display text-5xl font-bold text-glow-green text-neon-green">WordArena</h1>
           </div>
           <p className="text-muted-foreground text-lg">Fast-paced multiplayer word games</p>
         </div>
@@ -66,7 +73,7 @@ export default function HomeView() {
             <Input
               placeholder="XXXX-XXXX"
               value={roomCode}
-              onChange={(e) => setRoomCode(e.target.value)}
+              onChange={(e) => setRoomCode(formatCode(e.target.value))}
               className="font-display text-xl tracking-widest text-center bg-muted/50 border-border h-12"
               maxLength={9}
             />

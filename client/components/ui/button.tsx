@@ -20,13 +20,13 @@ const buttonVariants = cva(
           "bg-destructive/10 text-destructive hover:bg-destructive/20 focus-visible:border-destructive/40 focus-visible:ring-destructive/20 dark:bg-destructive/20 dark:hover:bg-destructive/30 dark:focus-visible:ring-destructive/40",
         link: "text-primary underline-offset-4 hover:underline",
         neonGreen:
-          "bg-neon-green text-background font-display font-bold hover:bg-neon-green/90 glow-border-green",
+          "bg-neon-green text-background font-display font-bold hover:bg-neon-green/90 glow-border-green cursor-pointer",
         neonPink:
-          "bg-neon-pink text-background font-display font-bold hover:bg-neon-pink/90 glow-border-pink",
+          "bg-neon-pink text-background font-display font-bold hover:bg-neon-pink/90 glow-border-pink cursor-pointer",
         neonBlue:
-          "bg-neon-blue text-background font-display font-bold hover:bg-neon-blue/90 glow-border-blue",
+          "bg-neon-blue text-background font-display font-bold hover:bg-neon-blue/90 glow-border-blue cursor-pointer",
         glass:
-          "bg-muted/50 backdrop-blur-sm border border-border text-foreground hover:bg-muted/70 font-display",
+          "bg-muted/50 backdrop-blur-sm border border-border text-foreground hover:bg-muted/70 font-display cursor-pointer",
       },
       size: {
         default:
