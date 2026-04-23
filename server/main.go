@@ -3,7 +3,7 @@ package main
 import (
 	"log"
 	"server/handlers"
-	"server/lobby"
+	"server/session"
 
 	"github.com/gin-gonic/gin"
 )
@@ -29,7 +29,7 @@ func main() {
 func handleServerStartup() {
 	router := gin.Default()
 
-	gameHub, err := lobby.NewGameHub()
+	gameHub, err := session.NewGameHub()
 	if err != nil {
 		log.Fatalf("Could not initialize game hub: %v", err)
 	}

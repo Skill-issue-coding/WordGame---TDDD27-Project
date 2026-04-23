@@ -23,6 +23,15 @@ type Client struct {
 	Conn     *websocket.Conn // Websocket Connection Refrence
 	Send     chan []byte     // Send chan to send messages to client
 	Lobby    *GameLobby      // Lobby refrence
+	Player   *Player         // Player Refrence
+}
+
+type Player struct {
+	ID       string `json:"id"`
+	Username string `json:"username"`
+	Score    int    `json:"score"`
+	IsHost   bool   `json:"isHost"`
+	// Avatar   string `json:"avatar"`
 }
 
 type GameHub struct {

@@ -3,7 +3,7 @@ package handlers
 import (
 	"fmt"
 	"net/http"
-	"server/lobby"
+	"server/session"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -22,14 +22,14 @@ var upgrader = websocket.Upgrader{
 }
 
 // HandleWebSocket upgrades the Gin request
-func HandleWebSocket(c *gin.Context, hub *lobby.GameHub) {
+func HandleWebSocket(c *gin.Context, hub *session.GameHub) {
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		fmt.Println("Upgrade error:", err)
 		return
 	}
 
-	client := &lobby.Client{
+	client := &session.Client{
 		Id:   uuid.New(),
 		Hub:  hub,
 		Conn: conn,
