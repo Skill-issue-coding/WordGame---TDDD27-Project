@@ -8,7 +8,7 @@
 
 - **Swedish Stopwords:** The list of swedish stopwords (`python/stoppord.csv`) is sourced from [peterdalle/svensktext](https://github.com/peterdalle/svensktext) repository.
 
-- **Common Swedish Words and Frequency:** The list of swedish words and frequency (`python/korp-statistics.csv`) is sourced from [spraakbanken.gu.se/](https://spraakbanken.gu.se/).
+- **Common Swedish Words and Frequency:** The list of swedish words and frequency (`python/korp-statistics.csv`) is sourced from [spraakbanken.gu.se/](https://spraakbanken.gu.se/) selected (ord, grundform, namn, namntyp, ordklass).
 
 - **Kelly:** The list of Kelly swedish words (`python/kelly.xml`) is sourced from [spraakbanken.gu.se/](https://spraakbanken.gu.se/en/resources/kelly).
 

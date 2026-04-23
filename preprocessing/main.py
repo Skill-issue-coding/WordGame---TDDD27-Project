@@ -7,7 +7,7 @@ import re
 import os 
 
 MODEL_NAME = 'cc.sv.300.bin'
-OUTPUT_BASE = "../server/words/"
+OUTPUT_BASE = "../server/wordfiles/"
 
 print(f"Ensuring output directory exists: {OUTPUT_BASE}")
 os.makedirs(OUTPUT_BASE, exist_ok=True)

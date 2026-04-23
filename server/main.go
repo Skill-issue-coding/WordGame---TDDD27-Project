@@ -5,19 +5,16 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"server/hub"
+	"server/handlers"
+	"server/lobby"
 	"server/words"
 	"strings"
+
+	"github.com/gin-gonic/gin"
 )
 
 func main() {
-	gameHub, err := hub.NewGameHub(words.TERMINAL_TEST_VECTOR_FILES)
-	if err != nil {
-		log.Fatalf("Could not initialize game hub: %v", err)
-	}
-
-	terminalTesting(gameHub)
-
+	handleServerStartup()
 	// // Create a Gin router with default middleware (logger and recovery)
 	// r := gin.Default()
 
@@ -34,7 +31,31 @@ func main() {
 	// r.Run()
 }
 
-func terminalTesting(gameHub *hub.GameHub) {
+func handleServerStartup() {
+	router := gin.Default()
+
+	api := router.Group("/api")
+	{
+		api.GET("/status", handlers.HandleStatus)
+	}
+
+	ws := router.Group("/ws")
+	{
+		ws.GET("/game", handlers.HandleWebSocket)
+	}
+
+	gameHub, err := lobby.NewGameHub(words.TERMINAL_TEST_VECTOR_FILES)
+	if err != nil {
+		log.Fatalf("Could not initialize game hub: %v", err)
+	}
+
+	log.Println("Server running on http://localhost:8080")
+	router.Run(":8080")
+
+	terminalTesting(gameHub)
+}
+
+func terminalTesting(gameHub *lobby.GameHub) {
 	scanner := bufio.NewScanner(os.Stdin)
 
 	fmt.Println("Game terminal started. Type a word and press Enter (type 'exit' to quit):")
