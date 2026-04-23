@@ -1,15 +1,11 @@
 "use client";
-
-import { useState } from "react";
-import { Input } from "@/components/ui/input";
-import { Gamepad2, ArrowRight, ArrowLeft, User } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import GameModeCard from "@/components/lobby/GameModeCard";
-import { cn } from "@/lib/utils";
+import { Gamepad2, ArrowLeft, User, Timer } from "lucide-react";
+import GameModeCard, { Color } from "@/components/lobby/GameModeCard";
 import CodeDisplay from "@/components/lobby/CodeDisplay";
 import Link from "next/link";
 import { Slider } from "../ui/slider";
 import { Label } from "../ui/label";
+import { useState } from "react";
 
 // 12 distinct player colors
 const PLAYER_COLORS = [
@@ -34,7 +30,7 @@ const gamemodes = [
     description: "En spelare får ett unikt ord. Hitta imposter innan det är försent!",
     icon: "🕵️",
     players: "4-12",
-    color: "pink" as const,
+    color: "pink" as Color,
   },
   {
     id: "contexto",
@@ -42,7 +38,7 @@ const gamemodes = [
     description: "Race att hitta det dålda ordet.",
     icon: "🧠",
     players: "2-12",
-    color: "blue" as const,
+    color: "blue" as Color,
   },
   {
     id: "synonym",
@@ -50,7 +46,7 @@ const gamemodes = [
     description: "Ange den bästa synonymen varje runda. Det sämsta åker ut!",
     icon: "⚔️",
     players: "3-12",
-    color: "green" as const,
+    color: "green" as Color,
   },
   {
     id: "antimatch",
@@ -58,12 +54,13 @@ const gamemodes = [
     description: "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
     icon: "🎯",
     players: "3-12",
-    color: "yellow" as const,
+    color: "yellow" as Color,
   },
 ];
 
 export default function LobbyView() {
-  const [roomCode, setRoomCode] = useState("");
+  // const [roomCode, setRoomCode] = useState("");
+  const [gametime, setGametime] = useState(10);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-3xl animate-slide-up">
@@ -90,30 +87,47 @@ export default function LobbyView() {
         </div>
 
         <div className="flex flex-1 w-full h-full grid-cols-1 gap-4 mt-6 sm:grid-cols-2">
-          <div className="flex flex-col w-full gap-2 p-4 border-2 flex-5 bg-game-surface">
-            <div className="flex justify-center">
+          <div className="flex flex-col w-full gap-2 p-4 px-8 border-2 flex-5 bg-game-surface">
+            <div className="flex justify-center gap-2 pb-6">
               <h2 className="text-2xl font-bold font-display text-glow-green text-neon-green">Spel inställningar</h2>
+              <Gamepad2 className="w-8 h-8 text-neon-green" />
             </div>
-            <div className="flex flex-1">
+            <div className="flex flex-col flex-1 gap-6">
+              <div className="flex items-center">
+                <h3 className="font-bold font-display text-neon-green"> Gamemode: </h3>
+              </div>
               <div className="flex flex-col w-full gap-3">
-                <Label>Tid slider</Label>
-                <Slider className="" />
+                <div className="flex w-full gap-2">
+                  <Timer className="font-bold font-display text-neon-green size-5 aspect-square " />
+                  <Label htmlFor="game-time-slider" className="font-bold font-display text-neon-green">
+                    Speltid:
+                  </Label>
+                </div>
+                <div className="flex w-full gap-6 flex-start">
+                  <Slider
+                    name="game-time-slider"
+                    id="game-time-slider"
+                    min={5}
+                    max={30}
+                    step={1}
+                    value={[gametime]}
+                    onValueChange={([v]) => setGametime(v)}
+                    className="w-full"
+                  />
+                  <p>{gametime}min</p>
+                </div>
               </div>
             </div>
           </div>
-          <div className="flex flex-col gap-4 flex-3">
+          <div className="flex flex-col gap-4 flex-4">
             {gamemodes.map((mode) => (
-              <GameModeCard key={mode.id} {...mode} onClick={() => console.log("click")} />
+              <GameModeCard key={mode.id} {...mode} />
             ))}
           </div>
         </div>
       </div>
     </div>
   );
-}
-
-function formatCode(value: string) {
-  return value;
 }
 
 function PlayerCard() {

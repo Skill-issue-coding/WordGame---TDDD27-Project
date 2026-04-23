@@ -2,13 +2,15 @@ import { cn } from "@/lib/utils";
 import { Info, User } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
+export type Color = "green" | "pink" | "blue" | "yellow";
+
 interface GameModeCardProps {
   title: string;
   description: string;
   icon: string;
   players: string;
-  color: "green" | "pink" | "blue" | "yellow";
-  onClick: () => void;
+  color: Color;
+  // onClick: () => void;
 }
 
 const colorMap = {
@@ -25,10 +27,10 @@ const textColorMap = {
   yellow: "text-neon-yellow",
 };
 
-const GameModeCard = ({ title, description, icon, players, color, onClick }: GameModeCardProps) => {
+const GameModeCard = ({ title, description, icon, players, color }: GameModeCardProps) => {
   return (
     <button
-      onClick={onClick}
+      // onClick={onClick}
       className={cn(
         "p-4 bg-game-surface border-border rounded-xl border-2 text-left transition-all duration-300 hover:scale-[1.02] cursor-pointer group w-full flex items-center",
         colorMap[color],
