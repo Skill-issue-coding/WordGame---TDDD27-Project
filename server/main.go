@@ -41,7 +41,7 @@ func handleServerStartup() {
 
 	ws := router.Group("/ws")
 	{
-		ws.GET("/game", handlers.HandleWebSocket)
+		ws.GET("/game", handlers.HandleWebSocket())
 	}
 
 	gameHub, err := lobby.NewGameHub(words.TERMINAL_TEST_VECTOR_FILES)

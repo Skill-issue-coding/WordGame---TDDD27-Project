@@ -6,18 +6,6 @@ import (
 	"server/words"
 )
 
-type Dictionary struct {
-	ActiveWord        string
-	WordMap           map[string]words.WordEntry
-	RandomWord        func() (words.WordEntry, error)
-	CalculateDistance func(word string) float64
-	IsValid           func(word string) bool
-}
-
-type GameHub struct {
-	Dictionary Dictionary
-}
-
 func NewGameHub(dictionaryFiles []string) (*GameHub, error) {
 	wordMap := words.ReadCSVFiles(dictionaryFiles)
 	if len(wordMap) == 0 {
