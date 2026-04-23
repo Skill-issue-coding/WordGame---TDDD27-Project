@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"server/events"
+	"strings"
 	"time"
 
 	"github.com/gorilla/websocket"
@@ -23,7 +25,6 @@ const (
 // while also handling periodic ping messages to keep the connection alive.
 func (c *Client) WritePump() {
 	ticker := time.NewTicker(pingIntervall)
-
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
@@ -107,7 +108,7 @@ func (c *Client) ReadPump() {
 		}
 
 		// Read what type of event
-		var event Event
+		var event events.Event
 		if err := json.Unmarshal(message, &event); err != nil {
 			log.Printf("Error reading JSON: %v", err)
 			continue
@@ -115,9 +116,30 @@ func (c *Client) ReadPump() {
 
 		// Switch case for each event
 		switch event.Type {
-		case CreateGameEvent:
+		case events.CreateGameEvent:
+			// Get & save the username sent by the frontend & validate gamesettings
+			var createData events.CreateLobbyPayload
+			if err := json.Unmarshal(event.Payload, &createData); err != nil {
+				log.Printf("Error when reading create_game payload: %v", err)
+				continue
+			}
 
-		case JoinGameEvent:
+			username := strings.TrimSpace(createData.Username)
+			if username == "" {
+				c.Send <- events.PrepareEvent(events.ErrorEvent, map[string]string{"message": "Användarnamnet får inte vara tomt."})
+				continue
+			}
+
+			c.Username = username
+
+			// Create the room and register the client to the room
+			code := c.Hub.CreateUniqueRoom()
+			room := c.Hub.GetRoom(code)
+
+			// Set host
+			room.State.Host = c.Id
+
+		case events.JoinGameEvent:
 		}
 	}
 }

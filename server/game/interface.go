@@ -1,10 +1,15 @@
 package game
 
 import (
+	"server/lobby"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+type BaseGameState struct {
+	Host *lobby.Client
+}
 
 type GameMode interface {
 	// Called When The Host Starts The Game
