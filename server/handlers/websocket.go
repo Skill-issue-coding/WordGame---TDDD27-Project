@@ -23,7 +23,6 @@ var upgrader = websocket.Upgrader{
 
 // HandleWebSocket upgrades the Gin request
 func HandleWebSocket(c *gin.Context, hub *lobby.GameHub) {
-
 	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		fmt.Println("Upgrade error:", err)

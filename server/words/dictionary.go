@@ -1,108 +1,59 @@
 package words
 
 import (
-	"encoding/csv"
 	"errors"
-	"fmt"
-	"io"
-	"log"
+	"math"
 	"math/rand/v2"
-	"os"
-	"strconv"
+	"server/util"
 	"strings"
 )
 
-const BASE_FILE_DIRECTORY string = "words/"
-
-var VECTOR_FILES = []string{"celebrities_vectors.csv", "companies_vectors.csv", "kelly_vectors.csv", "korp_vectors.csv", "maktbarometern_vectors.csv"}
-
-var TERMINAL_TEST_VECTOR_FILES = []string{"celebrities_vectors.csv", "companies_vectors.csv", "kelly_vectors.csv", "maktbarometern_vectors.csv"}
-
-var RANDOM_WORD_ALLOWED_POS_TYPES = []string{"NOUN", "noun", "noun-en", "noun-ett", "noun-en/-ett", "proper_noun"}
-
-type WordEntry struct {
-	Word       string
-	Type       string
-	WordVector []float64
-}
-
-func StringToFloatSlice(vectorStr string) ([]float64, error) {
-	strValues := strings.Fields(vectorStr)
-	vector := make([]float64, len(strValues))
-
-	for i, strVal := range strValues {
-		floatVal, err := strconv.ParseFloat(strVal, 64)
-		if err != nil {
-			return nil, fmt.Errorf("error parsing value '%s' at index %d: %w \n", strVal, i, err)
-		}
-		vector[i] = floatVal
-	}
-
-	return vector, nil
-}
-
-func readCSVFile(wordMap *map[string]WordEntry, filepath string) {
-	file, err := os.Open(BASE_FILE_DIRECTORY + filepath)
-
-	if err != nil {
-		log.Fatalf("Unable to read input file %s, %v \n", filepath, err)
-		return
-	}
-	defer file.Close()
-
-	r := csv.NewReader(file)
-
-	if _, err := r.Read(); err != nil {
-		log.Fatal(err)
-	}
-
-	for {
-		record, err := r.Read()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			log.Fatal(err)
-		}
-
-		vector, err := StringToFloatSlice(record[2])
-		if err != nil {
-			log.Printf("Error parsing wordvector for: %s, %s \n", filepath, record[0])
-			continue
-		}
-
-		var entry WordEntry = WordEntry{Word: record[0], Type: record[1], WordVector: vector}
-
-		if _, exists := (*wordMap)[entry.Word]; exists {
-			continue
-		}
-
-		(*wordMap)[entry.Word] = entry
-	}
-}
-
-func ReadAllCSVFiles() map[string]WordEntry {
-	return ReadCSVFiles(VECTOR_FILES)
-}
-
-func ReadCSVFiles(filepaths []string) map[string]WordEntry {
-	var wordMap map[string]WordEntry = make(map[string]WordEntry)
-
-	for _, filepath := range filepaths {
-		readCSVFile(&wordMap, filepath)
-	}
-
-	return wordMap
-}
-
-func RandomWord(wordMap map[string]WordEntry) (WordEntry, error) {
+func InitializeDictionary() (Dictionary, error) {
+	wordMap := ReadAllCSVFiles()
 	if len(wordMap) == 0 {
+		return Dictionary{}, errors.New("dictionary is empty")
+	}
+
+	return Dictionary{
+		WordMap: wordMap,
+	}, nil
+}
+
+func (dictionary *Dictionary) CalculateDistance(word string) float64 {
+	activeWordEntry, activeWordExists := dictionary.WordMap[dictionary.ActiveWord]
+	guessEntry, guessExists := dictionary.WordMap[word]
+
+	if !activeWordExists || !guessExists {
+		return math.NaN()
+	}
+
+	return util.CosineDistance(activeWordEntry.WordVector, guessEntry.WordVector)
+}
+
+func (dictionary *Dictionary) IsValid(word string) bool {
+	_, exists := dictionary.WordMap[word]
+	return exists
+}
+
+func (dictionary *Dictionary) SetRandomActiveWord() error {
+	entry, err := dictionary.RandomWord()
+	if err != nil {
+		return err
+	}
+
+	dictionary.ActiveWord = entry.Word
+	return nil
+}
+
+func (dictionary *Dictionary) RandomWord() (WordEntry, error) {
+	if len(dictionary.WordMap) == 0 {
 		return WordEntry{}, errors.New("word map is empty")
 	}
 
-	targetIndex := rand.IntN(len(wordMap))
+	targetIndex := rand.IntN(len(dictionary.WordMap))
 	currentIndex := 0
 
-	for _, entry := range wordMap {
+	for _, entry := range dictionary.WordMap {
 		if currentIndex == targetIndex {
 			return entry, nil
 		}
@@ -112,7 +63,7 @@ func RandomWord(wordMap map[string]WordEntry) (WordEntry, error) {
 	return WordEntry{}, errors.New("failed to select random word")
 }
 
-func RandomWordByAllowedPOSTypes(wordMap map[string]WordEntry, allowedTypes []string) (WordEntry, error) {
+func (dictionary *Dictionary) RandomWordByAllowedPOSTypes(wordMap map[string]WordEntry, allowedTypes []string) (WordEntry, error) {
 	if len(wordMap) == 0 {
 		return WordEntry{}, errors.New("word map is empty")
 	}

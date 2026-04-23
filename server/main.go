@@ -1,14 +1,9 @@
 package main
 
 import (
-	"bufio"
-	"fmt"
 	"log"
-	"os"
 	"server/handlers"
 	"server/lobby"
-	"server/words"
-	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -34,6 +29,11 @@ func main() {
 func handleServerStartup() {
 	router := gin.Default()
 
+	gameHub, err := lobby.NewGameHub()
+	if err != nil {
+		log.Fatalf("Could not initialize game hub: %v", err)
+	}
+
 	api := router.Group("/api")
 	{
 		api.GET("/status", handlers.HandleStatus)
@@ -41,68 +41,65 @@ func handleServerStartup() {
 
 	ws := router.Group("/ws")
 	{
-		ws.GET("/game", handlers.HandleWebSocket())
-	}
-
-	gameHub, err := lobby.NewGameHub(words.TERMINAL_TEST_VECTOR_FILES)
-	if err != nil {
-		log.Fatalf("Could not initialize game hub: %v", err)
+		ws.GET("/game", func(c *gin.Context) {
+			handlers.HandleWebSocket(c, gameHub)
+		})
 	}
 
 	log.Println("Server running on http://localhost:8080")
 	router.Run(":8080")
 
-	terminalTesting(gameHub)
+	// terminalTesting(gameHub)
 }
 
-func terminalTesting(gameHub *lobby.GameHub) {
-	scanner := bufio.NewScanner(os.Stdin)
+// func terminalTesting(gameHub *lobby.GameHub) {
+// 	scanner := bufio.NewScanner(os.Stdin)
 
-	fmt.Println("Game terminal started. Type a word and press Enter (type 'exit' to quit):")
-	fmt.Printf("Loaded %d words\n", len(gameHub.Dictionary.WordMap))
-	fmt.Printf("Active word for this round: %s\n", gameHub.Dictionary.ActiveWord)
-	fmt.Println("Type 'new' to start a new round with a random active word")
+// 	fmt.Println("Game terminal started. Type a word and press Enter (type 'exit' to quit):")
+// 	fmt.Printf("Loaded %d words\n", len(gameHub.Dictionary.WordMap))
+// 	fmt.Printf("Active word for this round: %s\n", gameHub.Dictionary.ActiveWord)
+// 	fmt.Println("Type 'new' to start a new round with a random active word")
 
-	for {
-		fmt.Print("> ")
+// 	for {
+// 		fmt.Print("> ")
 
-		if !scanner.Scan() {
-			break
-		}
+// 		if !scanner.Scan() {
+// 			break
+// 		}
 
-		input := scanner.Text()
+// 		input := scanner.Text()
 
-		input = strings.TrimSpace(input)
+// 		input = strings.TrimSpace(input)
 
-		if input == "exit" {
-			fmt.Println("Shutting down...")
-			break
-		}
+// 		if input == "exit" {
+// 			fmt.Println("Shutting down...")
+// 			break
+// 		}
 
-		if input == "new" {
-			if err := gameHub.SetRandomActiveWord(); err != nil {
-				log.Printf("Could not start new round: %v\n", err)
-				continue
-			}
+// 		if input == "new" {
+// 			if err := gameHub.SetRandomActiveWord(); err != nil {
+// 				log.Printf("Could not start new round: %v\n", err)
+// 				continue
+// 			}
 
-			fmt.Printf("New active word: %s\n", gameHub.Dictionary.ActiveWord)
-			continue
-		}
+// 			fmt.Printf("New active word: %s\n", gameHub.Dictionary.ActiveWord)
+// 			continue
+// 		}
 
-		if wordEntry, exists := gameHub.GetWordEntry(input); exists {
-			log.Printf("Word exists: %s, Beginning of vector: %.6f \n", wordEntry.Word, wordEntry.WordVector[0])
-			distance := gameHub.Dictionary.CalculateDistance(input)
-			similarity := 1 - distance
-			log.Printf("Distance to active word '%s': %.6f\n", gameHub.Dictionary.ActiveWord, distance)
-			log.Printf("Similarity to active word '%s': %.6f\n", gameHub.Dictionary.ActiveWord, similarity)
-		} else {
-			log.Printf("Word not in dictionary: %s\n", input)
-		}
+// 		if wordEntry, exists := gameHub.GetWordEntry(input); exists {
+// 			log.Printf("Word exists: %s, Beginning of vector: %.6f \n", wordEntry.Word, wordEntry.WordVector[0])
+// 			distance := gameHub.Dictionary.CalculateDistance(input)
+// 			similarity := 1 - distance
+// 			log.Printf("Distance to active word '%s': %.6f\n", gameHub.Dictionary.ActiveWord, distance)
+// 			log.Printf("Similarity to active word '%s': %.6f\n", gameHub.Dictionary.ActiveWord, similarity)
+// 		} else {
+// 			log.Printf("Word not in dictionary: %s\n", input)
+// 		}
 
-		fmt.Printf("Backend processed word: '%s'\n", input)
-	}
+// 		fmt.Printf("Backend processed word: '%s'\n", input)
+// 	}
 
-	if err := scanner.Err(); err != nil {
-		fmt.Println("Error reading input:", err)
-	}
-}
+// 	if err := scanner.Err(); err != nil {
+// 		fmt.Println("Error reading input:", err)
+// 	}
+// }

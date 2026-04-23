@@ -37,7 +37,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws` : `ws://${process.env.NEXT_PUBLIC_LOCAL_WS_PATH}/ws`;
+    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws` : `ws://${process.env.NEXT_PUBLIC_LOCAL_WS_PATH}/ws/game`;
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
@@ -51,9 +51,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
       setConnectionError(true);
     };
 
-    ws.onclose = () => {
-      reset();
-    };
+    ws.onclose = () => reset();
 
     ws.onmessage = (event) => {
       const parsedEvent = JSON.parse(event.data) as WSRecievedEvent;

@@ -1,8 +1,12 @@
 package lobby
 
 import (
+	"encoding/json"
 	"fmt"
+	"log"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -14,8 +18,42 @@ const (
 	MAXMESSAGEWARNINGS   int   = 3
 )
 
+// writePump pumps messages from the hub to the websocket connection.
+// It listens on the client's send channel and writes the messages to the socket,
+// while also handling periodic ping messages to keep the connection alive.
 func (c *Client) WritePump() {
+	ticker := time.NewTicker(pingIntervall)
 
+	defer func() {
+		ticker.Stop()
+		c.Conn.Close()
+	}()
+
+	for {
+		select {
+		case message, ok := <-c.Send:
+			if !ok {
+				// The gamehub closed the channel
+				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
+				return
+			}
+
+			w, err := c.Conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				return
+			}
+
+			w.Write(message)
+
+			if err := w.Close(); err != nil {
+				return
+			}
+		case <-ticker.C:
+			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+				return
+			}
+		}
+	}
 }
 
 func (c *Client) ReadPump() {
@@ -35,6 +73,53 @@ func (c *Client) ReadPump() {
 	messageCount := 0
 	messageWarnings := 0
 	windowStart := time.Now()
+
+	for {
+		_, message, err := c.Conn.ReadMessage()
+
+		// If the websocket crashes
+		if err != nil {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+				log.Printf("error: %v", err)
+			}
+			break
+		}
+
+		// SOME IMPLEMENTAION OF RATE LIMITING ?
+		now := time.Now()
+		if now.Sub(windowStart) >= time.Second {
+			// Reset time window
+			messageCount = 0
+			windowStart = now
+		}
+
+		messageCount++
+		if messageCount > MAXMESSAGESPERSECOND {
+			messageWarnings++
+			messageCount = 0
+
+			log.Printf("Warning: Client %s sent packages too quickly!", c.Id)
+
+			if messageWarnings >= MAXMESSAGEWARNINGS {
+				break
+			}
+			continue
+		}
+
+		// Read what type of event
+		var event Event
+		if err := json.Unmarshal(message, &event); err != nil {
+			log.Printf("Error reading JSON: %v", err)
+			continue
+		}
+
+		// Switch case for each event
+		switch event.Type {
+		case CreateGameEvent:
+
+		case JoinGameEvent:
+		}
+	}
 }
 
 // pongHandler handles websocket pong messages by extending the read deadline,

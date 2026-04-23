@@ -1,86 +1,147 @@
 package lobby
 
 import (
-	"errors"
-	"math"
+	"log"
+	"server/util"
 	"server/words"
+	"time"
 )
 
-func NewGameHub(dictionaryFiles []string) (*GameHub, error) {
-	wordMap := words.ReadCSVFiles(dictionaryFiles)
-	if len(wordMap) == 0 {
-		return nil, errors.New("dictionary is empty")
+func NewGameHub() (*GameHub, error) {
+	dict, err := words.InitializeDictionary()
+	if err != nil {
+		return nil, err
 	}
 
 	gameHub := &GameHub{
-		Dictionary: Dictionary{
-			WordMap: wordMap,
-			RandomWord: func() (words.WordEntry, error) {
-				return words.RandomWordByAllowedPOSTypes(wordMap, words.RANDOM_WORD_ALLOWED_POS_TYPES)
-			},
-			IsValid: func(word string) bool {
-				_, exists := wordMap[word]
-				return exists
-			},
-		},
+		Dictionary: dict,
+		Clients:    make(map[*Client]bool),
+		Lobbys:     make(map[string]*GameLobby),
+		Broadcast:  make(chan []byte),
+		Register:   make(chan *Client),
+		Unregister: make(chan *Client),
 	}
 
-	gameHub.Dictionary.CalculateDistance = func(word string) float64 {
-		activeWordEntry, activeWordExists := wordMap[gameHub.Dictionary.ActiveWord]
-		guessEntry, guessExists := wordMap[word]
+	// gameHub.Dictionary.CalculateDistance = func(word string) float64 {
+	// 	activeWordEntry, activeWordExists := wordMap[gameHub.Dictionary.ActiveWord]
+	// 	guessEntry, guessExists := wordMap[word]
 
-		if !activeWordExists || !guessExists {
-			return math.NaN()
-		}
+	// 	if !activeWordExists || !guessExists {
+	// 		return math.NaN()
+	// 	}
 
-		return cosineDistance(activeWordEntry.WordVector, guessEntry.WordVector)
-	}
+	// 	return cosineDistance(activeWordEntry.WordVector, guessEntry.WordVector)
+	// }
 
-	if err := gameHub.SetRandomActiveWord(); err != nil {
-		return nil, err
-	}
+	// if err := gameHub.SetRandomActiveWord(); err != nil {
+	// 	return nil, err
+	// }
 
 	return gameHub, nil
 }
 
-func (gh *GameHub) SetRandomActiveWord() error {
-	if gh.Dictionary.RandomWord == nil {
-		return errors.New("random word provider is not configured")
-	}
+func (hub *GameHub) Run() {
+	statusTicker := time.NewTicker(30 * time.Second)
+	defer statusTicker.Stop()
 
-	entry, err := gh.Dictionary.RandomWord()
-	if err != nil {
-		return err
-	}
+	for {
+		select {
+		// New Client Joins
+		case client := <-hub.Register:
+			hub.Clients[client] = true
+			log.Printf("[Hub] Client connected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
+				client.Id,
+				len(hub.Clients),
+				len(hub.Lobbys),
+				hub.totalPlayers())
 
-	gh.Dictionary.ActiveWord = entry.Word
-	return nil
+		// Client Disconnects
+		case client := <-hub.Unregister:
+			if _, ok := hub.Clients[client]; ok {
+				if client.Lobby != nil {
+					room := client.Lobby
+					client.Lobby = nil
+					go func() { room.Unregister <- client }()
+				}
+
+				delete(hub.Clients, client)
+				close(client.Send)
+
+				log.Printf("[Hub] Client disconnected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
+					client.Id,
+					len(hub.Clients),
+					len(hub.Lobbys),
+					hub.totalPlayers())
+			}
+
+		// BroadCast A Global Message
+		case message := <-hub.Broadcast:
+			for client := range hub.Clients {
+				select {
+				case client.Send <- message:
+				default:
+					// If there was an error, close the connection
+					close(client.Send)
+					delete(hub.Clients, client)
+				}
+			}
+
+		// Periodic status log
+		case <-statusTicker.C:
+			log.Printf("[Hub] Status — Open rooms: %d | Players in rooms: %d | Connected clients: %d",
+				len(hub.Lobbys),
+				hub.totalPlayers(),
+				len(hub.Clients))
+		}
+	}
 }
 
-func (gh *GameHub) GetWordEntry(word string) (words.WordEntry, bool) {
-	entry, exists := gh.Dictionary.WordMap[word]
-	return entry, exists
+// totalPlayers calculates and returns the aggregate number of clients across all active rooms in the hub.
+func (hub *GameHub) totalPlayers() int {
+	total := 0
+	for _, room := range hub.Lobbys {
+		total += len(room.Clients)
+	}
+	return total
 }
 
-func cosineDistance(vecA []float64, vecB []float64) float64 {
-	if len(vecA) == 0 || len(vecB) == 0 || len(vecA) != len(vecB) {
-		return math.NaN()
+// CreateUniqueRoom generates a unique game code, creates a new GameRoom,
+// starts its run loop in a goroutine, and returns the generated code.
+func (hub *GameHub) CreateUniqueRoom() string {
+	hub.RoomsMutex.Lock()
+	defer hub.RoomsMutex.Unlock()
+
+	var code string
+
+	for {
+		code = util.GenerateGameCode()
+
+		if _, exists := hub.Lobbys[code]; !exists {
+			newRoom := NewLobby(code)
+			hub.Lobbys[code] = newRoom
+
+			go newRoom.Run()
+			log.Printf("[Hub] Room created (code=%s). Open rooms: %d", code, len(hub.Lobbys))
+			break
+		}
 	}
 
-	var dot float64
-	var normA float64
-	var normB float64
+	return code
+}
 
-	for i := range vecA {
-		dot += vecA[i] * vecB[i]
-		normA += vecA[i] * vecA[i]
-		normB += vecB[i] * vecB[i]
-	}
+// GetRoom retrieves and returns a pointer to the GameRoom associated with the given code.
+// It utilizes a read-write mutex to ensure thread safety.
+func (hub *GameHub) GetRoom(code string) *GameLobby {
+	hub.RoomsMutex.RLock()
+	defer hub.RoomsMutex.RUnlock()
+	return hub.Lobbys[code]
+}
 
-	if normA == 0 || normB == 0 {
-		return math.NaN()
-	}
+// DeleteRoom securely removes the GameRoom associated with the given code from the hub's active rooms.
+func (hub *GameHub) DeleteRoom(code string) {
+	hub.RoomsMutex.Lock()
+	defer hub.RoomsMutex.Unlock()
 
-	cosineSimilarity := dot / (math.Sqrt(normA) * math.Sqrt(normB))
-	return 1 - cosineSimilarity
+	delete(hub.Lobbys, code)
+	log.Printf("[Hub] Room deleted (code=%s). Open rooms: %d | Players in rooms: %d", code, len(hub.Lobbys), hub.totalPlayers())
 }
