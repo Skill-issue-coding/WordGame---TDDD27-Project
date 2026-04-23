@@ -1,4 +1,4 @@
-package lobby
+package session
 
 import (
 	"server/words"
@@ -8,30 +8,29 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type GameLobby struct {
-	ID         string           // Gamecode XXXX-XXXX
-	Clients    map[*Client]bool // All Connected Clients
-	Broadcast  chan []byte      // Broadcast messages to the clients
-	Register   chan *Client     // Client Joined The Lobby
-	Unregister chan *Client     // Client Disconnects From The Lobby
-}
+type GameState string
+
+const (
+	LobbyState  = "lobby"
+	GameStarted = "game_started"
+)
 
 type Client struct {
-	Id       uuid.UUID       // UUID Refrence
+	UserId   uuid.UUID       // UUID Refrence
 	Username string          // Username
 	Hub      *GameHub        // Gamehub Refrence
 	Conn     *websocket.Conn // Websocket Connection Refrence
 	Send     chan []byte     // Send chan to send messages to client
 	Lobby    *GameLobby      // Lobby refrence
-	Player   *Player         // Player Refrence
+	User     *User           // User Refrence
 }
 
-type Player struct {
-	ID       string `json:"id"`
+type User struct {
+	UserId   string `json:"id"`
 	Username string `json:"username"`
 	Score    int    `json:"score"`
-	IsHost   bool   `json:"isHost"`
-	// Avatar   string `json:"avatar"`
+	Team     int    `json:"team"`
+	Avatar   string `json:"avatar"`
 }
 
 type GameHub struct {
@@ -42,4 +41,22 @@ type GameHub struct {
 	Broadcast  chan []byte           // Broadcast chan
 	Register   chan *Client          // Register user chan
 	Unregister chan *Client          // Unregister user chan
+}
+type GameLobby struct {
+	ID         string           // Gamecode XXXX-XXXX
+	Clients    map[*Client]bool // All Connected Clients
+	Broadcast  chan []byte      // Broadcast messages to the clients
+	Register   chan *Client     // Client Joined The Lobby
+	Unregister chan *Client     // Client Disconnects From The Lobby
+	Host       uuid.UUID        // Client Connection That Is Host
+	BaseState  BaseState        // Base Game State
+}
+
+// BaseState holds the data EVERY game mode shares
+type BaseState struct {
+	Mode          string              `json:"mode"`
+	Phase         string              `json:"phase"` // e.g., "starting", "playing", "voting", "ended"
+	TimeRemaining float64             `json:"timeRemaining"`
+	Host          uuid.UUID           `json:"host"`
+	Players       map[uuid.UUID]*User `json:"users"`
 }

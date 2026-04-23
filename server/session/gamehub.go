@@ -50,7 +50,7 @@ func (hub *GameHub) Run() {
 		case client := <-hub.Register:
 			hub.Clients[client] = true
 			log.Printf("[Hub] Client connected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
-				client.Id,
+				client.UserId,
 				len(hub.Clients),
 				len(hub.Lobbys),
 				hub.totalPlayers())
@@ -68,7 +68,7 @@ func (hub *GameHub) Run() {
 				close(client.Send)
 
 				log.Printf("[Hub] Client disconnected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
-					client.Id,
+					client.UserId,
 					len(hub.Clients),
 					len(hub.Lobbys),
 					hub.totalPlayers())

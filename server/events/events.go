@@ -4,7 +4,7 @@ import "encoding/json"
 
 type EventType string
 
-// Go (server) -> React (client)
+// Go (server) -> Next.js (client)
 const (
 	GameCreatedEvent EventType = "lobby_created"
 	JoinedGameEvent  EventType = "joined_lobby"

@@ -7,23 +7,15 @@ import (
 	"github.com/google/uuid"
 )
 
-// BaseState holds the data EVERY game mode shares
-type BaseState struct {
-	Mode          string                        `json:"mode"`
-	Phase         string                        `json:"phase"` // e.g., "starting", "playing", "voting", "ended"
-	TimeRemaining float64                       `json:"timeRemaining"`
-	Players       map[uuid.UUID]*session.Player `json:"players"` // List of Player IDs
-}
-
 // Subject to change
 type ImpostorState struct {
-	BaseState
+	session.BaseState
 	ImpostorID   string            `json:"impostorId"`
 	SecretWord   string            `json:"secretWord"`
 	PlayerInputs map[string]string `json:"playerInputs"`
 }
 type RoyaleState struct {
-	BaseState
+	session.BaseState
 	TargetWord      string             `json:"targetWord"`
 	PlayerDistances map[string]float64 `json:"playerDistances"`
 	Eliminated      []string           `json:"eliminated"`

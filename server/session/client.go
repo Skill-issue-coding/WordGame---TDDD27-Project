@@ -99,7 +99,7 @@ func (c *Client) ReadPump() {
 			messageWarnings++
 			messageCount = 0
 
-			log.Printf("Warning: Client %s sent packages too quickly!", c.Id)
+			log.Printf("Warning: Client %s sent packages too quickly!", c.UserId)
 
 			if messageWarnings >= MAXMESSAGEWARNINGS {
 				break
@@ -118,7 +118,7 @@ func (c *Client) ReadPump() {
 		switch event.Type {
 		case events.CreateGameEvent:
 			// Get & save the username sent by the frontend & validate gamesettings
-			var createData events.CreateLobbyPayload
+			var createData CreateLobbyPayload
 			if err := json.Unmarshal(event.Payload, &createData); err != nil {
 				log.Printf("Error when reading create_game payload: %v", err)
 				continue
@@ -134,10 +134,16 @@ func (c *Client) ReadPump() {
 
 			// Create the room and register the client to the room
 			code := c.Hub.CreateUniqueRoom()
-			room := c.Hub.GetRoom(code)
+			lobby := c.Hub.GetRoom(code)
 
 			// Set host
-			room.State.Host = c.Id
+			lobby.Host = c.UserId
+
+			c.Lobby = lobby
+			lobby.Register <- c
+
+			user := User{Username: c.Username, Team: c.Player.Team, UserId: c.UserId.String()}
+			// c.Send <- events.PrepareEvent(events.GameCreatedEvent, events.CreatedLobbyResponsePayload{User: })
 
 		case events.JoinGameEvent:
 		}
