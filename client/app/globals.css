@@ -145,7 +145,7 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground font-body antialiased;
+    @apply antialiased bg-background text-foreground font-body;
   }
   html {
     @apply font-sans;
@@ -198,6 +198,6 @@
   }
 
   .game-card {
-    @apply bg-game-surface border border-border rounded-xl p-6;
+    @apply p-6 border bg-game-surface border-border rounded-xl;
   }
 }

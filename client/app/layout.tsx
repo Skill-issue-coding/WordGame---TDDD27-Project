@@ -4,6 +4,7 @@ import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { GameContextProvider } from "@/hooks/gamecontext";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -40,9 +41,24 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full", "antialiased", "dark", geistSans.variable, geistMono.variable, "font-sans", figtree.variable, geistHeading.variable, inter.variable, spaceGrotesk.variable)}>
+    <html
+      lang="en"
+      className={cn(
+        "h-full",
+        "antialiased",
+        "dark",
+        geistSans.variable,
+        geistMono.variable,
+        "font-sans",
+        figtree.variable,
+        geistHeading.variable,
+        inter.variable,
+        spaceGrotesk.variable,
+      )}>
       <body className="min-h-full flex flex-col">
-        <GameContextProvider>{children}</GameContextProvider>
+        <GameContextProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </GameContextProvider>
         <Toaster />
       </body>
     </html>
