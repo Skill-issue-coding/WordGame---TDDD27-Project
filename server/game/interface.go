@@ -31,6 +31,9 @@ type GameMode interface {
 	// Called every second (or tick) to handle time limits (e.g., 2 or 3 seconds)
 	Tick(dt time.Duration)
 
-	// Returns the current state of the game to be broadcasted to the React frontend
-	GetState() interface{}
+	// Returns the full authoritative state (server internal use).
+	GetStateInternal() interface{}
+
+	// Returns a client-facing view of state for one specific player.
+	GetStateForClient(viewerID uuid.UUID) interface{}
 }

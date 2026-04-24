@@ -13,9 +13,85 @@ The game features a standard multiplayer lobby system where players can create r
 
 ## 2. Tech Stack
 
-- **Frontend:** React (Next.js)
-- **Backend:** Go (Handles game logic, real-time WebSocket connections, lobby state, and distance calculations) with Gin as the framework.
-- **Data Preprocessing & NLP:** Python. Used for preparing data pipelines, utilizing Korp (Språkbanken), Maktbarometern, custom CSV lists, and fastText models for Swedish.
+Below is the current tech stack
+
+### 1) Preprocessing (Python)
+
+Main script: `preprocessing/main.py`
+
+Pipeline behavior:
+
+- Loads `cc.sv.300.bin` fastText model.
+- Reduces vectors to 100 dimensions.
+- Uses spaCy `sv_core_news_sm` for POS filtering.
+- Builds output CSVs into `server/wordfiles/`.
+
+Generated files expected by backend loader:
+
+- `celebrities_vectors.csv`
+- `companies_vectors.csv`
+- `kelly_vectors.csv`
+- `korp_vectors.csv`
+- `maktbarometern_vectors.csv`
+
+Data sources currently used by script logic:
+
+- Kelly XML word list
+- Company datasets
+- Celebrity dataset
+- Maktbarometern datasets
+- Korp statistics + stopword filtering
+
+Important note:
+
+Related utility:
+
+- `preprocessing/colly-crawler/` contains a Go-based scraper/formatter workflow for Maktbarometern data cleanup.
+
+### 2. Server (Go)
+
+Entry point: `server/main.go`
+
+Active routes:
+
+- `GET /api/status` -> basic health response.
+- `GET /ws/game` -> upgrades to WebSocket and registers client in hub.
+
+Current architecture:
+
+- `session.GameHub`: tracks connected clients and active lobbies.
+- `session.GameLobby`: room structure with register/unregister/broadcast channels.
+- `words.Dictionary`: in-memory map of word -> vector entry loaded from CSV files.
+- `util.CosineDistance`: similarity primitive used by gameplay.
+
+WebSocket events (currently defined):
+
+- Client -> server: `create_lobby`, `join_lobby`
+- Server -> client: `lobby_created`, `joined_lobby`, `error`, `success`
+
+Game modes:
+
+- Folder exists (`server/game/`) with interface + mode files.
+- Concrete mode logic files are currently placeholders.
+
+### 3. Client (Next.js)
+
+App routes:
+
+- `/` -> home view (`client/components/home/HomeView.tsx`)
+- `/lobby` -> lobby view (`client/components/lobby/LobbyView.tsx`)
+
+Current frontend state:
+
+- UI for room code input, create/join entry points, game mode cards, and lobby mock layout.
+- Global `GameContextProvider` opens WebSocket connection and exposes `sendMessage`.
+- Tailwind v4 + custom theme tokens + shadcn/ui primitives in use.
+
+## NLP and Language Constraints
+
+- Game semantics are Swedish-first.
+- Vector distance calculations depend on Swedish fastText vectors.
+- POS filtering and vocabulary curation are part of the preprocessing pipeline.
 
 ## 3. Game Modes
 

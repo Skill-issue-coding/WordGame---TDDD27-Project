@@ -15,6 +15,7 @@ const (
 	GameStarted = "game_started"
 )
 
+// Used for websocket connection purpose
 type Client struct {
 	UserId   uuid.UUID       // UUID Refrence
 	Username string          // Username
@@ -22,15 +23,29 @@ type Client struct {
 	Conn     *websocket.Conn // Websocket Connection Refrence
 	Send     chan []byte     // Send chan to send messages to client
 	Lobby    *GameLobby      // Lobby refrence
-	User     *User           // User Refrence
 }
 
+// User represents a client-facing user payload.
 type User struct {
 	UserId   string `json:"id"`
 	Username string `json:"username"`
 	Score    int    `json:"score"`
 	Team     int    `json:"team"`
 	Avatar   string `json:"avatar"`
+}
+
+// UserProfile stores identity/cosmetic data and is not gameplay state.
+type UserProfile struct {
+	UserId   uuid.UUID `json:"id"`
+	Username string    `json:"username"`
+	Avatar   string    `json:"avatar"`
+}
+
+// ParticipantState stores gameplay-only values for active players.
+type ParticipantState struct {
+	Score      int  `json:"score"`
+	Team       int  `json:"team"`
+	Eliminated bool `json:"eliminated"`
 }
 
 type GameHub struct {
@@ -45,18 +60,28 @@ type GameHub struct {
 type GameLobby struct {
 	ID         string           // Gamecode XXXX-XXXX
 	Clients    map[*Client]bool // All Connected Clients
-	Broadcast  chan []byte      // Broadcast messages to the clients
-	Register   chan *Client     // Client Joined The Lobby
-	Unregister chan *Client     // Client Disconnects From The Lobby
-	Host       uuid.UUID        // Client Connection That Is Host
-	BaseState  BaseState        // Base Game State
+	Profiles   map[uuid.UUID]*UserProfile
+	Broadcast  chan []byte  // Broadcast messages to the clients
+	Register   chan *Client // Client Joined The Lobby
+	Unregister chan *Client // Client Disconnects From The Lobby
+	Host       uuid.UUID    // Client Connection That Is Host
+	BaseState  BaseState    // Base Game State
 }
 
 // BaseState holds the data EVERY game mode shares
 type BaseState struct {
-	Mode          string              `json:"mode"`
-	Phase         string              `json:"phase"` // e.g., "starting", "playing", "voting", "ended"
-	TimeRemaining float64             `json:"timeRemaining"`
-	Host          uuid.UUID           `json:"host"`
-	Players       map[uuid.UUID]*User `json:"users"`
+	Mode          string                          `json:"mode"`
+	Phase         string                          `json:"phase"` // e.g., "starting", "playing", "voting", "ended"
+	TimeRemaining float64                         `json:"timeRemaining"`
+	Host          uuid.UUID                       `json:"host"`
+	Participants  map[uuid.UUID]*ParticipantState `json:"participants"`
+}
+
+// BaseStateClient is a sanitized state payload sent to frontend clients.
+type BaseStateClient struct {
+	Mode          string  `json:"mode"`
+	Phase         string  `json:"phase"`
+	TimeRemaining float64 `json:"timeRemaining"`
+	Host          string  `json:"host"`
+	Users         []User  `json:"users"`
 }

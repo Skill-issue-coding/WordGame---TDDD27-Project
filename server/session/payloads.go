@@ -8,7 +8,7 @@ type CreateLobbyPayload struct {
 
 // Go (server) -> Next.js (client)
 type CreatedLobbyResponsePayload struct {
-	GameState BaseState `json:"gamestate"`
-	User      User      `json:"user"`
-	Message   string    `json:"message"`
+	GameState BaseStateClient `json:"gamestate"`
+	User      User            `json:"user"`
+	Message   string          `json:"message"`
 }

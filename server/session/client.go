@@ -1,7 +1,6 @@
 package session
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"server/events"
@@ -12,8 +11,8 @@ import (
 )
 
 const (
-	pongWait      = 60 * time.Second
-	pingIntervall = 50 * time.Second
+	pongWait      = 40 * time.Second
+	pingIntervall = 20 * time.Second
 
 	SOCKETREADLIMIT      int64 = 1024
 	MAXMESSAGESPERSECOND int   = 30
@@ -107,9 +106,9 @@ func (c *Client) ReadPump() {
 			continue
 		}
 
-		// Read what type of event
-		var event events.Event
-		if err := json.Unmarshal(message, &event); err != nil {
+		// Read event envelope once, then decode payload by type.
+		event, err := events.ParseEvent(message)
+		if err != nil {
 			log.Printf("Error reading JSON: %v", err)
 			continue
 		}
@@ -117,16 +116,15 @@ func (c *Client) ReadPump() {
 		// Switch case for each event
 		switch event.Type {
 		case events.CreateGameEvent:
-			// Get & save the username sent by the frontend & validate gamesettings
-			var createData CreateLobbyPayload
-			if err := json.Unmarshal(event.Payload, &createData); err != nil {
+			createData, err := events.DecodePayload[CreateLobbyPayload](event)
+			if err != nil {
 				log.Printf("Error when reading create_game payload: %v", err)
 				continue
 			}
 
 			username := strings.TrimSpace(createData.Username)
 			if username == "" {
-				c.Send <- events.PrepareEvent(events.ErrorEvent, map[string]string{"message": "Användarnamnet får inte vara tomt."})
+				c.sendError("Användarnamnet får inte vara tomt.")
 				continue
 			}
 
@@ -138,14 +136,19 @@ func (c *Client) ReadPump() {
 
 			// Set host
 			lobby.Host = c.UserId
+			lobby.BaseState.Host = c.UserId
 
 			c.Lobby = lobby
 			lobby.Register <- c
 
-			user := User{Username: c.Username, Team: c.Player.Team, UserId: c.UserId.String()}
-			// c.Send <- events.PrepareEvent(events.GameCreatedEvent, events.CreatedLobbyResponsePayload{User: })
+			c.sendEvent(events.GameCreatedEvent, CreatedLobbyResponsePayload{
+				User:      User{UserId: c.UserId.String(), Username: c.Username},
+				GameState: lobby.BuildBaseStateForClient(),
+				Message:   "Du skapade ett nytt spel!"})
 
 		case events.JoinGameEvent:
+		default:
+			c.sendError("Okänd event-typ")
 		}
 	}
 }
@@ -154,4 +157,16 @@ func (c *Client) ReadPump() {
 // ensuring the connection is kept alive.
 func (c *Client) pongHandler(pongMessage string) error {
 	return c.Conn.SetReadDeadline(time.Now().Add(pongWait))
+}
+
+func (c *Client) sendEvent(eventType events.EventType, payload any) {
+	c.Send <- events.PrepareEvent(eventType, payload)
+}
+
+func (c *Client) sendSuccess(message string) {
+	c.sendEvent(events.SuccessEvent, map[string]string{"message": message})
+}
+
+func (c *Client) sendError(message string) {
+	c.sendEvent(events.ErrorEvent, map[string]string{"message": message})
 }

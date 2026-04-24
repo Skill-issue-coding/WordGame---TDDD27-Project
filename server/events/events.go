@@ -23,17 +23,38 @@ type Event struct {
 	Payload json.RawMessage `json:"payload"`
 }
 
-// PrepareEvent wraps a given payload into an Event structure with the specified EventType.
-// It returns the JSON-marshaled byte slice of the final event, ready to be sent over the socket.
-func PrepareEvent(eventType EventType, payload any) []byte {
-	payloadBytes, _ := json.Marshal(payload)
+// ParseEvent decodes a raw websocket message into an Event envelope.
+func ParseEvent(message []byte) (Event, error) {
+	var event Event
+	err := json.Unmarshal(message, &event)
+	return event, err
+}
+
+// DecodePayload decodes the event payload into the requested type.
+func DecodePayload[T any](event Event) (T, error) {
+	var out T
+	err := json.Unmarshal(event.Payload, &out)
+	return out, err
+}
+
+// EncodeEvent wraps payload in an Event envelope and encodes it to JSON.
+func EncodeEvent(eventType EventType, payload any) ([]byte, error) {
+	payloadBytes, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
 
 	updateEvent := Event{
 		Type:    eventType,
 		Payload: payloadBytes,
 	}
 
-	finalMessage, _ := json.Marshal(updateEvent)
+	return json.Marshal(updateEvent)
+}
 
+// PrepareEvent wraps a given payload into an Event structure with the specified EventType.
+// It returns the JSON-marshaled byte slice of the final event, ready to be sent over the socket.
+func PrepareEvent(eventType EventType, payload any) []byte {
+	finalMessage, _ := EncodeEvent(eventType, payload)
 	return finalMessage
 }
