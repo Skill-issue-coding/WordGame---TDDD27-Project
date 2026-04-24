@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Slider } from "../ui/slider";
 import { Label } from "../ui/label";
 import { useState } from "react";
+import { PlayerList } from "@/components/lobby/PlayerList";
 
 // 12 distinct player colors
 const PLAYER_COLORS = [
@@ -51,7 +52,8 @@ const gamemodes = [
   {
     id: "antimatch",
     title: "Anti-Matchning",
-    description: "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
+    description:
+      "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
     icon: "🎯",
     players: "3-12",
     color: "yellow" as Color,
@@ -76,14 +78,7 @@ export default function LobbyView() {
         </div>
         <div>
           <CodeDisplay code="XXXX-XXXX" />
-          <div className="mt-6 text-left border-2 game-card">
-            <h2 className="mb-4 text-sm font-semibold tracking-wider font-body text-muted-foreground">(1/12 spelare)</h2>
-            <div className="grid grid-cols-2 gap-x-4">
-              {Array.from({ length: 12 }).map((_, i) => (
-                <PlayerCard key={i} />
-              ))}
-            </div>
-          </div>
+          <PlayerList className={"mt-6"} />
         </div>
 
         <div className="flex flex-1 w-full h-full grid-cols-1 gap-4 mt-6 sm:grid-cols-2">
