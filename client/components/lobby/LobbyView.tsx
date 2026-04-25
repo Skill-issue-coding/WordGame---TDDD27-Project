@@ -1,5 +1,5 @@
 "use client";
-import { Gamepad2, ArrowLeft, User, Timer } from "lucide-react";
+import { Gamepad2, ArrowLeft, User, Timer, Play, BookOpenText } from "lucide-react";
 import GameModeCard, { Color } from "@/components/lobby/GameModeCard";
 import CodeDisplay from "@/components/lobby/CodeDisplay";
 import Link from "next/link";
@@ -7,6 +7,8 @@ import { Slider } from "../ui/slider";
 import { Label } from "../ui/label";
 import { useState } from "react";
 import { PlayerList } from "@/components/lobby/PlayerList";
+import { SettingsPanel } from "@/components/lobby/GameSettings";
+import { Button } from "@/components/ui/button";
 
 // 12 distinct player colors
 const PLAYER_COLORS = [
@@ -66,7 +68,7 @@ export default function LobbyView() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-3xl animate-slide-up">
-        <div className="flex items-center flex-1 mb-12 text-center">
+        <div className="flex items-center flex-1 mb-8 text-center">
           <Link href="/" className="flex items-center w-full h-full">
             <button className="flex items-center gap-2 transition-colors cursor-pointer text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
@@ -79,8 +81,20 @@ export default function LobbyView() {
         <div>
           <CodeDisplay code="XXXX-XXXX" />
           <PlayerList className={"mt-6"} />
-        </div>
+          <SettingsPanel className={"mt-6"} />
+          <div className="flex flex-col sm:flex-row mt-6 gap-6">
+            <Button variant="outline" size="xl" className="gap-2 flex-1 min-h-11">
+              Snabb Guide
+              <BookOpenText />
+            </Button>
 
+            <Button variant="neonGreen" size="xl" className="gap-2 flex-1 min-h-11">
+              Starta
+              <Play />
+            </Button>
+          </div>
+        </div>
+        {/*
         <div className="flex flex-1 w-full h-full grid-cols-1 gap-4 mt-6 sm:grid-cols-2">
           <div className="flex flex-col w-full gap-2 p-4 px-8 border-2 flex-5 bg-game-surface">
             <div className="flex justify-center gap-2 pb-6">
@@ -120,6 +134,7 @@ export default function LobbyView() {
             ))}
           </div>
         </div>
+        */}
       </div>
     </div>
   );

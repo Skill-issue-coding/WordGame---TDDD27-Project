@@ -24,8 +24,8 @@ const MOCK_PLAYERS: MockPlayer[] = [
   { userId: "8", username: "Hannes", isHost: false },
   { userId: "9", username: "Ingrid", isHost: false },
   { userId: "10", username: "John", isHost: false },
-  { userId: "11", username: "Klara", isHost: false },
-  { userId: "12", username: "Leo", isHost: false },
+  //{ userId: "11", username: "Klara", isHost: false },
+  //{ userId: "12", username: "Leo", isHost: false },
 ];
 
 interface PlayerListProps {
@@ -76,6 +76,19 @@ function PlayerCard({ player }: { player: MockPlayer }) {
   );
 }
 
+function EmptySlot() {
+  return (
+    <div className="flex items-center px-4 py-3 border border-dashed gap-4 rounded-xl border-border/90 opacity-90 bg-muted/5">
+      <div className="w-10 h-10 rounded-full border border-dashed border-border/50 shrink-0 bg-muted/10 flex items-center justify-center text-muted-foreground/30">
+        ?
+      </div>
+      <div className="flex-1">
+        <span className="text-sm italic text-muted-foreground/40">Väntar på spelare...</span>
+      </div>
+    </div>
+  );
+}
+
 export function PlayerList({ className }: PlayerListProps) {
   /*
     const { gamestate, user } = useGameContext();
@@ -94,6 +107,9 @@ export function PlayerList({ className }: PlayerListProps) {
     });
   */
 
+  const MAX_SLOTS = 12;
+  const emptySlotsCount = Math.max(0, MAX_SLOTS - MOCK_PLAYERS.length);
+
   return (
     <div className={cn("flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border", className)}>
       <div className="flex flex-col gap-4">
@@ -103,9 +119,12 @@ export function PlayerList({ className }: PlayerListProps) {
           {/* teamAPlayers */}
         </div>
         {/* teamAPlayers */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {MOCK_PLAYERS.map((player) => (
             <PlayerCard key={player.userId} player={player} /*{...player} isHost={player.userId === gamestate.host}*/ />
+          ))}
+          {Array.from({ length: emptySlotsCount }).map((_, index) => (
+            <EmptySlot key={`empty-${index}`} />
           ))}
         </div>
       </div>
