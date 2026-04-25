@@ -101,19 +101,8 @@ func (lobby *GameLobby) RemoveParticipant(userID uuid.UUID) {
 // BuildUserList creates a deterministic user list for client payloads.
 func (lobby *GameLobby) BuildUserList() map[uuid.UUID]User {
 	var users map[uuid.UUID]User = make(map[uuid.UUID]User)
-	for id, participant := range lobby.BaseState.Participants {
-		profile, ok := lobby.Profiles[id]
-		if !ok {
-			continue
-		}
-
-		users[id] = User{
-			UserId:   id.String(),
-			Username: profile.Username,
-			Score:    participant.Score,
-			Team:     participant.Team,
-			Avatar:   profile.Avatar,
-		}
+	for id := range lobby.BaseState.Participants {
+		users[id] = lobby.BuildUser(id)
 	}
 
 	return users
