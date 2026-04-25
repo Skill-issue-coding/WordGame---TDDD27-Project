@@ -3,7 +3,6 @@ package session
 import (
 	"log"
 	"server/events"
-	"sort"
 	"time"
 
 	"github.com/google/uuid"
@@ -100,26 +99,22 @@ func (lobby *GameLobby) RemoveParticipant(userID uuid.UUID) {
 }
 
 // BuildUserList creates a deterministic user list for client payloads.
-func (lobby *GameLobby) BuildUserList() []User {
-	users := make([]User, 0, len(lobby.BaseState.Participants))
+func (lobby *GameLobby) BuildUserList() map[uuid.UUID]User {
+	var users map[uuid.UUID]User = make(map[uuid.UUID]User)
 	for id, participant := range lobby.BaseState.Participants {
 		profile, ok := lobby.Profiles[id]
 		if !ok {
 			continue
 		}
 
-		users = append(users, User{
+		users[id] = User{
 			UserId:   id.String(),
 			Username: profile.Username,
 			Score:    participant.Score,
 			Team:     participant.Team,
 			Avatar:   profile.Avatar,
-		})
+		}
 	}
-
-	sort.Slice(users, func(i, j int) bool {
-		return users[i].Username < users[j].Username
-	})
 
 	return users
 }
@@ -147,10 +142,11 @@ func (lobby *GameLobby) BuildUser(userID uuid.UUID) User {
 
 func (lobby *GameLobby) BuildBaseStateForClient() BaseStateClient {
 	return BaseStateClient{
-		Mode:          lobby.BaseState.Mode,
-		Phase:         lobby.BaseState.Phase,
-		TimeRemaining: lobby.BaseState.TimeRemaining,
-		Host:          lobby.BaseState.Host.String(),
-		Users:         lobby.BuildUserList(),
+		Mode:      lobby.BaseState.Mode,
+		Phase:     lobby.BaseState.Phase,
+		StartTime: lobby.BaseState.StartTime,
+		EndTime:   lobby.BaseState.EndTime,
+		Host:      lobby.BaseState.Host.String(),
+		Users:     lobby.BuildUserList(),
 	}
 }

@@ -159,14 +159,17 @@ func (c *Client) pongHandler(pongMessage string) error {
 	return c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 }
 
+// Helper function to send events to the client
 func (c *Client) sendEvent(eventType events.EventType, payload any) {
 	c.Send <- events.PrepareEvent(eventType, payload)
 }
 
+// Helper function to just send a "Success Event"
 func (c *Client) sendSuccess(message string) {
 	c.sendEvent(events.SuccessEvent, map[string]string{"message": message})
 }
 
+// Helper function to just send a "Error Event"
 func (c *Client) sendError(message string) {
 	c.sendEvent(events.ErrorEvent, map[string]string{"message": message})
 }
