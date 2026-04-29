@@ -17,12 +17,28 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
+  --color-sidebar-background: var(--sidebar);
+
+  /* Playful game accent palette */
+  --color-game-pink: oklch(0.6804 0.1997 3.63);
+  --color-game-blue: oklch(0.6737 0.1689 251.89);
+  --color-game-yellow: oklch(0.866574 0.164655 88.6837);
+  --color-game-green: oklch(0.7567 0.18 154.63);
+  --color-game-purple: oklch(0.5622 0.2426 290.05);
+  --color-game-orange: oklch(0.726 0.1708 47.43);
+
+  /* Contexto-style distance heat colors */
+  --color-heat-hot: oklch(0.7542 0.1927 151.24);
+  --color-heat-warm: oklch(0.8612 0.1676 87.99);
+  --color-heat-cold: oklch(0.646 0.1914 24.21);
+
+  /*
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -47,55 +63,56 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  --color-neon-blue: var(--neon-blue);
-  --color-neon-pink: var(--neon-pink);
-  --color-neon-yellow: var(--neon-yellow);
-  --color-neon-green: var(--neon-green);
   --color-game-surface: var(--game-surface);
+  --color-game-shadow: var(--game-shadow);
 
   --font-body: var(--font-inter);
   --font-display: var(--font-space-grotesk);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
+  --background: oklch(0.9746 0.0044 264.54);
+  --foreground: oklch(0.2751 0.0359 275.1);
+  
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --card-foreground: oklch(0.2751 0.0359 275.1);
 
-  --neon-blue: oklch(0.7294 0.1585 238.7);
-  --neon-pink: oklch(0.6942 0.2264 354.05);
-  --neon-yellow: oklch(0.9 0.1739 96.86);
-  --neon-green: oklch(0.8824 0.1992 160.14);
-  --game-surface: oklch(0.2428 0.0231 277.17);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2751 0.0359 275.1);
+
+  /* trying blue */
+  --primary: oklch(0.4225 0.2557 275.1);
+  --primary-foreground: oklch(1 0 0);
+
+  /* trying red */
+  --secondary: oklch(0.3931 0.1496 32.47);
+  --secondary-foreground: oklch(0.2751 0.0359 275.1);
+
+  --muted: oklch(0.9508 0.0059 264.53);
+  --muted-foreground: oklch(0.5273 0.0365 276.2);
+
+  --accent: oklch(0.7951 0.1631 68.64);
+  --accent-foreground: oklch(0.2751 0.0359 275.1);
+
+  --destructive: oklch(0.6333 0.2001 24.93);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.8969 0.0141 277.04);
+  --input: oklch(0.9143 0.0116 277.08);
+  --ring: oklch(0.5622 0.2426 290.05);
+  --radius: 1rem;
+
+  --game-surface: oklch(1 0 0);
+  --game-shadow: oklch(0.288 0.0473 274.44);
+
+  --sidebar-background: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.2751 0.0359 275.1);
+  --sidebar-primary: oklch(0.5622 0.2426 290.05);
+  --sidebar-primary-foreground: oklch(1 0 0);
+  --sidebar-accent: oklch(0.9508 0.0059 264.53);
+  --sidebar-accent-foreground: oklch(0.2751 0.0359 275.1);
+  --sidebar-border: oklch(0.8969 0.0141 277.04);
+  --sidebar-ring: oklch(0.5622 0.2426 290.05);
 }
 
 .dark {
