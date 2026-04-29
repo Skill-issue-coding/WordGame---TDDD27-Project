@@ -55,5 +55,5 @@ flowchart TD
 
     %% FILE REFERENCES
     click WD "https://github.com/Skill-issue-coding/WordGame---TDDD27-Project/tree/word-processing/preprocessing/sparql/sparql.py" "Click to view file"
-    click MB "./maktbarometern/" "Click to view file"
+    click MB "https://github.com/Skill-issue-coding/WordGame---TDDD27-Project/tree/word-processing/preprocessing/maktbarometern/" "Click to view files"
 ```
