@@ -1,0 +1,32 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+
+SELECT DISTINCT ?artist ?artistLabel ?sitelinks WHERE {
+  # 1. Start with Swedish Wikipedia
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?artist .
+
+  # 2. Music group OR human musician check
+  {
+    ?artist wdt:P31 wd:Q215380 .
+    ?artist wdt:P17 wd:Q34 .
+  }
+  UNION
+  {
+    ?artist wdt:P31 wd:Q5 .
+    ?artist wdt:P27 wd:Q34 .
+    ?artist wdt:P106/wdt:P279* wd:Q639669 .  # occupation: musician
+  }
+
+  ?artist wikibase:sitelinks ?sitelinks.
+  FILTER(?sitelinks > 5)
+
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "sv".
+  }
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 500

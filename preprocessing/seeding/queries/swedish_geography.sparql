@@ -1,0 +1,21 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+
+SELECT DISTINCT ?place ?placeLabel ?sitelinks WHERE {
+  VALUES ?placeType {
+    wd:Q515        # city
+    wd:Q192211     # province of Sweden (Landskap)
+    wd:Q23397      # lake
+    wd:Q23442      # island
+    wd:Q8502       # mountain
+  }
+  ?place wdt:P31/wdt:P279* ?placeType .
+  ?place wdt:P17 wd:Q34 .
+
+  ?place wikibase:sitelinks ?sitelinks.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv". }
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 500

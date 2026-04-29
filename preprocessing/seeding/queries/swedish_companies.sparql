@@ -1,0 +1,31 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+
+SELECT DISTINCT ?company ?companyLabel ?sitelinks WHERE {
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?company .
+
+  # Direct instances only (wdt:P31) to prevent timeouts
+  VALUES ?companyType {
+    wd:Q270791    # supermarket chain
+    wd:Q180792    # department store
+    wd:Q1780004   # retail chain
+    wd:Q212108    # restaurant chain
+    wd:Q22687     # bank
+    wd:Q1750662   # transport company
+    wd:Q245081    # clothing brand
+    wd:Q6881511   # enterprise
+    wd:Q783794    # company
+    wd:Q891723    # public company
+  }
+  ?company wdt:P31 ?companyType .
+  ?company wdt:P17 wd:Q34 . 
+
+  ?company wikibase:sitelinks ?sitelinks.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 400

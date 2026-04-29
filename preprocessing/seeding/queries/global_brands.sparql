@@ -1,0 +1,27 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+
+SELECT DISTINCT ?brand ?brandLabel ?sitelinks WHERE {
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?brand .
+
+  # Direct instances only to prevent timeouts
+  VALUES ?brandType {
+    wd:Q4830453   # business enterprise
+    wd:Q431289    # brand
+    wd:Q783794    # company
+    wd:Q6881511   # enterprise
+    wd:Q891723    # public company
+  }
+  ?brand wdt:P31 ?brandType .
+
+  ?brand wikibase:sitelinks ?sitelinks.
+  FILTER(?sitelinks > 30)
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
+}
+ORDER BY DESC(?sitelinks) 
+LIMIT 500

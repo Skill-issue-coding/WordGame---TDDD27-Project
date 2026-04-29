@@ -1,5 +1,9 @@
 # Word Preprocessing - Python
 
+## Prerequisites
+
+- Python 3.13+
+
 ## Overview of the pipeline
 
 ```mermaid
@@ -54,6 +58,6 @@ flowchart TD
     style S5 fill:transparent,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
 
     %% FILE REFERENCES
-    click WD "https://github.com/Skill-issue-coding/WordGame---TDDD27-Project/tree/word-processing/preprocessing/sparql/sparql.py" "Click to view file"
+    click WD "https://github.com/Skill-issue-coding/WordGame---TDDD27-Project/tree/word-processing/preprocessing/seeding/" "Click to view files"
     click MB "https://github.com/Skill-issue-coding/WordGame---TDDD27-Project/tree/word-processing/preprocessing/maktbarometern/" "Click to view files"
 ```

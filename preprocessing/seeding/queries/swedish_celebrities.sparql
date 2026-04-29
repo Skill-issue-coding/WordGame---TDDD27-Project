@@ -1,0 +1,28 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT DISTINCT ?person ?personLabel ?sitelinks ?birthDate WHERE {
+  # 1. Start with Swedish Wikipedia
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?person .
+
+  ?person wdt:P31 wd:Q5 .
+  ?person wdt:P27 wd:Q34 .
+  ?person wdt:P569 ?birthDate .
+
+  ?person wikibase:sitelinks ?sitelinks.
+  FILTER(
+    ?sitelinks > 3 && ?sitelinks < 50 &&
+    ?birthDate >= "1990-01-01T00:00:00Z"^^xsd:dateTime
+  )
+
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "sv".
+  }
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 500

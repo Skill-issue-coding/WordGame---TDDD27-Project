@@ -1,0 +1,23 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+
+SELECT DISTINCT ?game ?gameLabel ?sitelinks WHERE {
+  # 1. Start with Swedish Wikipedia
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?game .
+
+  # 2. instance of: video game
+  ?game wdt:P31/wdt:P279* wd:Q7889 .
+
+  ?game wikibase:sitelinks ?sitelinks.
+  FILTER(?sitelinks > 10)
+
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "sv".
+  }
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 400

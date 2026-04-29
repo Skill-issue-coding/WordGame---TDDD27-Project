@@ -1,0 +1,27 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+
+SELECT DISTINCT ?work ?workLabel ?sitelinks WHERE {
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?work .
+
+  VALUES ?workType {
+    wd:Q11424      # film
+    wd:Q5398426    # television series
+    wd:Q15416      # television program
+  }
+  ?work wdt:P31/wdt:P279* ?workType .
+  
+  # Must be a Swedish production
+  ?work wdt:P495 wd:Q34 .
+
+  ?work wikibase:sitelinks ?sitelinks.
+  FILTER(?sitelinks > 1) 
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 500

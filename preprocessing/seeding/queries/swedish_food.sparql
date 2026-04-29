@@ -1,0 +1,29 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+
+SELECT DISTINCT ?food ?foodLabel ?sitelinks WHERE {
+  # Must have a Swedish Wiki page (proves it's known in Sweden)
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?food .
+
+  VALUES ?foodType {
+    wd:Q2095       # food
+    wd:Q178359     # drink
+    wd:Q746549     # dish
+    wd:Q213441     # candy
+    wd:Q132710     # pastry/baked good
+    wd:Q28113351   # fast food
+  }
+  ?food wdt:P31/wdt:P279* ?foodType .
+
+  ?food wikibase:sitelinks ?sitelinks.
+  FILTER(?sitelinks > 5)
+
+  # Fallback to English if Swedish label is missing
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
+}
+ORDER BY DESC(?sitelinks)
+LIMIT 400
