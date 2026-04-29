@@ -54,6 +54,6 @@ flowchart TD
     style S5 fill:transparent,stroke:#333,stroke-width:2px,stroke-dasharray: 5 5
 
     %% FILE REFERENCES
-    click WD "./sparql/sparql.py"
-    click MB "./maktbarometern/"
+    click WD "preprocessing/sparql/sparql.py" "Click to view file"
+    click MB "./maktbarometern/" "Click to view file"
 ```
