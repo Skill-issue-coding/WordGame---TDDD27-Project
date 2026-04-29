@@ -1,9 +1,7 @@
 import random
 import time
 from typing import Dict, Iterable, List
-
 from SPARQLWrapper import JSON, SPARQLWrapper
-
 from queries import Query, QUERIES, get_query
 
 ENDPOINT = "https://query.wikidata.org/sparql"
