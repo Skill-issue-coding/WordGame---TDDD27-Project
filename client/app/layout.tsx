@@ -5,6 +5,9 @@ import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
 import { GameContextProvider } from "@/hooks/gamecontext";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import UserProfileButton from "@/components/user/UserProfileButton";
+import { UserProvider } from "@/contexts/UserContext";
+import { ThemeProvider } from "next-themes";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -43,6 +46,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
+      suppressHydrationWarning
       className={cn(
         "h-full",
         "antialiased",
@@ -55,10 +59,17 @@ export default function RootLayout({
         spaceGrotesk.variable,
       )}>
       <body className="min-h-full flex flex-col">
-        <GameContextProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-        </GameContextProvider>
-        <Toaster />
+        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <UserProvider>
+            <GameContextProvider>
+              <TooltipProvider>
+                {children}
+                <UserProfileButton />
+              </TooltipProvider>
+            </GameContextProvider>
+          </UserProvider>
+          <Toaster />
+        </ThemeProvider>
       </body>
     </html>
   );
