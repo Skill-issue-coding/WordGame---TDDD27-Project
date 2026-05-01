@@ -55,20 +55,18 @@ export default function UserProfileButton() {
       <button
         onClick={() => handleOpen(true)}
         aria-label="Edit profile"
-        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center font-display font-bold text-xl text-white border-4 border-card transition-transform hover:scale-110 active:scale-95"
+        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center cursor-pointer font-body font-bold text-xl text-white border-4 border-card transition-transform hover:scale-110 active:scale-95"
         style={{
           backgroundColor: color,
-          boxShadow: `0 4px 0 0 ${color}88, 0 8px 20px hsl(var(--game-shadow) / 0.2)`,
+          boxShadow: `0 4px 0 0 ${color}88, 0 8px 20px oklch(0.2738 0.0358 274.66 / 0.2)`,
         }}>
         {username.charAt(0).toUpperCase()}
       </button>
 
       <Dialog open={open} onOpenChange={handleOpen}>
-        <DialogContent className="rounded-3xl border-2">
+        <DialogContent className="border-2">
           <DialogHeader>
-            <DialogTitle className="font-display text-2xl flex items-center gap-2">
-              <span>👤</span> Din Profil
-            </DialogTitle>
+            <DialogTitle className="font-display font-bold text-2xl flex items-center gap-2">Din Profil</DialogTitle>
             <DialogDescription className="font-display font-semibold">
               Välj ett namn och en färg andra spelare får se.
             </DialogDescription>
@@ -76,7 +74,7 @@ export default function UserProfileButton() {
 
           <div className="flex flex-col items-center gap-4 py-2">
             <div
-              className="w-24 h-24 rounded-full flex items-center justify-center font-display font-bold text-4xl text-white border-4 border-card"
+              className="w-24 h-24 rounded-full flex items-center justify-center font-body font-bold text-4xl text-white border-4 border-card"
               style={{
                 backgroundColor: draftColor,
                 boxShadow: `0 4px 0 0 ${draftColor}88`,
@@ -93,7 +91,7 @@ export default function UserProfileButton() {
                 onChange={(e) => setDraftName(e.target.value)}
                 placeholder="Enter a username"
                 maxLength={16}
-                className="font-display text-lg font-bold h-12 border-2 rounded-2xl text-center"
+                className="font-body text-lg font-bold h-12 border-2 rounded-lg text-center bg-muted"
                 autoFocus
               />
               <p className="text-xs text-muted-foreground font-display mt-1 text-right">{draftName.length}/16</p>
@@ -109,7 +107,7 @@ export default function UserProfileButton() {
                     key={c}
                     onClick={() => setDraftColor(c)}
                     className={cn(
-                      "aspect-square rounded-xl flex items-center justify-center transition-transform hover:scale-110",
+                      "aspect-square rounded-lg flex items-center justify-center transition-transform hover:scale-110 cursor-pointer",
                       draftColor === c && "ring-2 ring-offset-2 ring-offset-background ring-foreground scale-110",
                     )}
                     style={{ backgroundColor: c }}
@@ -125,7 +123,10 @@ export default function UserProfileButton() {
                 Tema
               </label>
 
-              <Button variant="glass" onClick={toggleTheme} className="w-full justify-start gap-3 h-12">
+              <Button
+                variant="glass"
+                onClick={toggleTheme}
+                className="w-full font-body font-bold justify-start gap-3 h-12">
                 {theme === "light" ? (
                   <>
                     <Sun className="w-5 h-5 text-game-yellow" />
@@ -144,10 +145,10 @@ export default function UserProfileButton() {
           </div>
 
           <DialogFooter className="gap-2 sm:gap-2">
-            <Button variant="glass" onClick={() => setOpen(false)} className="flex-1">
+            <Button variant="glass" onClick={() => setOpen(false)} className="flex-1 font-bold font-body">
               Avbryt
             </Button>
-            <Button onClick={handleSave} disabled={!draftName.trim()} className="flex-1">
+            <Button onClick={handleSave} disabled={!draftName.trim()} className="flex-1 font-bold font-body">
               Spara
             </Button>
           </DialogFooter>

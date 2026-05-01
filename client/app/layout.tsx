@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono, Figtree, Inter, Space_Grotesk } from "next/font/google";
+import { Geist, Geist_Mono, Figtree, Inter, Space_Grotesk, Fredoka, Nunito } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { Toaster } from "sonner";
@@ -8,6 +8,18 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import UserProfileButton from "@/components/user/UserProfileButton";
 import { UserProvider } from "@/contexts/UserContext";
 import { ThemeProvider } from "next-themes";
+
+const fredoka = Fredoka({
+  subsets: ["latin"],
+  variable: "--font-fredoka",
+  weight: ["400", "500", "600", "700"],
+});
+
+const nunito = Nunito({
+  subsets: ["latin"],
+  variable: "--font-nunito",
+  weight: ["400", "600", "700", "800", "900"],
+});
 
 const inter = Inter({
   subsets: ["latin"],
@@ -57,6 +69,8 @@ export default function RootLayout({
         geistHeading.variable,
         inter.variable,
         spaceGrotesk.variable,
+        fredoka.variable,
+        nunito.variable,
       )}>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
