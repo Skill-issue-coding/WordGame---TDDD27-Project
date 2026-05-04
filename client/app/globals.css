@@ -236,7 +236,7 @@
   }
 
   .game-tile {
-    @apply bg-card border-2 border-border rounded-xl;
+    @apply bg-card border-2 border-border rounded-sm;
     box-shadow: 0 3px 0 0 oklch(0.2886 0.0464 274.51 / 0.1);
   }
 

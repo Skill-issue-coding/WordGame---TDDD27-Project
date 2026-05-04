@@ -5,6 +5,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
 import { Info, Timer, RefreshCw } from "lucide-react";
 import { useState } from "react";
+import CodeDisplay from "@/components/lobby/CodeDisplay";
 
 interface SettingsPanelProps {
   className?: string;
@@ -100,15 +101,18 @@ function GameSettings() {
 
 export function SettingsPanel({ className }: SettingsPanelProps) {
   return (
-    <div className={cn("flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border", className)}>
+    <div className={cn("game-card flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border", className)}>
       <div className="flex flex-col gap-4">
+        <CodeDisplay code="XXXX-XXXX" />
         <div className="flex items-center justify-between">
-          <p className="text-base font-bold text-foreground">Spelläge</p>
-          <Info className="text-muted-foreground" />
+          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelläge</p>
+          {/*<Info className="text-muted-foreground" />*/}
         </div>
         <GameMode />
         <div className="flex items-center justify-between">
-          <p className="text-base font-bold text-foreground">Spelinställningar</p>
+          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">
+            Spelinställningar
+          </p>
           {/*<Info className="text-muted-foreground" />*/}
         </div>
         <GameSettings />

@@ -1,7 +1,6 @@
 "use client";
 import { Gamepad2, ArrowLeft, User, Timer, Play, BookOpenText } from "lucide-react";
 import GameModeCard, { Color } from "@/components/lobby/GameModeCard";
-import CodeDisplay from "@/components/lobby/CodeDisplay";
 import Link from "next/link";
 import { Slider } from "../ui/slider";
 import { Label } from "../ui/label";
@@ -67,8 +66,8 @@ export default function LobbyView() {
   const [gametime, setGametime] = useState(10);
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
-      <div className="w-full max-w-3xl animate-slide-up">
-        <div className="flex items-center flex-1 mb-8 text-center">
+      <div className="w-full max-w-4xl animate-slide-up">
+        <div className="flex items-center flex-1 mb-6 text-center">
           <Link href="/" className="flex items-center w-full h-full">
             <button className="flex items-center gap-2 transition-colors cursor-pointer text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
@@ -81,62 +80,22 @@ export default function LobbyView() {
           <div className="w-full" />
         </div>
         <div>
-          <CodeDisplay code="XXXX-XXXX" />
-          <PlayerList className={"mt-6"} />
-          <SettingsPanel className={"mt-6"} />
+          <div className="flex flex-col sm:grid sm:grid-cols-5 gap-6">
+            <SettingsPanel className={"sm:col-span-3"} />
+            <PlayerList className={"sm:col-span-2"} />
+          </div>
           <div className="flex flex-col sm:flex-row mt-6 gap-6">
-            <Button variant="outline" size="xl" className="gap-2 flex-1 min-h-11">
+            <Button variant="glass" size="lg" className="gap-2 flex-1 min-h-12 font-body">
               Snabb Guide
               <BookOpenText />
             </Button>
 
-            <Button variant="outline" size="xl" className="gap-2 flex-1 min-h-11">
+            <Button size="lg" className="gap-2 flex-1 min-h-12 font-body">
               Starta
               <Play />
             </Button>
           </div>
         </div>
-        {/*
-        <div className="flex flex-1 w-full h-full grid-cols-1 gap-4 mt-6 sm:grid-cols-2">
-          <div className="flex flex-col w-full gap-2 p-4 px-8 border-2 flex-5 bg-game-surface">
-            <div className="flex justify-center gap-2 pb-6">
-              <h2 className="text-2xl font-bold font-display text-glow-green text-neon-green">Spel inställningar</h2>
-              <Gamepad2 className="w-8 h-8 text-neon-green" />
-            </div>
-            <div className="flex flex-col flex-1 gap-6">
-              <div className="flex items-center">
-                <h3 className="font-bold font-display text-neon-green"> Gamemode: </h3>
-              </div>
-              <div className="flex flex-col w-full gap-3">
-                <div className="flex w-full gap-2">
-                  <Timer className="font-bold font-display text-neon-green size-5 aspect-square " />
-                  <Label htmlFor="game-time-slider" className="font-bold font-display text-neon-green">
-                    Speltid:
-                  </Label>
-                </div>
-                <div className="flex w-full gap-6 flex-start">
-                  <Slider
-                    name="game-time-slider"
-                    id="game-time-slider"
-                    min={5}
-                    max={30}
-                    step={1}
-                    value={[gametime]}
-                    onValueChange={([v]) => setGametime(v)}
-                    className="w-full"
-                  />
-                  <p>{gametime}min</p>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4 flex-4">
-            {gamemodes.map((mode) => (
-              <GameModeCard key={mode.id} {...mode} />
-            ))}
-          </div>
-        </div>
-        */}
       </div>
     </div>
   );
