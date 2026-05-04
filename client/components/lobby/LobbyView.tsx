@@ -75,7 +75,9 @@ export default function LobbyView() {
               <span className="text-sm">Tillbaka</span>
             </button>
           </Link>
-          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-neon-green">XXXX's rum</h1>
+          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">
+            XXXX's rum
+          </h1>
           <div className="w-full" />
         </div>
         <div>
@@ -88,7 +90,7 @@ export default function LobbyView() {
               <BookOpenText />
             </Button>
 
-            <Button variant="neonGreen" size="xl" className="gap-2 flex-1 min-h-11">
+            <Button variant="outline" size="xl" className="gap-2 flex-1 min-h-11">
               Starta
               <Play />
             </Button>

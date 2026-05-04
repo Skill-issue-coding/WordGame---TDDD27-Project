@@ -31,7 +31,9 @@ export default function HomeView() {
               Ordio<span className="text-game-pink">Arena</span>
             </h1>
           </div>
-          <p className="text-muted-foreground text-base font-display font-semibold">Snabbtänkt multiplayer ordspel</p>
+          <p className="text-muted-foreground text-base font-display font-semibold">
+            Snabbtänkt multiplayer ordspel
+          </p>
         </div>
 
         <div className="game-card border-game-blue/30 mt-2">
@@ -57,7 +59,9 @@ export default function HomeView() {
 
         <div className="flex items-center gap-3 mt-1.5">
           <div className="flex-1 h-px bg-border" />
-          <span className="font-display font-bold text-xs text-muted-foreground uppercase tracking-widest">eller</span>
+          <span className="font-display font-bold text-xs text-muted-foreground uppercase tracking-widest">
+            eller
+          </span>
           <div className="flex-1 h-px bg-border" />
         </div>
 

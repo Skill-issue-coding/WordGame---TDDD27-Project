@@ -22,33 +22,33 @@ function GameMode() {
       <ToggleGroupItem
         value="top"
         aria-label="Imposter game"
-        className="data-[state=on]:border-neon-pink hover:border-neon-pink/60 data-[state=on]:glow-border-pink/30 cursor-pointer">
-        <span className="text-neon-pink">🕵️ Hitta Impostern</span>
+        className="data-[state=on]:border-neon-pink hover:border-neon-pink/60 data-[state=on]:border-game-red cursor-pointer">
+        <span className="text-game-red">🕵️ Hitta Impostern</span>
       </ToggleGroupItem>
       <ToggleGroupItem
         value="bottom"
         aria-label="Kontext battle"
-        className="data-[state=on]:border-neon-blue hover:border-neon-blue/60 data-[state=on]:glow-border-blue/30 cursor-pointer">
-        <span className="text-neon-blue">🧠 Kontext Strid</span>
+        className="data-[state=on]:border-neon-blue hover:border-neon-blue/60 data-[state=on]:border-game-blue cursor-pointer">
+        <span className="text-game-blue">🧠 Kontext Strid</span>
       </ToggleGroupItem>
       <ToggleGroupItem
         value="left"
         aria-label="Synonym duel"
-        className="data-[state=on]:border-neon-green hover:border-neon-green/60 data-[state=on]:glow-border-green/30 cursor-pointer">
-        <span className="text-neon-green">⚔️ Synonym Duell</span>
+        className="data-[state=on]:border-neon-green hover:border-neon-green/60 data-[state=on]:border-game-green cursor-pointer">
+        <span className="text-game-green">⚔️ Synonym Duell</span>
       </ToggleGroupItem>
       <ToggleGroupItem
         value="right"
         aria-label="Anti-match"
-        className="data-[state=on]:border-neon-yellow hover:border-neon-yellow/60 data-[state=on]:glow-border-yellow/30 cursor-pointer">
-        <span className="text-neon-yellow">🎯 Anti-matchning</span>
+        className="data-[state=on]:border-neon-yellow hover:border-neon-yellow/60 data-[state=on]:border-game-yellow cursor-pointer">
+        <span className="text-game-yellow">🎯 Anti-matchning</span>
       </ToggleGroupItem>
     </ToggleGroup>
   );
 }
 
 function GameSettings() {
-  const [roundTime, setRoundTime] = useState(10);
+  const [roundTime, setRoundTime] = useState(30);
   const [gameRounds, setGameRounds] = useState(3);
   return (
     <div className="flex flex-col sm:flex-row w-full gap-8">
@@ -61,14 +61,16 @@ function GameSettings() {
           <Slider
             name="game-time-slider"
             id="game-time-slider"
-            min={5}
-            max={30}
-            step={1}
+            min={10}
+            max={60}
+            step={5}
             value={[roundTime]}
             onValueChange={([v]) => setRoundTime(v)}
             className="flex-1"
           />
-          <span className=" text-sm font-bold text-right text-foreground tabular-nums">{roundTime} s</span>
+          <span className=" text-sm font-bold text-right text-foreground tabular-nums">
+            {roundTime} s
+          </span>
         </div>
       </div>
       <div className="flex flex-col gap-2.5 flex-1">
@@ -87,7 +89,9 @@ function GameSettings() {
             onValueChange={([v]) => setGameRounds(v)}
             className="flex-1"
           />
-          <span className=" text-sm font-bold text-right text-foreground tabular-nums">{gameRounds}</span>
+          <span className=" text-sm font-bold text-right text-foreground tabular-nums">
+            {gameRounds}
+          </span>
         </div>
       </div>
     </div>

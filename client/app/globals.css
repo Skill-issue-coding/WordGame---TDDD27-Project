@@ -26,6 +26,7 @@
   --color-game-green: oklch(0.7567 0.18 154.63);
   --color-game-purple: oklch(0.5622 0.2426 290.05);
   --color-game-orange: oklch(0.726 0.1708 47.43);
+  --color-game-red: oklch(0.6395 0.2245 29.65);
 
   /* Contexto-style distance heat colors */
   --color-heat-hot: oklch(0.7542 0.1927 151.24);
