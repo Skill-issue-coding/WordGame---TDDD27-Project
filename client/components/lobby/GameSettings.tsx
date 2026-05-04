@@ -55,7 +55,7 @@ function GameSettings() {
     <div className="flex flex-col sm:flex-row w-full gap-8">
       <div className="flex flex-col gap-2.5 flex-1">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <Timer className="w-4 h-4 text-muted-foreground" />
+          <Timer className="w-4 h-4 text-muted-foreground font-display" />
           Betänketid
         </div>
         <div className="flex items-center gap-4">
@@ -76,7 +76,7 @@ function GameSettings() {
       </div>
       <div className="flex flex-col gap-2.5 flex-1">
         <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-          <RefreshCw className="w-4 h-4 text-muted-foreground" />
+          <RefreshCw className="w-4 h-4 text-muted-foreground font-display" />
           Omgångar
         </div>
         <div className="flex items-center gap-4">
