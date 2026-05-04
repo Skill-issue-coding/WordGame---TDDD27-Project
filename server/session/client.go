@@ -11,19 +11,16 @@ import (
 )
 
 const (
-	pongWait      = 40 * time.Second
-	pingIntervall = 20 * time.Second
+	pongWait     = 40 * time.Second
+	pingInterval = 20 * time.Second
 
 	SOCKETREADLIMIT      int64 = 1024
 	MAXMESSAGESPERSECOND int   = 30
 	MAXMESSAGEWARNINGS   int   = 3
 )
 
-// writePump pumps messages from the hub to the websocket connection.
-// It listens on the client's send channel and writes the messages to the socket,
-// while also handling periodic ping messages to keep the connection alive.
 func (c *Client) WritePump() {
-	ticker := time.NewTicker(pingIntervall)
+	ticker := time.NewTicker(pingInterval)
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
@@ -33,18 +30,14 @@ func (c *Client) WritePump() {
 		select {
 		case message, ok := <-c.Send:
 			if !ok {
-				// The gamehub closed the channel
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
 			w, err := c.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
-
 			w.Write(message)
-
 			if err := w.Close(); err != nil {
 				return
 			}
@@ -76,8 +69,6 @@ func (c *Client) ReadPump() {
 
 	for {
 		_, message, err := c.Conn.ReadMessage()
-
-		// If the websocket crashes
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -85,10 +76,8 @@ func (c *Client) ReadPump() {
 			break
 		}
 
-		// SOME IMPLEMENTAION OF RATE LIMITING ?
 		now := time.Now()
 		if now.Sub(windowStart) >= time.Second {
-			// Reset time window
 			messageCount = 0
 			windowStart = now
 		}
@@ -97,79 +86,86 @@ func (c *Client) ReadPump() {
 		if messageCount > MAXMESSAGESPERSECOND {
 			messageWarnings++
 			messageCount = 0
-
 			log.Printf("Warning: Client %s sent packages too quickly!", c.UserId)
-
 			if messageWarnings >= MAXMESSAGEWARNINGS {
 				break
 			}
 			continue
 		}
 
-		// Read event envelope once, then decode payload by type.
 		event, err := events.ParseEvent(message)
 		if err != nil {
 			log.Printf("Error reading JSON: %v", err)
 			continue
 		}
 
-		// Switch case for each event
 		switch event.Type {
+
 		case events.CreateGameEvent:
-			createData, err := events.DecodePayload[CreateLobbyPayload](event)
-			if err != nil {
-				log.Printf("Error when reading create_game payload: %v", err)
-				continue
-			}
-
-			username := strings.TrimSpace(createData.Username)
-			if username == "" {
-				c.sendError("Användarnamnet får inte vara tomt.")
-				continue
-			}
-
-			c.Username = username
-
-			// Create the room and register the client to the room
 			code := c.Hub.CreateUniqueRoom()
 			lobby := c.Hub.GetRoom(code)
 
-			// Set host
+			lobby.Users[c.UserId] = &UserProfile{
+				UserId:     c.UserId,
+				Username:   c.Username,
+				Background: c.Background,
+			}
 			lobby.Host = c.UserId
-			lobby.BaseState.Host = c.UserId
-
 			c.Lobby = lobby
+
 			lobby.Register <- c
 
-			c.sendEvent(events.GameCreatedEvent, CreatedLobbyResponsePayload{
-				User:      User{UserId: c.UserId.String(), Username: c.Username},
-				GameState: lobby.BuildBaseStateForClient(),
-				Message:   "Du skapade ett nytt spel!"})
-
 		case events.JoinGameEvent:
+			payload, err := events.DecodePayload[JoinLobbyPayload](event)
+			if err != nil {
+				log.Printf("Error decoding join_game payload: %v", err)
+				continue
+			}
+
+			code := strings.TrimSpace(payload.Code)
+			if code == "" {
+				c.SendError("Spelkod krävs.")
+				continue
+			}
+
+			lobby := c.Hub.GetRoom(code)
+			if lobby == nil {
+				c.SendError("Hittade inget rum med den koden.")
+				continue
+			}
+
+			if lobby.Phase == GameStarted {
+				c.SendError("Spelet har redan börjat.")
+				continue
+			}
+
+			c.Lobby = lobby
+			lobby.Users[c.UserId] = &UserProfile{
+				UserId:     c.UserId,
+				Username:   c.Username,
+				Background: c.Background,
+			}
+
+			lobby.Register <- c
+
 		default:
-			c.sendError("Okänd event-typ")
+			c.SendError("Okänd event-typ")
 		}
 	}
 }
 
-// pongHandler handles websocket pong messages by extending the read deadline,
-// ensuring the connection is kept alive.
-func (c *Client) pongHandler(pongMessage string) error {
+func (c *Client) pongHandler(_ string) error {
 	return c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 }
 
-// Helper function to send events to the client
-func (c *Client) sendEvent(eventType events.EventType, payload any) {
+func (c *Client) SendEvent(eventType events.EventType, payload any) {
 	c.Send <- events.PrepareEvent(eventType, payload)
 }
 
-// Helper function to just send a "Success Event"
-func (c *Client) sendSuccess(message string) {
-	c.sendEvent(events.SuccessEvent, map[string]string{"message": message})
+func (c *Client) SendSuccess(message string) {
+	c.SendEvent(events.SuccessEvent, map[string]string{"message": message})
 }
 
-// Helper function to just send a "Error Event"
-func (c *Client) sendError(message string) {
-	c.sendEvent(events.ErrorEvent, map[string]string{"message": message})
+func (c *Client) SendError(message string) {
+	c.SendEvent(events.ErrorEvent, map[string]string{"message": message})
 }

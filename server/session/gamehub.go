@@ -2,6 +2,7 @@ package session
 
 import (
 	"log"
+	"server/events"
 	"server/util"
 	"server/words"
 	"time"
@@ -49,6 +50,8 @@ func (hub *GameHub) Run() {
 		// New Client Joins
 		case client := <-hub.Register:
 			hub.Clients[client] = true
+
+			client.SendEvent(events.ConnectedEvent, ConnectedToHubPayload{Username: client.Username, Background: client.Background})
 			log.Printf("[Hub] Client connected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
 				client.UserId,
 				len(hub.Clients),

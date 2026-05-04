@@ -6,10 +6,14 @@ type EventType string
 
 // Go (server) -> Next.js (client)
 const (
-	GameCreatedEvent EventType = "lobby_created"
-	JoinedGameEvent  EventType = "joined_lobby"
-	ErrorEvent       EventType = "error"
-	SuccessEvent     EventType = "success"
+	ConnectedEvent EventType = "connected_to_hub"
+
+	GameCreatedEvent   EventType = "lobby_created"
+	JoinedGameEvent    EventType = "joined_lobby"
+	SyncGameStateEvent EventType = "sync_gamestate"
+
+	ErrorEvent   EventType = "error"
+	SuccessEvent EventType = "success"
 )
 
 // Next.js (client) -> Go (server)

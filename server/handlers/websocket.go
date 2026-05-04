@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/http"
 	"server/session"
+	"server/util"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -30,15 +31,15 @@ func HandleWebSocket(c *gin.Context, hub *session.GameHub) {
 	}
 
 	client := &session.Client{
-		UserId: uuid.New(),
-		Hub:    hub,
-		Conn:   conn,
-		Send:   make(chan []byte, 256),
+		UserId:     uuid.New(),
+		Username:   util.GenerateUsername(),
+		Background: util.GenerateBackgroundColor(),
+		Hub:        hub,
+		Conn:       conn,
+		Send:       make(chan []byte, 256),
 	}
 
 	client.Hub.Register <- client
 	go client.WritePump()
 	go client.ReadPump()
-
-	// TODO: Implement this
 }
