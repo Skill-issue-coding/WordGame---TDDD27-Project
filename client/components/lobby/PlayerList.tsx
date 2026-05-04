@@ -128,7 +128,7 @@ export function PlayerList({ className }: PlayerListProps) {
           {/* teamAPlayers */}
         </div>
         {/* teamAPlayers */}
-        <div className="flex flex-col gap-2 max-h-100 overflow-y-auto custom-scrollbar">
+        <div className="flex flex-col gap-2 max-h-105 overflow-y-auto custom-scrollbar">
           {MOCK_PLAYERS.map((player) => (
             <PlayerCard key={player.userId} player={player} /*{...player} isHost={player.userId === gamestate.host}*/ />
           ))}

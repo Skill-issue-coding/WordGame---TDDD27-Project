@@ -3,14 +3,16 @@
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
-import { Info, Timer, RefreshCw } from "lucide-react";
+import { Info, Timer, RefreshCw, Check } from "lucide-react";
 import { useState } from "react";
 import CodeDisplay from "@/components/lobby/CodeDisplay";
+import { GAME_MODES, getMode, type GameModeId } from "@/lib/game/gameModes";
 
 interface SettingsPanelProps {
   className?: string;
 }
 
+/*
 function GameMode() {
   return (
     <ToggleGroup
@@ -47,6 +49,62 @@ function GameMode() {
     </ToggleGroup>
   );
 }
+*/
+
+function GameMode() {
+  const [selectedMode, setSelectedMode] = useState<GameModeId>("impostor");
+  const mode = getMode(selectedMode);
+
+  return (
+    <>
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        {GAME_MODES.map((m) => {
+          const active = selectedMode === m.id;
+          return (
+            <button
+              key={m.id}
+              onClick={() => setSelectedMode(m.id)} // TODO: Add host checks
+              className={cn(
+                "relative text-left rounded-lg border-2 p-3 transition-all flex items-center gap-3",
+                active
+                  ? `bg-card border-current ${m.textClass} shadow-md`
+                  : "bg-muted/40 border-border hover:border-muted-foreground/40",
+                "cursor-pointer opacity-80",
+              )}>
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0",
+                  `bg-game-${m.color}`,
+                )}>
+                {m.icon}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div
+                  className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>
+                  {m.title}
+                </div>
+                <div className="text-xs text-muted-foreground truncate">{m.players}</div>
+              </div>
+              {active && (
+                <div
+                  className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0",
+                    `bg-game-${m.color}`,
+                  )}>
+                  <Check className="w-4 h-4" />
+                </div>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="rounded-lg bg-muted/40 border-2 border-border p-3">
+        <p className="text-sm text-muted-foreground leading-snug">{mode.description}</p>
+      </div>
+    </>
+  );
+}
 
 function GameSettings() {
   const [roundTime, setRoundTime] = useState(30);
@@ -69,9 +127,7 @@ function GameSettings() {
             onValueChange={([v]) => setRoundTime(v)}
             className="flex-1"
           />
-          <span className=" text-sm font-bold text-right text-foreground tabular-nums">
-            {roundTime} s
-          </span>
+          <span className=" text-sm font-bold text-right text-foreground tabular-nums">{roundTime} s</span>
         </div>
       </div>
       <div className="flex flex-col gap-2.5 flex-1">
@@ -90,9 +146,7 @@ function GameSettings() {
             onValueChange={([v]) => setGameRounds(v)}
             className="flex-1"
           />
-          <span className=" text-sm font-bold text-right text-foreground tabular-nums">
-            {gameRounds}
-          </span>
+          <span className=" text-sm font-bold text-right text-foreground tabular-nums">{gameRounds}</span>
         </div>
       </div>
     </div>
