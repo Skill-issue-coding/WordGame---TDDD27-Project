@@ -1,26 +1,30 @@
 "use client";
 
-import { User } from "@/lib/game/types";
-import { ToastError } from "@/lib/toast-functions";
+import { LobbyState, User } from "@/lib/game/types";
+import { ToastError, ToastSucess } from "@/lib/toast-functions";
 import { WSRecievedEvent, WSSendEventType, WSSendPayloadMap } from "@/lib/websocket/types";
+import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
 export type SendMessageType = <T extends WSSendEventType>(type: T, payload: WSSendPayloadMap[T]) => void;
+const palette = ["#8b5cf6", "#ec4899", "#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#06b6d4", "#a855f7"];
 
 export interface GameContextContextProps {
   isConnected: boolean;
   sendMessage: SendMessageType;
   user: User | null;
+  lobbyState: LobbyState | null;
   connectionError: boolean;
+  updateUser: (updates: Partial<User>) => void;
+  palette: string[];
 }
 
 export const GameContext = createContext<GameContextContextProps | null>(null);
 
 export function useGameContext() {
   const context = useContext(GameContext);
-  if (!context) {
-    throw new Error("useGameContext must be used within a GameContextProvider");
-  }
+  if (!context) throw new Error("useGameContext must be used within a GameContextProvider");
+
   return context;
 }
 
@@ -29,6 +33,9 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   const [isConnected, setIsConnected] = useState(false);
   const [connectionError, setConnectionError] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
+  const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
+
+  const router = useRouter();
 
   function reset() {
     setWebSocket(null);
@@ -37,7 +44,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws` : `ws://${process.env.NEXT_PUBLIC_LOCAL_WS_PATH}/ws/game`;
+    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws/game` : `ws://localhost:8080/ws/game`;
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
@@ -58,12 +65,21 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
       const { type, payload } = parsedEvent;
 
       switch (type) {
-        case "lobby_created":
-          // Logic for lobby created
+        case "connected_to_hub":
+          ToastSucess("Välkommen till OrdioArena!");
+          // TODO: ADD CHECK LOCAL STORAGE
+          // IF LOCAL STORAGE -> Send that username + background to backend
+          setUser(payload.user);
+          break;
+
+        case "sync_gamestate":
+          setLobbyState(payload.lobbystate);
+          if (payload.message) ToastSucess(payload.message);
+
           break;
 
         case "joined_lobby":
-          // Logic for joined a lobby
+          router.push("/lobby");
           break;
       }
     };
@@ -81,11 +97,22 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
     [websocket],
   );
 
+  const updateUser = (updates: Partial<User>) => {
+    setUser((prev) => {
+      const nextUser = prev ? { ...prev, ...updates } : ({ ...updates } as User);
+      sendMessage("update_user", { updates });
+      return nextUser;
+    });
+  };
+
   const value: GameContextContextProps = {
     sendMessage,
     isConnected,
     user,
     connectionError,
+    updateUser,
+    palette,
+    lobbyState,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

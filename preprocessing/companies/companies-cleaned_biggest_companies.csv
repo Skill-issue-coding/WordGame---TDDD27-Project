@@ -1,0 +1,275 @@
+Company Name,Country Founded,Year Founded,Revenue 2018,Revenue 2019,Revenue 2020,Net Income 2018,Net Income 2019,Net Income 2020,Industry
+Amazon,United States,1994,232.9,280.5,386.1,21.3,21.3,21.3,Retail
+Apple,United States,1976,265.6,260.2,274.5,59.5,55.2,111.4,Technology
+Google,United States,1998,136.8,161.9,182.3,30.7,34.3,46.2,Technology
+Microsoft,United States,1975,110.4,130.9,143,16.6,44.3,53,Technology
+Alibaba,China,1999,39.9,56.1,70.2,12.9,14.9,11.9,Retail
+Facebook,United States,2004,55.8,70.7,84.2,22.1,18.5,25.9,Technology
+Berkshire Hathaway,United States,1839,242.1,254.2,245.5,24.1,29.1,29.9,Investment
+JP Morgan Chase,United States,2000,110.2,106.6,111.5,32,36.4,31.2,Banking
+Exxon Mobil,United States,1870,290.2,265.6,221.9,20.8,14.3,3.1,Oil
+Johnson & Johnson,United States,1886,81.6,82.1,82,16.3,15.5,16.4,Healthcare
+Nestle,Switzerland,1866,89.5,92.2,92.7,11,11.3,11.3,Food
+Procter & Gamble,United States,1890,65.7,67.8,70.7,8.8,9,9.1,Consumer goods
+Toyota,Japan,1937,275.6,265.2,274.3,17.7,16.5,19.5,Automotive
+General Electric,United States,1892,121.6,121.2,115.2,4.2,4.4,4.7,Conglomerate
+Chevron,United States,1879,134.6,134.3,121.5,14.8,11.9,5.6,Oil
+Coca-Cola,United States,1886,31.9,32.2,37.2,7.2,7.6,10.2,Beverages
+McDonald's,United States,1940,21,21.8,22.2,5.9,6.1,6.3,Fast food
+Wal-Mart,United States,1962,500.3,514.4,524.4,9.9,10.4,13.6,Retail
+IBM,United States,1911,79.1,77.1,73.6,8.2,8.7,11.6,Technology
+PepsiCo,United States,1898,64.7,67.1,67.3,6.5,7.2,7.6,Beverages
+Unilever,Netherlands,1930,51.3,51.2,50.7,5.1,5.4,5.7,Consumer goods
+Anheuser-Busch InBev,Belgium,1366,54.6,54.6,52.3,9.7,10.2,9.1,Beverages
+Chevron,United States,1879,134.6,134.3,121.5,14.8,11.9,5.6,Oil
+Royal Dutch Shell,Netherlands,1907,388.4,388.6,353.7,23.9,21.3,11.3,Oil
+BP,United Kingdom,1909,303.7,303.4,257.7,6.2,3.8,3.3,Oil
+Walgreens Boots Alliance,United States,1901,131.5,131.8,134.6,6.2,6.7,7.7,Healthcare
+CVS Health,United States,1963,178.5,184.6,256.2,6.7,7.9,10.5,Healthcare
+Intel,United States,1968,70.8,72,77.9,21,21.1,25.8,Technology
+Johnson & Johnson,United States,1886,81.6,82.1,82,16.3,15.5,16.4,Healthcare
+Goldman Sachs,United States,1869,32.2,32.7,32.8,7.6,9.8,11.3,Investment
+Visa,United States,1970,20.6,21.5,22.3,9,9.9,10.9,Financial services
+Merck,Germany,1668,42.8,43.3,46.9,10.3,11,12.6,Healthcare
+Goldman Sachs,United States,1869,32.2,32.7,32.8,7.6,9.8,11.3,Investment
+Verizon,United States,2000,131.9,131.9,131.9,18.5,18.5,18.5,Telecommunications
+Anheuser-Busch InBev,Belgium,1366,54.6,54.6,52.3,9.7,10.2,9.1,Beverages
+BMW,Germany,1916,98.7,104.2,95.2,8.1,9.4,6.5,Automotive
+Porsche,Germany,1931,25.5,27.4,26.5,3.9,5.3,3.9,Automotive
+Ferrari,Italy,1947,3.5,3.6,3.7,0.309,0.318,0.299,Automotive
+Lamborghini,Italy,1963,1.5,1.6,1.5,0.38,0.44,0.36,Automotive
+Audi,Germany,1909,60.7,60.5,59.1,5.9,5.8,5.5,Automotive
+Inditex,Spain,1975,27.4,28.8,30,4.6,5.3,6,Retail
+Total,France,1924,178.6,174.3,169.6,9.7,8.8,7.3,Oil
+Sanofi,France,2004,35.6,35.8,35.9,7.1,7.5,7.7,Healthcare
+L'Oreal,France,1909,30.8,30.8,29.9,3.9,3.9,3.6,Consumer goods
+AXA,France,1816,100.1,100.6,97.5,4.7,5.1,4.8,Financial services
+Voestalpine,Austria,1948,10.5,10.8,10.9,0.617,0.557,0.522,Steel
+Österreichische Post,Austria,1891,7.1,7.2,7.3,0.378,0.41,0.441,Postal service
+OMV,Austria,1956,28.6,30.1,27.9,1.4,1.6,1.1,Oil
+Raiffeisen Bank International,Austria,1880,5.6,5.9,6.1,0.429,0.487,0.503,Banking
+Volkswagen,Germany,1937,260,256.4,221.6,14.3,10.9,8.6,Automotive
+Daimler,Germany,1926,174.3,182.2,163.1,9.9,9.9,7.2,Automotive
+Siemens,Germany,1847,88.5,87.1,78.9,5.6,4.4,4.4,Technology
+Allianz,Germany,1890,143.7,147.1,132.9,10.8,11.2,9.2,Insurance
+BASF,Germany,1865,65,64.2,58.6,6.7,6.4,4.9,Chemicals
+Deutsche Bank,Germany,1870,40.4,40.4,32.8,1.3,1.3,2.2,Banking
+EON,Germany,2000,61.5,61.8,53.5,2.2,2.7,2.4,Utilities
+Linde,Germany,1879,28.6,27.8,25.3,2.9,3.3,2.9,Industrial gases
+DHL,Germany,1969,59.6,60.4,61.1,2.8,2.9,3.2,Logistics
+Deutsche Telekom,Germany,1995,80.9,81.1,80.1,5.6,5.6,5.5,Telecommunications
+SAP,Germany,1972,27.9,27.8,27.7,6.5,6.6,6.6,Technology
+Henkel,Germany,1876,22.4,22.7,22.1,2.9,2.9,2.6,Consumer goods
+Bosch,Germany,1886,78.3,78.3,77.5,6.4,6.4,6.4,Technology
+Continental,Germany,1871,44.6,44.8,43.7,3.5,3.6,3.5,Automotive
+Deutsche Post,Germany,1995,70.2,70.6,69.5,2.9,2.9,2.9,Postal service
+Bayer,Germany,1863,35.5,35.2,33.8,4.9,4.8,4.4,Healthcare
+Metro,Germany,1964,37.2,37.4,37,1.4,1.5,1.4,Retail
+Beiersdorf,Germany,1882,7.4,7.4,7.4,0.894,0.927,0.902,Consumer goods
+Adidas,Germany,1949,21.2,21.3,22.1,1.1,1.2,1.2,Footwear
+Nivea,Germany,1911,6.2,6.2,6.1,0.639,0.666,0.64,Personal care
+Sony,Japan,1946,76.6,77.9,77.5,5.5,5.8,5.5,Technology
+Honda,Japan,1948,136.7,135.6,120.1,6.2,5.6,3.9,Automotive
+Nintendo,Japan,1889,9.7,10.4,11,0.823,1.1,1.2,Technology
+Canon,Japan,1937,33.3,36,33.2,2.6,3.1,2.5,Technology
+Panasonic,Japan,1918,76.4,75.5,68.2,1.3,1.4,0.824,Technology
+Fujifilm,Japan,1934,22.3,22.6,21.7,0.88,0.943,0.724,Technology
+Mitsubishi,Japan,1870,61.9,62.8,58.6,1.6,1.6,1.1,Automotive
+NEC,Japan,1899,40.4,40.4,37.2,0.341,0.293,0.346,Technology
+Sharp,Japan,1912,9,9.1,8.5,0.376,0.44,0.387,Technology
+Toshiba,Japan,1939,20.4,20.7,19.6,0.314,0.31,0.382,Technology
+Tencent,China,1998,39.2,44.9,56.8,11.5,16.6,20.2,Technology
+China Mobile,China,1997,123.4,121.7,115.4,17.8,16.3,15.6,Telecommunications
+China Petroleum,China,1988,387.2,402.7,360.9,17.6,21.4,17.1,"Oil, gas, petrochemicals"
+China State Grid,China,2002,412.7,441.5,410.8,23.5,28.1,26.2,"Electricity, natural gas, water"
+China Railway,China,2008,119.6,129.5,117.3,8.5,9.7,8.8,"Rail transportation, engineering"
+Gazprom,Russia,1989,104.6,115.9,117.6,14.8,17.6,17.9,Oil and gas
+Rosneft,Russia,1993,71.3,73.3,75.9,4.4,6.4,8.4,Oil and gas
+Sberbank,Russia,1841,49.2,50.5,51.8,9.5,10.5,11.5,Banking
+Lukoil,Russia,1991,66.4,68.4,69.4,6.1,7.1,8.1,Oil and gas
+Novatek,Russia,1993,17.7,19.5,21.3,1.7,2.5,3.3,Oil and gas
+Belaruskali,Belarus,1966,2.3,2.4,2.5,0.5,0.6,0.7,Mining
+Naftogaz,Ukraine,1991,17.4,18.7,20,1.1,2.2,3.3,Oil and gas
+PKN Orlen,Poland,1998,32.6,34.1,35.6,2.3,3.3,4.3,Oil and gas
+KGHM,Poland,1961,10.6,11.2,11.8,1.1,1.6,2.1,Mining
+Ukrtelecom,Ukraine,1992,2.3,2.4,2.5,0.2,0.3,0.4,Telecommunications
+Valeo,Poland,1943,16.9,18,19.1,1.4,1.5,1.6,Automotive
+MTS,Belarus,1992,5.5,5.7,5.9,0.9,1,1.1,Telecommunications
+Nordea Bank,Ukraine,1991,4.4,4.6,4.8,0.9,1,1.1,Banking
+Roshen,Ukraine,1996,2.1,2.2,2.3,0.2,0.3,0.4,Confectionery
+PZU,Poland,1804,9.6,10.1,10.6,1.2,1.3,1.4,Insurance
+PGE,Poland,1945,11.6,12.1,12.6,1.4,1.5,1.6,Energy
+Ukrainian Railways,Ukraine,1992,4.2,4.4,4.6,0.4,0.5,0.6,Transportation
+Agromet,Poland,1963,1.3,1.4,1.5,0.1,0.2,0.3,Agriculture
+Kredyt Bank,Poland,1971,3.6,3.8,4,0.4,0.5,0.6,Banking
+Budimex,Poland,1970,2.9,3,3.1,0.3,0.4,0.5,Construction
+Sinopec,China,1998,414.5,429.1,443.7,5.7,7.7,9.7,Oil and gas
+Industrial and Commercial Bank of China,China,1984,168.8,174.6,180.4,30.2,33.2,36.2,Banking
+China National Petroleum,China,1988,431.1,446.6,462.1,9.6,11.6,13.6,Oil and gas
+China CITIC Bank,China,1987,72.4,75,77.6,12,13,14,Banking
+Agricultural Bank of China,China,1979,154.9,160.7,166.5,25.1,28.1,31.1,Banking
+China Life Insurance,China,1949,112.4,116.6,120.8,14.3,16.3,18.3,Insurance
+China Construction Bank,China,1954,129.1,133.7,138.3,26.1,29.1,32.1,Banking
+China Development Bank,China,1994,63.1,65.5,67.9,9.9,11.9,13.9,Banking
+Ping An Insurance,China,1988,176.8,183.5,190.2,24.5,27.5,30.5,Insurance
+Bank of China,China,1912,136.6,141.4,146.2,23.6,26.6,29.6,Banking
+HSBC,United Kingdom,1865,51.7,53.2,54.7,7.1,8.1,9.1,Banking
+BP,United Kingdom,1909,303.7,303.5,303.3,6.2,4.7,3.2,Oil and gas
+Royal Dutch Shell,United Kingdom,1907,388.4,396.6,404.8,23.7,19.7,15.7,Oil and gas
+Tesco,United Kingdom,1919,101.9,101.7,101.5,2.8,2.3,1.8,Retail
+Unilever,United Kingdom,1929,60.2,61.9,63.6,7.1,7.9,8.7,Consumer goods
+Vodafone,United Kingdom,1991,47.9,49.1,50.3,2.2,2.3,2.4,Telecommunications
+GlaxoSmithKline,United Kingdom,2000,40.2,41.3,42.4,7.8,8.8,9.8,Pharmaceuticals
+AstraZeneca,United Kingdom,1999,23.1,23.8,24.5,4.9,5.9,6.9,Pharmaceuticals
+British American Tobacco,United Kingdom,1902,27.3,27.9,28.5,7.4,8.4,9.4,Tobacco
+BT Group,United Kingdom,1984,23.4,23.8,24.2,2.4,2.8,3.2,Telecommunications
+Rolls-Royce,United Kingdom,1906,20.9,21.2,21.5,1.3,1.6,1.9,Aerospace and defense
+British Airways,United Kingdom,1974,16.9,17.1,17.3,2.2,2.5,2.8,Airlines
+Lloyds Bank,United Kingdom,1765,27.4,28,28.6,3.7,4.7,5.7,Banking
+Anglo American,United Kingdom,1917,22.8,23.4,24,3.3,4.3,5.3,Mining
+Standard Chartered,United Kingdom,1969,17.7,18.1,18.5,1.9,2.9,3.9,Banking
+GSK Consumer Healthcare,United Kingdom,2000,10.3,10.6,10.9,2,2.3,2.6,Consumer healthcare
+Royal Bank of Scotland,United Kingdom,1727,33.4,34,34.6,2.9,3.9,4.9,Banking
+Aviva,United Kingdom,1696,37.4,38.2,39,4.4,5.4,6.4,Insurance
+Diageo,United Kingdom,1997,15.8,16.2,16.6,3.6,4.6,5.6,Beverages
+Legal & General,United Kingdom,1836,17.8,18.2,18.6,2.8,3.8,4.8,Insurance
+National Grid,United Kingdom,1990,35.1,35.7,36.3,4.4,5.4,6.4,Energy
+Prudential,United Kingdom,1848,59.9,61.6,63.3,8.9,9.9,10.9,Insurance
+Tesco Bank,United Kingdom,1997,2.4,2.5,2.6,0.3,0.4,0.5,Banking
+Standard Life,United Kingdom,1825,34.9,35.5,36.1,5.9,6.9,7.9,Insurance
+Avon Products,United Kingdom,1886,5.7,5.8,5.9,0.6,0.7,0.8,Beauty
+BHP,Australia,1885,44.4,44.8,45.2,9.4,8.4,7.4,Mining
+Commonwealth Bank of Australia,Australia,1911,38.7,39.3,39.9,9.9,8.9,7.9,Banking
+National Australia Bank,Australia,1982,27.7,28.3,28.9,6.7,5.7,4.7,Banking
+ANZ,Australia,1951,27.6,28.2,28.8,6.6,5.6,4.6,Banking
+Westpac,Australia,1817,29.4,30,30.6,7.4,6.4,5.4,Banking
+Rio Tinto,Australia,1873,35.5,36.1,36.7,10.5,9.5,8.5,Mining
+Telstra,Australia,1975,28.9,29.5,30.1,6.9,5.9,4.9,Telecommunications
+Qantas,Australia,1920,15.7,15.9,16.1,0.9,1.9,2.9,Airlines
+Woodside Petroleum,Australia,1954,10.4,10.6,10.8,1.4,2.4,3.4,Oil and gas
+Wesfarmers,Australia,1914,62.7,63.3,63.9,3.7,4.7,5.7,Diversified
+Woolworths,Australia,1924,62.4,63,63.6,2.4,3.4,4.4,Retail
+Boral,Australia,1946,5.5,5.6,5.7,0.5,1.5,2.5,Construction materials
+AMP,Australia,1849,16.3,16.5,16.7,1.3,2.3,3.3,Financial services
+Wesfert,Australia,1999,12.9,13.1,13.3,1.9,2.9,3.9,Agriculture
+IAG,Australia,1920,20.3,20.5,20.7,1.3,2.3,3.3,Insurance
+OTP Bank,Hungary,1949,10.3,10.5,10.7,1.3,2.3,3.3,Banking
+Magyar Telekom,Hungary,1991,2.5,2.6,2.7,0.5,1.5,2.5,Telecommunications
+Mol Group,Hungary,1991,23.9,24.5,25.1,2.9,3.9,4.9,Oil and gas
+Erste Bank,Hungary,1819,7.9,8.1,8.3,1,2,3,Banking
+Magyar Posta,Hungary,1867,1.1,1.2,1.3,0.1,0.2,0.3,Postal service
+Lietuvos Energija,Lithuania,1991,1.3,1.4,1.5,0.13,0.14,0.15,Energy
+Danske Bank,Finland,1992,2.1,2.2,2.3,0.21,0.22,0.23,Banking
+Ericsson,Sweden,1876,23.1,23.5,23.9,2.1,3.1,4.1,Telecommunications
+H&M,Sweden,1947,23.8,24.2,24.6,2.8,3.8,4.8,Retail
+Volvo,Sweden,1927,41.3,41.9,42.5,4.3,5.3,6.3,Automobiles
+IKEA,Sweden,1943,47.9,48.7,49.5,4.9,5.9,6.9,Furniture
+Nordea Bank,Sweden,1997,10.8,11,11.2,1.1,2.1,3.1,Banking
+Telia Eesti,Estonia,1991,0.313,0.318,0.323,0.31,0.32,0.33,Telecommunications
+Swedbank,Estonia,1992,1.1,1.2,1.3,0.11,0.12,0.13,Banking
+SEB Bank,Estonia,1992,0.058,0.059,0.06,0.058,0.059,0.06,Banking
+Danske Bank,Estonia,1992,0.051,0.052,0.053,0.051,0.052,0.053,Banking
+Eesti Energia,Estonia,1939,1.1,1.2,1.3,0.11,0.12,0.13,Energy
+Banco Santander,Spain,1857,31.9,32.5,33.1,3.9,4.9,5.9,Banking
+Telefónica,Spain,1924,58.9,59.5,60.1,5.9,6.9,7.9,Telecommunications
+Repsol,Spain,1986,24.6,25.2,25.8,2.6,3.6,4.6,Oil and gas
+Mapfre,Spain,1933,29.1,29.7,30.3,2.9,3.9,4.9,Insurance
+Iberdrola,Spain,1869,35.3,35.9,36.5,3.5,4.5,5.5,Energy
+Ferrovial,Spain,1952,12.5,12.7,12.9,1.5,2.5,3.5,Construction and services
+Banco Sabadell,Spain,1881,4.4,4.5,4.6,0.4,1.4,2.4,Banking
+ACS,Spain,1997,56.2,56.8,57.4,5.6,6.6,7.6,Construction and services
+FerroAtlántica,Spain,1936,2,2.1,2.2,0.2,0.3,0.4,Industrial minerals
+Banco Popular,Spain,1926,2.8,2.9,3,0.3,0.4,0.5,Banking
+Banco de Valencia,Spain,1419,3.3,3.4,3.5,0.3,0.4,0.5,Banking
+Banco Bilbao Vizcaya Argentaria (BBVA),Spain,1857,26.8,27.4,28,2.7,3.7,4.7,Banking
+Petrobras,Brazil,1953,98.4,99.6,100.8,9.8,10.9,12,Oil and gas
+Banco do Brasil,Brazil,1808,62.5,63.5,64.5,6.3,7.3,8.3,Banking
+Vale,Brazil,1942,31.9,32.5,33.1,3.2,4.2,5.2,Mining
+Itaú Unibanco,Brazil,1908,30.9,31.5,32.1,3.1,4.1,5.1,Banking
+Banco Bradesco,Brazil,1943,24.5,25.1,25.7,2.5,3.5,4.5,Banking
+Samsung,Korea,1938,224.7,260.9,265.6,22.7,25.2,27.7,Technology
+Hyundai,Korea,1947,105.4,111.8,112.3,5.2,4.6,4.4,Automotive
+LG,Korea,1958,54.4,54.7,54.2,2.5,2.1,1.8,Technology
+Kia,Korea,1944,49.2,52.5,54.3,3.5,3.8,4.1,Automotive
+SK Group,Korea,1953,87.6,90.8,95.4,9.8,9.3,9.2,Conglomerate
+Posco,Korea,1968,22.3,23.3,22.9,2.2,2.3,1.9,Steel
+Hyundai Heavy Industries,Korea,1972,34.9,35.2,34.8,2.5,2.6,2.5,Shipbuilding
+Lotte Group,Korea,1948,87.4,88.4,86.5,2.9,3,2.7,Conglomerate
+CJ Group,Korea,1953,38.2,39.6,40.3,1.3,1.5,1.6,Conglomerate
+Hanwha Group,Korea,1952,26.6,27.1,26.9,1.2,1.2,1.1,Conglomerate
+MTN Group,South Africa,1994,11.6,11.9,11.8,1.5,1.6,1.5,Telecommunications
+Naspers,South Africa,1915,11.4,12.5,12.6,3.5,3.8,3.9,"Media, Internet, and Technology"
+FirstRand,South Africa,1998,8.1,8.6,8.8,1.7,1.8,1.9,Financial Services
+Standard Bank Group,South Africa,1962,7.7,8.3,8.4,1.6,1.7,1.8,Financial Services
+Sasol,South Africa,1950,11.1,11.4,11.3,1.5,1.6,1.5,Energy
+Dangote Group,Nigeria,1977,30.8,31.2,30.8,3,3.1,3,Conglomerate
+MTN Group,Nigeria,1994,3.3,3.5,3.6,0.5,0.6,0.7,Telecommunications
+Cemex,Mexico,1906,14.6,14.8,14.5,1.1,1.2,1.1,Construction Materials
+América Móvil,Mexico,2000,53.1,54.5,53.3,5.3,5.5,5.3,Telecommunications
+Femsa,Mexico,1890,15.7,16.2,15.9,1.3,1.4,1.3,Beverage
+Grupo Bimbo,Mexico,1945,13.4,13.8,13.6,0.9,1,1,Bakery
+Petróleos de México,Mexico,1938,102.5,105.7,99.7,3.3,3.5,2.9,Energy
+Rimi Baltic,Latvia,1991,3.5,3.6,3.5,0.4,0.4,0.4,Retail
+Latvijas Gāze,Latvia,1991,1.6,1.7,1.6,0.2,0.2,0.2,Energy
+Dienas Bizness,Latvia,1992,0.3,0.3,0.3,0.08,0.078,0.076,Media
+CME,Czech Republic,1991,1.3,1.4,1.3,0.2,0.2,0.2,Media
+Skoda,Czech Republic,1895,10.7,11.1,10.9,0.9,1,0.9,Automotive
+Cencosud,Chile,1957,14.9,15.4,15.2,1.4,1.5,1.5,Retail
+CEZ Group,Czech Republic,1992,11.5,11.8,11.7,1.3,1.4,1.4,Energy
+LAN Airlines,Chile,1929,3.7,3.8,3.7,0.4,0.4,0.4,Air Transportation
+Fonterra,New Zealand,2001,19.2,19.4,19.2,1.1,1.2,1.2,Dairy
+Air New Zealand,New Zealand,1940,4.4,4.6,4.5,0.2,0.3,0.3,Air Transportation
+TelstraClear,New Zealand,1990,1.1,1.1,1.1,0.1,0.1,0.1,Telecommunications
+Vector,New Zealand,1995,2.2,2.3,2.3,0.2,0.2,0.2,Energy
+Carrefour,France,1959,104.8,106.4,105.8,2.2,2.4,2.4,Retail
+Danone,France,1899,27.4,27.8,27.7,2.4,2.4,2.4,Food and Beverages
+Pernod Ricard,France,1975,9.6,9.9,9.9,1.3,1.4,1.4,Alcoholic Beverages
+Statoil,Norway,1972,30.4,34.7,32.4,5.5,9.2,5.6,Oil and Gas
+Telenor,Norway,1855,11.7,11.6,11.2,2.9,3.3,2.6,Telecommunications
+DNV GL,Norway,1864,2.4,2.6,2.7,0.39,0.45,0.46,Consulting and Certification
+Kongsberg,Norway,1814,2.3,2.5,2.5,0.205,0.23,0.24,Defense and Aerospace
+Yara,Norway,1905,11.5,11.9,10.6,1.4,1.7,1.2,Fertilizers and Industrial Chemicals
+Elisa,Finland,1882,2.46,2.54,2.55,0.344,0.356,0.365,Telecommunications
+Nokia,Finland,1865,23.27,23.22,22.45,2.91,2.73,1.79,Telecommunications
+Fortum,Finland,1998,9.93,10.44,10.74,1.42,1.58,1.35,Energy
+Stora Enso,Finland,1998,10.38,10.75,10.54,1.26,1.33,1.07,"Paper, Packaging"
+Reykjavik Energy,Iceland,1913,0.957,0.977,1.02,0.073,0.072,0.089,Energy
+Bombardier Inc.,Canada,1942,15.91,16.42,16.03,-1.58,-1.39,-1.56,Transportation
+LinkedIn,United States,2002,2.26,2.51,2.61,1.11,1.23,1.27,Social Networking
+GameStop,United States,1994,9.56,9.32,6.47,0.665,0.665,0.417,Retail
+PandaDoc,Belarus,2013,0.029,0.033,0.04,-0.009,-0.007,-0.006,Software
+Wargaming,Belarus,1998,1.39,1.5,1.54,0.406,0.442,0.451,Video Games
+EPAM Systems,Belarus,1993,2.47,2.74,2.92,0.296,0.323,0.341,IT Services
+Starbucks,United States,1971,24.72,26.5,26.47,3.24,3.24,3.24,Coffee
+J.M. Smucker Company,United States,1897,7.46,7.51,7.3,0.664,0.672,0.634,"Coffee, Food and Beverage"
+"Dunkin' Brands Group, Inc.",United States,1950,9.2,9.4,9.4,0.393,0.413,0.413,"Coffee, Fast Food"
+Peet's Coffee,United States,1966,0.528,0.56,0.58,0.045,0.048,0.05,Coffee
+Keurig Dr Pepper,United States,1981,11.59,11.7,11.7,1.24,1.27,1.27,Coffee
+Costa Coffee,United Kingdom,1971,2.01,2.14,2.15,0.121,0.133,0.134,Coffee
+Tim Horton's,Canada,1964,4.08,4.15,4.15,0.823,0.835,0.835,"Coffee, Fast Food"
+Caribou Coffee,United States,1992,0.293,0.3,0.3,0.024,0.025,0.025,Coffee
+The Kraft Heinz Company,United States,2015,26.27,25.54,24.52,1.77,1.6,1.4,Food and Beverage
+Louis Vuitton,France,1854,16.24,16.91,16.91,3.53,3.68,3.68,"Fashion, Luxury Goods"
+Gucci,Italy,1921,15.08,15.08,15.08,2.81,2.81,2.81,"Fashion, Luxury Goods"
+Prada,Italy,1913,4.24,4.24,4.24,0.654,0.654,0.654,"Fashion, Luxury Goods"
+Ralph Lauren,United States,1967,7.44,7.44,7.44,0.85,0.85,0.85,Fashion
+Tommy Hilfiger,United States,1985,7.19,7.19,7.19,1.03,1.03,1.03,Fashion
+Calvin Klein,United States,1968,9.61,9.61,9.61,1.38,1.38,1.38,Fashion
+Chanel,France,1909,9.62,9.62,9.62,1.77,1.77,1.77,"Fashion, Luxury Goods"
+Giorgio Armani,Italy,1975,2.34,2.34,2.34,0.362,0.362,0.362,"Fashion, Luxury Goods"
+Christian Dior,France,1946,12.11,12.11,12.11,2.04,2.04,2.04,"Fashion, Luxury Goods"
+Versace,Italy,1978,1.19,1.19,1.19,0.207,0.207,0.207,"Fashion, Luxury Goods"
+Hill's Pet Nutrition,United States,1939,2.44,2.48,2.48,0.333,0.336,0.336,Pet
+Purina,United States,1894,14.78,14.78,14.78,2.34,2.34,2.34,Pet
+Royal Canin,France,1968,2.67,2.67,2.67,0.405,0.405,0.405,Pet
+Blue Buffalo,United States,2002,1.02,1.02,1.02,0.15,0.15,0.15,Pet
+Shiseido,Japan,1872,7.36,7.36,7.36,0.531,0.531,0.531,Beauty
+Kao Corporation,Japan,1887,13.39,13.39,13.39,1.4,1.4,1.4,"Beauty, Consumer Goods"
+Singapore Telecommunications Limited (SingTel),Singapore,1879,17.7,17.7,17.7,3.81,3.81,3.81,Telecommunications
+DBS Bank,Singapore,1968,13.6,13.6,13.6,3.96,3.96,3.96,Banking
+United Overseas Bank (UOB),Singapore,1935,11.1,11.1,11.1,3.34,3.34,3.34,Banking
+CapitaLand,Singapore,2000,9.4,9.4,9.4,1.77,1.77,1.77,Real Estate
+Singapore Airlines,Singapore,1972,17.2,17.2,17.2,1.4,1.4,1.4,Airlines
+Keppel Corporation,Singapore,1968,7.5,7.5,7.5,0.596,0.596,0.596,"Engineering, Offshore and Marine"
+SembCorp Industries,Singapore,1968,9.8,9.8,9.8,1.13,1.13,1.13,"Engineering, Offshore and Marine"
+Singapore Press Holdings,Singapore,1845,1.5,1.5,1.5,0.28,0.28,0.28,Media

@@ -6,7 +6,6 @@ import { Toaster } from "sonner";
 import { GameContextProvider } from "@/hooks/gamecontext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import UserProfileButton from "@/components/user/UserProfileButton";
-import { UserProvider } from "@/contexts/UserContext";
 import { ThemeProvider } from "next-themes";
 import LobbyChat from "@/components/lobby/LobbyChat";
 import { ChatProvider } from "@/contexts/ChatContext";
@@ -61,34 +60,20 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={cn(
-        "h-full",
-        "antialiased",
-        geistSans.variable,
-        geistMono.variable,
-        "font-sans",
-        figtree.variable,
-        geistHeading.variable,
-        inter.variable,
-        spaceGrotesk.variable,
-        fredoka.variable,
-        nunito.variable,
-      )}>
+      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable, geistHeading.variable, inter.variable, spaceGrotesk.variable, fredoka.variable, nunito.variable)}>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <UserProvider>
-            <GameContextProvider>
-              <ChatProvider>
-                <TooltipProvider>
-                  {children}
-                  <UserProfileButton />
-                  <LobbyChat />
-                </TooltipProvider>
-              </ChatProvider>
-            </GameContextProvider>
-          </UserProvider>
-          <Toaster />
+          <GameContextProvider>
+            <ChatProvider>
+              <TooltipProvider>
+                {children}
+                <LobbyChat />
+                <UserProfileButton />
+              </TooltipProvider>
+            </ChatProvider>
+          </GameContextProvider>
         </ThemeProvider>
+        <Toaster position="top-right" />
       </body>
     </html>
   );

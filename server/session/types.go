@@ -1,6 +1,7 @@
-package lobby
+package session
 
 import (
+	"server/game"
 	"server/words"
 	"sync"
 
@@ -8,38 +9,72 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type GameLobby struct {
-	ID         string           // Gamecode XXXX-XXXX
-	Clients    map[*Client]bool // All Connected Clients
-	Broadcast  chan []byte      // Broadcast messages to the clients
-	Register   chan *Client     // Client Joined The Lobby
-	Unregister chan *Client     // Client Disconnects From The Lobby
-}
+type GamePhase string
+type GameMode string
+
+const (
+	LobbyPhase  GamePhase = "lobby"
+	GameStarted GamePhase = "game_started"
+
+	ModeImpostor       GameMode = "impostor"
+	ModeContextoBattle GameMode = "contexto_battle"
+	ModeSynonymDuel    GameMode = "synonym_duel"
+	ModeAntiMatch      GameMode = "anti_match"
+)
 
 type Client struct {
-	Id       uuid.UUID       // UUID Refrence
-	Username string          // Username
-	Hub      *GameHub        // Gamehub Refrence
-	Conn     *websocket.Conn // Websocket Connection Refrence
-	Send     chan []byte     // Send chan to send messages to client
-	Lobby    *GameLobby      // Lobby refrence
-	Player   *Player         // Player Refrence
+	UserId  uuid.UUID
+	Profile *UserProfile
+	Hub     *GameHub
+	Conn    *websocket.Conn
+	Send    chan []byte
+	Lobby   *GameLobby
 }
 
-type Player struct {
-	ID       string `json:"id"`
-	Username string `json:"username"`
-	Score    int    `json:"score"`
-	IsHost   bool   `json:"isHost"`
-	// Avatar   string `json:"avatar"`
+type UserProfile struct {
+	UserId     uuid.UUID `json:"user_id"`
+	Username   string    `json:"username"`
+	Background string    `json:"background"`
+	Score      int       `json:"score"`
+}
+
+// LobbyState is the shared state broadcast to all clients.
+// Settings is always the struct for the currently selected mode.
+type LobbyState struct {
+	Code     string                     `json:"code"`
+	Mode     GameMode                   `json:"mode"`
+	Phase    GamePhase                  `json:"phase"`
+	Host     uuid.UUID                  `json:"host"`
+	Users    map[uuid.UUID]*UserProfile `json:"users"`
+	Settings any                        `json:"settings"` // typed per mode, see ModeSettings()
+}
+
+type GameLobby struct {
+	ID         string
+	Clients    map[*Client]bool
+	Broadcast  chan []byte
+	Register   chan *Client
+	Unregister chan *Client
+	Host       uuid.UUID
+	Phase      GamePhase
+
+	// Shared player roster
+	Users map[uuid.UUID]*UserProfile
+
+	// Active mode + its settings (only one is non-nil at a time)
+	Mode                   GameMode
+	ImpostorSettings       game.ImpostorSettings
+	ContextoBattleSettings game.ContextoBattleSettings
+	SynonymDuelSettings    game.SynonymDuelSettings
+	AntiMatchSettings      game.AntiHiveSettings
 }
 
 type GameHub struct {
-	Dictionary words.Dictionary      // Word struct refrence
-	Clients    map[*Client]bool      // Connected clients map
-	Lobbys     map[string]*GameLobby // Lobbys map
-	RoomsMutex sync.RWMutex          // Read/Write mutex
-	Broadcast  chan []byte           // Broadcast chan
-	Register   chan *Client          // Register user chan
-	Unregister chan *Client          // Unregister user chan
+	Dictionary words.Dictionary
+	Clients    map[*Client]bool
+	Lobbys     map[string]*GameLobby
+	RoomsMutex sync.RWMutex
+	Broadcast  chan []byte
+	Register   chan *Client
+	Unregister chan *Client
 }

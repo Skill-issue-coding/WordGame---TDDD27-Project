@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Gamepad2 } from "lucide-react";
-import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
 import Link from "next/link";
+import { useGameContext } from "@/hooks/gamecontext";
 
 export default function HomeView() {
+  const { sendMessage } = useGameContext();
   const [roomCode, setRoomCode] = useState("");
   const [selectMode, setSelectMode] = useState<string | null>(null);
 
@@ -21,6 +21,7 @@ export default function HomeView() {
     return clean;
   };
 
+  const handleCreateLobby = () => sendMessage("create_lobby", null);
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md flex flex-col animate-slide-up gap-4">
@@ -31,27 +32,14 @@ export default function HomeView() {
               Ordio<span className="text-game-pink">Arena</span>
             </h1>
           </div>
-          <p className="text-muted-foreground text-base font-display font-semibold">
-            Snabbtänkt multiplayer ordspel
-          </p>
+          <p className="text-muted-foreground text-base font-display font-semibold">Snabbtänkt multiplayer ordspel</p>
         </div>
 
         <div className="game-card border-game-blue/30 mt-2">
-          <h2 className="font-display text-base font-bold mb-3 text-foreground flex items-center gap-2">
-            Gå med i rum
-          </h2>
+          <h2 className="font-display text-base font-bold mb-3 text-foreground flex items-center gap-2">Gå med i rum</h2>
           <div className="flex gap-2">
-            <Input
-              placeholder="XXXX-XXXX"
-              value={roomCode}
-              onChange={(e) => setRoomCode(formatCode(e.target.value))}
-              className="font-body text-base font-bold tracking-widest text-center bg-muted border-2 h-12 rounded-lg"
-              maxLength={9}
-            />
-            <Button
-              size="lg"
-              /* onClick={handleJoin} */ disabled={roomCode.replace("-", "").length !== 8}
-              className="h-12 px-8 font-bold text-base">
+            <Input placeholder="XXXX-XXXX" value={roomCode} onChange={(e) => setRoomCode(formatCode(e.target.value))} className="font-body text-base font-bold tracking-widest text-center bg-muted border-2 h-12 rounded-lg" maxLength={9} />
+            <Button size="lg" disabled={roomCode.replace("-", "").length !== 8} className="h-12 px-8 font-bold text-base">
               Gå med
             </Button>
           </div>
@@ -59,17 +47,13 @@ export default function HomeView() {
 
         <div className="flex items-center gap-3 mt-1.5">
           <div className="flex-1 h-px bg-border" />
-          <span className="font-display font-bold text-xs text-muted-foreground uppercase tracking-widest">
-            eller
-          </span>
+          <span className="font-display font-bold text-xs text-muted-foreground uppercase tracking-widest">eller</span>
           <div className="flex-1 h-px bg-border" />
         </div>
 
-        <Link href="/lobby">
-          <Button size="lg" className="w-full h-16 text-lg font-bold mb-4">
-            Skapa rum +
-          </Button>
-        </Link>
+        <Button size="lg" className="w-full h-16 text-lg font-bold mb-4" onClick={handleCreateLobby}>
+          Skapa rum +
+        </Button>
       </div>
     </div>
   );
