@@ -53,8 +53,7 @@ const gamemodes = [
   {
     id: "antimatch",
     title: "Anti-Matchning",
-    description:
-      "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
+    description: "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
     icon: "🎯",
     players: "3-12",
     color: "yellow" as Color,
@@ -74,9 +73,7 @@ export default function LobbyView() {
               <span className="text-sm">Tillbaka</span>
             </button>
           </Link>
-          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">
-            XXXX's rum
-          </h1>
+          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">XXXX's rum</h1>
           <div className="w-full" />
         </div>
         <div>

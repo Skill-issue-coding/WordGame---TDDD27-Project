@@ -7,6 +7,8 @@ import { GameContextProvider } from "@/hooks/gamecontext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import UserProfileButton from "@/components/user/UserProfileButton";
 import { ThemeProvider } from "next-themes";
+import LobbyChat from "@/components/lobby/LobbyChat";
+import { ChatProvider } from "@/contexts/ChatContext";
 
 const fredoka = Fredoka({
   subsets: ["latin"],
@@ -62,10 +64,13 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <GameContextProvider>
-            <TooltipProvider>
-              {children}
-              <UserProfileButton />
-            </TooltipProvider>
+            <ChatProvider>
+              <TooltipProvider>
+                {children}
+                <LobbyChat />
+                <UserProfileButton />
+              </TooltipProvider>
+            </ChatProvider>
           </GameContextProvider>
         </ThemeProvider>
         <Toaster position="top-right" />

@@ -108,6 +108,7 @@
   --game-green: oklch(0.7564 0.1802 154.52);
   --game-purple: oklch(0.5619 0.2421 290);
   --game-orange: oklch(0.7259 0.171 47.36);
+  --game-red: oklch(0.6395 0.2245 29.65);
 
   --heat-hot: oklch(0.7541 0.1927 151.21);
   --heat-warm: oklch(0.8603 0.1673 87.75);
@@ -276,6 +277,9 @@
   }
   .bg-game-orange {
     background-color: var(--game-orange);
+  }
+  .bg-game-red {
+    background-color: var(--game-red);
   }
 
   .border-game-pink {

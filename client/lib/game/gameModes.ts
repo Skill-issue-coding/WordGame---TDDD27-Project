@@ -1,5 +1,5 @@
 export type GameModeId = "impostor" | "contexto" | "synonym" | "antimatch";
-export type GameModeColor = "green" | "pink" | "blue" | "yellow";
+export type GameModeColor = "green" | "pink" | "blue" | "yellow" | "red";
 
 export interface GameMode {
   id: GameModeId;
@@ -18,8 +18,8 @@ export const GAME_MODES: GameMode[] = [
     description: "En spelare får ett unikt ord. Försök att tillsammans hitta impostern innan det är försent!",
     icon: "🕵️",
     players: "4 spelare",
-    color: "pink",
-    textClass: "text-game-pink",
+    color: "red",
+    textClass: "text-game-red",
   },
   {
     id: "contexto",
