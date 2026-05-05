@@ -1,0 +1,126 @@
+"use client";
+
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { MessageCircle, Send } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { useChat } from "@/contexts/ChatContext";
+import { useUser } from "@/contexts/UserContext";
+import { cn } from "@/lib/utils";
+
+const ALLOWED = ["/lobby", "/game"];
+
+const formatTime = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+
+const ChatButton = () => {
+  const location = usePathname();
+  const { messages, sendMessage, unread, markRead } = useChat();
+  const { username, color } = useUser();
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState("");
+  const scrollRef = useRef<HTMLDivElement>(null);
+
+  const visible = ALLOWED.includes(location);
+
+  useEffect(() => {
+    if (open) {
+      markRead();
+      requestAnimationFrame(() => {
+        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+      });
+    }
+  }, [open, messages, markRead]);
+
+  if (!visible) return null;
+
+  const handleSend = () => {
+    if (!draft.trim()) return;
+    sendMessage(draft, username, color);
+    setDraft("");
+  };
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <button
+          aria-label="Open chat"
+          className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full flex items-center justify-center text-white border-4 border-card transition-transform hover:scale-110 active:scale-95 bg-game-blue"
+          style={{
+            boxShadow: `0 4px 0 0 hsl(var(--game-blue) / 0.5), 0 8px 20px hsl(var(--game-shadow) / 0.2)`,
+          }}>
+          <MessageCircle className="w-6 h-6" />
+          {unread > 0 && (
+            <span className="absolute -top-1 -right-1 min-w-5 h-5 px-1 rounded-full bg-game-pink text-white text-xs font-display font-bold flex items-center justify-center border-2 border-card">
+              {unread > 9 ? "9+" : unread}
+            </span>
+          )}
+        </button>
+      </PopoverTrigger>
+
+      <PopoverContent
+        side="top"
+        align="end"
+        sideOffset={12}
+        className="z-50 w-88 max-w-[calc(100vw-2rem)] p-0 rounded-lg border-2 overflow-hidden flex flex-col h-112 max-h-[calc(100vh-7rem)] shadow-xl"
+        onOpenAutoFocus={(e) => e.preventDefault()}>
+        <div className="px-4 py-3 border-b-2 border-border shrink-0 flex items-center gap-2">
+          <MessageCircle className="w-5 h-5 text-game-blue" />
+          <div className="font-display font-bold text-base">Room Chat</div>
+        </div>
+
+        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-3">
+          {messages.length === 0 && <p className="text-center text-sm text-muted-foreground font-display py-8">No messages yet. Say hi! 👋</p>}
+          {messages.map((m) => {
+            const self = m.author === username;
+            return (
+              <div key={m.id} className={cn("flex gap-2 items-end", self && "flex-row-reverse")}>
+                <div
+                  className="w-7 h-7 rounded-full flex items-center justify-center font-display font-bold text-white text-xs border-2 border-card shrink-0"
+                  style={{ backgroundColor: m.color }}>
+                  {m.author.charAt(0).toUpperCase()}
+                </div>
+                <div className={cn("max-w-[75%]", self && "text-right")}>
+                  <div className="text-[10px] font-display font-bold text-muted-foreground px-1 mb-0.5">
+                    {self ? "You" : m.author} · {formatTime(m.timestamp)}
+                  </div>
+                  <div
+                    className={cn(
+                      "px-3 py-2 rounded-2xl border-2 font-display font-semibold text-sm break-words",
+                      self
+                        ? "bg-primary text-primary-foreground border-primary rounded-br-md"
+                        : "bg-muted border-border text-foreground rounded-bl-md",
+                    )}>
+                    {m.text}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="p-3 border-t-2 border-border shrink-0 flex gap-2">
+          <Input
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" && !e.shiftKey) {
+                e.preventDefault();
+                handleSend();
+              }
+            }}
+            placeholder="Type a message..."
+            maxLength={200}
+            className="font-display font-semibold h-10 border-2 rounded-2xl"
+          />
+          <Button onClick={handleSend} disabled={!draft.trim()} size="icon" className="h-10 w-10 shrink-0" aria-label="Send message">
+            <Send className="w-4 h-4" />
+          </Button>
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+};
+
+export default ChatButton;
