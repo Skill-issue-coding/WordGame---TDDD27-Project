@@ -1,7 +1,6 @@
 package session
 
 import (
-	"encoding/json"
 	"fmt"
 	"log"
 	"server/events"
@@ -12,19 +11,16 @@ import (
 )
 
 const (
-	pongWait      = 60 * time.Second
-	pingIntervall = 50 * time.Second
+	pongWait     = 40 * time.Second
+	pingInterval = 20 * time.Second
 
 	SOCKETREADLIMIT      int64 = 1024
 	MAXMESSAGESPERSECOND int   = 30
 	MAXMESSAGEWARNINGS   int   = 3
 )
 
-// writePump pumps messages from the hub to the websocket connection.
-// It listens on the client's send channel and writes the messages to the socket,
-// while also handling periodic ping messages to keep the connection alive.
 func (c *Client) WritePump() {
-	ticker := time.NewTicker(pingIntervall)
+	ticker := time.NewTicker(pingInterval)
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
@@ -34,18 +30,14 @@ func (c *Client) WritePump() {
 		select {
 		case message, ok := <-c.Send:
 			if !ok {
-				// The gamehub closed the channel
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
-
 			w, err := c.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
 			}
-
 			w.Write(message)
-
 			if err := w.Close(); err != nil {
 				return
 			}
@@ -77,8 +69,6 @@ func (c *Client) ReadPump() {
 
 	for {
 		_, message, err := c.Conn.ReadMessage()
-
-		// If the websocket crashes
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -86,10 +76,8 @@ func (c *Client) ReadPump() {
 			break
 		}
 
-		// SOME IMPLEMENTAION OF RATE LIMITING ?
 		now := time.Now()
 		if now.Sub(windowStart) >= time.Second {
-			// Reset time window
 			messageCount = 0
 			windowStart = now
 		}
@@ -98,54 +86,103 @@ func (c *Client) ReadPump() {
 		if messageCount > MAXMESSAGESPERSECOND {
 			messageWarnings++
 			messageCount = 0
-
-			log.Printf("Warning: Client %s sent packages too quickly!", c.Id)
-
+			log.Printf("Warning: Client %s sent packages too quickly!", c.UserId)
 			if messageWarnings >= MAXMESSAGEWARNINGS {
 				break
 			}
 			continue
 		}
 
-		// Read what type of event
-		var event events.Event
-		if err := json.Unmarshal(message, &event); err != nil {
+		event, err := events.ParseEvent(message)
+		if err != nil {
 			log.Printf("Error reading JSON: %v", err)
 			continue
 		}
 
-		// Switch case for each event
 		switch event.Type {
-		case events.CreateGameEvent:
-			// Get & save the username sent by the frontend & validate gamesettings
-			var createData events.CreateLobbyPayload
-			if err := json.Unmarshal(event.Payload, &createData); err != nil {
-				log.Printf("Error when reading create_game payload: %v", err)
-				continue
-			}
 
-			username := strings.TrimSpace(createData.Username)
-			if username == "" {
-				c.Send <- events.PrepareEvent(events.ErrorEvent, map[string]string{"message": "Användarnamnet får inte vara tomt."})
-				continue
-			}
-
-			c.Username = username
-
-			// Create the room and register the client to the room
+		case events.CreateLobbyEvent:
 			code := c.Hub.CreateUniqueRoom()
-			room := c.Hub.GetRoom(code)
+			lobby := c.Hub.GetRoom(code)
 
-			// Set host
-			room.State.Host = c.Id
+			lobby.Users[c.UserId] = c.Profile
+			lobby.Host = c.UserId
+			c.Lobby = lobby
 
-		case events.JoinGameEvent:
+			lobby.Register <- c
+
+		case events.JoinLobbyEvent:
+			payload, err := events.DecodePayload[JoinLobbyPayload](event)
+			if err != nil {
+				log.Printf("Error decoding join_game payload: %v", err)
+				continue
+			}
+
+			lobbyCode := strings.TrimSpace(payload.LobbyCode)
+			if lobbyCode == "" {
+				c.SendError("Spelkod krävs.")
+				continue
+			}
+
+			lobby := c.Hub.GetRoom(lobbyCode)
+			if lobby == nil {
+				c.SendError("Hittade inget rum med den koden.")
+				continue
+			}
+
+			if lobby.Phase == GameStarted {
+				c.SendError("Spelet har redan börjat.")
+				continue
+			}
+
+			lobby.Users[c.UserId] = c.Profile
+			c.Lobby = lobby
+			lobby.Register <- c
+
+		case events.UpdateUserEvent:
+			payload, err := events.DecodePayload[UpdateUserPayload](event)
+			if err != nil {
+				continue
+			}
+
+			username := strings.TrimSpace(payload.Username)
+			if username != "" {
+				c.Profile.Username = username
+			}
+			if payload.Background != "" {
+				c.Profile.Background = payload.Background
+			}
+
+			if c.Lobby != nil {
+				c.Lobby.SyncRequests <- struct{}{}
+			}
+
+		default:
+			c.SendError("Okänd event-typ")
 		}
 	}
 }
 
-// pongHandler handles websocket pong messages by extending the read deadline,
-// ensuring the connection is kept alive.
-func (c *Client) pongHandler(pongMessage string) error {
+func (c *Client) pongHandler(_ string) error {
 	return c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 }
+
+func (c *Client) SendEvent(eventType events.EventType, payload any) {
+	b, err := events.PrepareEvent(eventType, payload)
+	if err != nil {
+		log.Printf("error preparing event: %v", err)
+		return
+	}
+	c.Send <- b
+}
+
+func (c *Client) SendSuccess(message string) {
+	c.SendEvent(events.SuccessEvent, map[string]string{"message": message})
+}
+
+func (c *Client) SendError(message string) {
+	c.SendEvent(events.ErrorEvent, map[string]string{"message": message})
+}
+
+func (c *Client) Username() string   { return c.Profile.Username }
+func (c *Client) Background() string { return c.Profile.Background }

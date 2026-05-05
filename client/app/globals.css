@@ -17,12 +17,29 @@
   --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
   --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
+  --color-sidebar-background: var(--sidebar);
+
+  /* Playful game accent palette */
+  --color-game-pink: oklch(0.6804 0.1997 3.63);
+  --color-game-blue: oklch(0.6737 0.1689 251.89);
+  --color-game-yellow: oklch(0.866574 0.164655 88.6837);
+  --color-game-green: oklch(0.7567 0.18 154.63);
+  --color-game-purple: oklch(0.5622 0.2426 290.05);
+  --color-game-orange: oklch(0.726 0.1708 47.43);
+  --color-game-red: oklch(0.6395 0.2245 29.65);
+
+  /* Contexto-style distance heat colors */
+  --color-heat-hot: oklch(0.7542 0.1927 151.24);
+  --color-heat-warm: oklch(0.8612 0.1676 87.99);
+  --color-heat-cold: oklch(0.646 0.1914 24.21);
+
+  /*
   --color-chart-5: var(--chart-5);
   --color-chart-4: var(--chart-4);
   --color-chart-3: var(--chart-3);
   --color-chart-2: var(--chart-2);
   --color-chart-1: var(--chart-1);
+  */
   --color-ring: var(--ring);
   --color-input: var(--input);
   --color-border: var(--border);
@@ -47,105 +64,147 @@
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
 
-  --color-neon-blue: var(--neon-blue);
-  --color-neon-pink: var(--neon-pink);
-  --color-neon-yellow: var(--neon-yellow);
-  --color-neon-green: var(--neon-green);
   --color-game-surface: var(--game-surface);
+  --color-game-shadow: var(--game-shadow);
 
   --font-body: var(--font-inter);
   --font-display: var(--font-space-grotesk);
 }
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --background: oklch(0.9755 0.0045 258.32);
+  --foreground: oklch(0.2738 0.0358 274.66);
 
-  --neon-blue: oklch(0.7294 0.1585 238.7);
-  --neon-pink: oklch(0.6942 0.2264 354.05);
-  --neon-yellow: oklch(0.9 0.1739 96.86);
-  --neon-green: oklch(0.8824 0.1992 160.14);
-  --game-surface: oklch(0.2428 0.0231 277.17);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2751 0.0359 275.1);
+
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2738 0.0358 274.66);
+
+  --primary: oklch(0.5619 0.2421 290);
+  --primary-foreground: oklch(1 0 0);
+
+  --secondary: oklch(0.9338 0.01 267.36);
+  --secondary-foreground: oklch(0.2738 0.0358 274.66);
+
+  --muted: oklch(95.17% 0.0058 264.53);
+  --muted-foreground: oklch(52.85% 0.0366 275.45);
+
+  --accent: oklch(79.55% 0.163 68.76);
+  --accent-foreground: oklch(27.38% 0.0358 274.66);
+
+  --destructive: oklch(63.35% 0.2009 24.98);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border: oklch(0.8962 0.0151 277.83);
+  --input: oklch(0.9139 0.0124 276.09);
+  --ring: oklch(0.5619 0.2421 290);
+
+  --radius: 1rem;
+
+  --game-pink: oklch(0.6798 0.2001 3.54);
+  --game-blue: oklch(0.6738 0.1691 251.9);
+  --game-yellow: oklch(0.8666 0.1647 88.68);
+  --game-green: oklch(0.7564 0.1802 154.52);
+  --game-purple: oklch(0.5619 0.2421 290);
+  --game-orange: oklch(0.7259 0.171 47.36);
+  --game-red: oklch(0.6395 0.2245 29.65);
+
+  --heat-hot: oklch(0.7541 0.1927 151.21);
+  --heat-warm: oklch(0.8603 0.1673 87.75);
+  --heat-cold: oklch(0.6471 0.1913 24.19);
+
+  --game-surface: oklch(1 0 0);
+  --game-shadow: oklch(0.2886 0.0464 274.51);
+
+  --sidebar-background: oklch(1 0 0);
+  --sidebar-foreground: oklch(0.2738 0.0358 274.66);
+  --sidebar-primary: oklch(0.5619 0.2421 290);
+  --sidebar-primary-foreground: oklch(100% 0 0);
+  --sidebar-accent: oklch(0.9517 0.0058 264.53);
+  --sidebar-accent-foreground: oklch(0.2738 0.0358 274.66);
+  --sidebar-border: oklch(0.8962 0.0151 277.83);
+  --sidebar-ring: oklch(0.5619 0.2421 290);
+
+  --font-body: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
 }
 
 .dark {
-  --background: oklch(0.1697 0.015 272.3);
-  --foreground: oklch(0.9683 0.0069 247.9);
-  --card: oklch(0.2117 0.02 275.76);
-  --card-foreground: oklch(0.9683 0.0069 247.9);
-  --popover: oklch(0.2117 0.02 275.76);
-  --popover-foreground: oklch(0.9683 0.0069 247.9);
-  --primary: oklch(0.8824 0.1992 160.14);
-  --primary-foreground: oklch(0.1697 0.015 272.3);
-  --secondary: oklch(0.5785 0.2175 284.85);
-  --secondary-foreground: oklch(0.9842 0.0034 247.86);
-  --muted: oklch(0.2842 0.0222 277.48);
-  --muted-foreground: oklch(0.6214 0.0466 257.16);
-  --accent: oklch(0.7827 0.1685 66.35);
-  --accent-foreground: oklch(0.1697 0.015 272.3);
-  --destructive: oklch(0.6364 0.2107 25.52);
-  --destructive-foreground: oklch(0.9842 0.0034 247.86);
-  --border: oklch(0.3038 0.0239 274.74);
-  --input: oklch(0.3038 0.0239 274.74);
-  --ring: oklch(0.8824 0.1992 160.14);
-  --radius: 0.75rem;
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  --background: oklch(17.72% 0.0207 279.63);
+  --foreground: oklch(95.78% 0.0058 264.53);
 
+  --card: oklch(21.78% 0.0257 277.28);
+  --card-foreground: oklch(95.78% 0.0058 264.53);
+
+  --popover: oklch(21.78% 0.0257 277.28);
+  --popover-foreground: oklch(95.78% 0.0058 264.53);
+
+  --primary: oklch(62.27% 0.2099 293.11);
+  --primary-foreground: oklch(17.72% 0.0207 279.63);
+
+  --secondary: oklch(27.81% 0.0296 278.75);
+  --secondary-foreground: oklch(95.78% 0.0058 264.53);
+
+  --muted: oklch(26.06% 0.0264 278.08);
+  --muted-foreground: oklch(71.11% 0.0219 264.43);
+
+  --accent: oklch(80.32% 0.1587 69.81);
+  --accent-foreground: oklch(17.72% 0.0207 279.63);
+
+  --destructive: oklch(63.12% 0.1906 24.41);
+  --destructive-foreground: oklch(95.78% 0.0058 264.53);
+
+  --border: oklch(29.79% 0.0312 276.58);
+  --input: oklch(29.79% 0.0312 276.58);
+  --ring: oklch(62.27% 0.2099 293.11);
+
+  --game-pink: oklch(71.58% 0.173 1.39);
+  --game-blue: oklch(71.05% 0.1496 250.74);
+  --game-yellow: oklch(87.99% 0.1535 89.78);
+  --game-green: oklch(79.69% 0.1747 156.11);
+  --game-purple: oklch(64.46% 0.1966 293.98);
+  --game-orange: oklch(75.48% 0.1516 48.82);
+
+  --heat-hot: oklch(77.83% 0.199 151.27);
+  --heat-warm: oklch(86.66% 0.1647 88.68);
+  --heat-cold: oklch(66.61% 0.1774 23.2);
+
+  --game-surface: oklch(21.78% 0.0257 277.28);
+  --game-shadow: oklch(12.64% 0.0217 276.42);
+
+  --sidebar-background: oklch(21.78% 0.0257 277.28);
+  --sidebar-foreground: oklch(95.78% 0.0058 264.53);
+  --sidebar-primary: oklch(62.27% 0.2099 293.11);
+  --sidebar-primary-foreground: oklch(17.72% 0.0207 279.63);
+  --sidebar-accent: oklch(27.81% 0.0296 278.75);
+  --sidebar-accent-foreground: oklch(95.78% 0.0058 264.53);
+  --sidebar-border: oklch(29.79% 0.0312 276.58);
+  --sidebar-ring: oklch(62.27% 0.2099 293.11);
+
+  /*
   --neon-blue: oklch(0.7294 0.1585 238.7);
   --neon-pink: oklch(0.6942 0.2264 354.05);
   --neon-yellow: oklch(0.9 0.1739 96.86);
   --neon-green: oklch(0.8824 0.1992 160.14);
   --game-surface: oklch(0.2428 0.0231 277.17);
+  */
+
+  --font-body: var(--font-inter);
+  --font-display: var(--font-space-grotesk);
 }
 
 @layer base {
   * {
-    @apply border-border outline-ring/50;
+    @apply border-border;
   }
   body {
-    @apply antialiased bg-background text-foreground font-body;
+    @apply bg-background text-foreground font-body antialiased;
+    background-image:
+      radial-gradient(circle at 20% 10%, oklch(0.5619 0.2421 290 / 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 80% 90%, oklch(0.6798 0.2001 3.54 / 0.08) 0%, transparent 40%),
+      radial-gradient(circle at 90% 20%, oklch(0.6738 0.1691 251.9 / 0.06) 0%, transparent 40%);
+    background-attachment: fixed;
   }
   html {
     @apply font-sans;
@@ -161,6 +220,107 @@
 }
 
 @layer utilities {
+  .btn-3d {
+    box-shadow: 0 4px 0 0 oklch(0.2886 0.0464 274.51 / 0.18);
+    transition:
+      transform 0.1s ease,
+      box-shadow 0.1s ease;
+  }
+  .btn-3d:active:not(:disabled) {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 0 oklch(0.2886 0.0464 274.51 / 0.18);
+  }
+
+  .game-card {
+    @apply bg-card border-2 border-border rounded-xl p-6;
+    box-shadow: 0 4px 0 0 oklch(0.2886 0.0464 274.51 / 0.08);
+  }
+
+  .game-tile {
+    @apply bg-card border-2 border-border rounded-sm;
+    box-shadow: 0 3px 0 0 oklch(0.2886 0.0464 274.51 / 0.1);
+  }
+
+  .text-game-pink {
+    color: var(--game-pink);
+  }
+  .text-game-blue {
+    color: var(--game-blue);
+  }
+  .text-game-yellow {
+    color: var(--game-yellow);
+  }
+  .text-game-green {
+    color: var(--game-green);
+  }
+  .text-game-purple {
+    color: var(--game-purple);
+  }
+  .text-game-orange {
+    color: var(--game-orange);
+  }
+
+  .bg-game-pink {
+    background-color: var(--game-pink);
+  }
+  .bg-game-blue {
+    background-color: var(--game-blue);
+  }
+  .bg-game-yellow {
+    background-color: var(--game-yellow);
+  }
+  .bg-game-green {
+    background-color: var(--game-green);
+  }
+  .bg-game-purple {
+    background-color: var(--game-purple);
+  }
+  .bg-game-orange {
+    background-color: var(--game-orange);
+  }
+  .bg-game-red {
+    background-color: var(--game-red);
+  }
+
+  .border-game-pink {
+    border-color: var(--game-pink);
+  }
+  .border-game-blue {
+    border-color: var(--game-blue);
+  }
+  .border-game-yellow {
+    border-color: var(--game-yellow);
+  }
+  .border-game-green {
+    border-color: var(--game-green);
+  }
+  .border-game-purple {
+    border-color: var(--game-purple);
+  }
+  .border-game-orange {
+    border-color: var(--game-orange);
+  }
+
+  /* Heat-based distance colors (Contexto rank coloring) */
+  .heat-hot {
+    background: linear-gradient(90deg, var(--heat-hot), oklch(77.83% 0.199 151.27 / 0.7));
+  }
+  .heat-warm {
+    background: linear-gradient(90deg, var(--heat-warm), oklch(86.66% 0.1647 88.68 / 0.7));
+  }
+  .heat-cold {
+    background: linear-gradient(90deg, var(--heat-cold), oklch(66.61% 0.1774 23.2 / 0.7));
+  }
+
+  .confetti-bg {
+    background-image:
+      radial-gradient(circle at 10% 20%, var(--game-pink) 2px, transparent 2px),
+      radial-gradient(circle at 80% 30%, var(--game-yellow) 2px, transparent 2px),
+      radial-gradient(circle at 30% 80%, var(--game-blue) 2px, transparent 2px),
+      radial-gradient(circle at 70% 70%, var(--game-green) 2px, transparent 2px);
+    background-size: 200px 200px;
+  }
+  /*
   .text-glow-green {
     text-shadow:
       0 0 20px oklch(0.8824 0.1992 160.14 / 0.5),
@@ -200,4 +360,5 @@
   .game-card {
     @apply p-6 border bg-game-surface border-border rounded-xl;
   }
+  */
 }
