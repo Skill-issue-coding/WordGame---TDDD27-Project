@@ -41,7 +41,7 @@ func (lobby *GameLobby) Run() {
 			state := lobby.BuildLobbyState()
 
 			for c := range lobby.Clients {
-				profile, exists := lobby.Users[c.UserId]
+				_, exists := lobby.Users[c.UserId]
 				if !exists {
 					continue
 				}
@@ -49,18 +49,17 @@ func (lobby *GameLobby) Run() {
 				if c == client {
 					c.SendEvent(events.SyncGameStateEvent, SyncStatePayload{
 						GameState: state,
-						You:       *profile,
 						Message:   "Du gick med i spelet!",
 					})
 				} else {
 					c.SendEvent(events.SyncGameStateEvent, SyncStatePayload{
 						GameState: state,
-						You:       *profile,
 					})
 				}
 			}
 
-			log.Printf("[Room %s] Player '%s' joined. Players in room: %d", lobby.ID, client.Username, len(lobby.Clients))
+			client.SendEvent(events.JoinedLobbyEvent, nil)
+			log.Printf("[Room %s] Player '%s' joined. Players in room: %d", lobby.ID, client.Username(), len(lobby.Clients))
 
 		case client := <-lobby.Unregister:
 			if _, exists := lobby.Clients[client]; !exists {
@@ -70,7 +69,7 @@ func (lobby *GameLobby) Run() {
 			delete(lobby.Clients, client)
 			delete(lobby.Users, client.UserId)
 
-			log.Printf("[Room %s] Player '%s' left. Players remaining: %d", lobby.ID, client.Username, len(lobby.Clients))
+			log.Printf("[Room %s] Player '%s' left. Players remaining: %d", lobby.ID, client.Username(), len(lobby.Clients))
 
 			if len(lobby.Clients) == 0 {
 				log.Printf("[Room %s] Room is empty, closing.", lobby.ID)
@@ -99,13 +98,12 @@ func (lobby *GameLobby) Run() {
 func (lobby *GameLobby) SyncStateToClients() {
 	state := lobby.BuildLobbyState()
 	for client := range lobby.Clients {
-		profile, exists := lobby.Users[client.UserId]
+		_, exists := lobby.Users[client.UserId]
 		if !exists {
 			continue
 		}
 		client.SendEvent(events.SyncGameStateEvent, SyncStatePayload{
 			GameState: state,
-			You:       *profile,
 		})
 	}
 }

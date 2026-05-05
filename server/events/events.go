@@ -8,8 +8,7 @@ type EventType string
 const (
 	ConnectedEvent EventType = "connected_to_hub"
 
-	GameCreatedEvent   EventType = "lobby_created"
-	JoinedGameEvent    EventType = "joined_lobby"
+	JoinedLobbyEvent   EventType = "joined_lobby"
 	SyncGameStateEvent EventType = "sync_gamestate"
 
 	ErrorEvent   EventType = "error"
@@ -18,8 +17,10 @@ const (
 
 // Next.js (client) -> Go (server)
 const (
-	CreateGameEvent EventType = "create_lobby"
-	JoinGameEvent   EventType = "join_lobby"
+	CreateLobbyEvent EventType = "create_lobby"
+	JoinLobbyEvent   EventType = "join_lobby"
+
+	UpdateUserEvent EventType = "update_user"
 )
 
 type Event struct {

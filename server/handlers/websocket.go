@@ -30,13 +30,18 @@ func HandleWebSocket(c *gin.Context, hub *session.GameHub) {
 		return
 	}
 
-	client := &session.Client{
+	profile := &session.UserProfile{
 		UserId:     uuid.New(),
 		Username:   util.GenerateUsername(),
 		Background: util.GenerateBackgroundColor(),
-		Hub:        hub,
-		Conn:       conn,
-		Send:       make(chan []byte, 256),
+	}
+
+	client := &session.Client{
+		UserId:  profile.UserId,
+		Profile: profile,
+		Hub:     hub,
+		Conn:    conn,
+		Send:    make(chan []byte, 256),
 	}
 
 	client.Hub.Register <- client

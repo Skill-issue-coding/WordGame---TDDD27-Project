@@ -19,7 +19,7 @@ var palette = []string{
 
 var adjectives = []string{
 	"Snabb", "Trög", "Hungrig", "Sömnig", "Arg",
-	"Glad glad", "Mystisk", "Knasig", "Luden", "Blöt",
+	"Glad", "Mystisk", "Knasig", "Luden", "Blöt",
 	"Stolt", "Förvirrad", "Listig", "Modig", "Klumpig",
 }
 

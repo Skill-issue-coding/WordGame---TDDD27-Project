@@ -101,21 +101,17 @@ func (c *Client) ReadPump() {
 
 		switch event.Type {
 
-		case events.CreateGameEvent:
+		case events.CreateLobbyEvent:
 			code := c.Hub.CreateUniqueRoom()
 			lobby := c.Hub.GetRoom(code)
 
-			lobby.Users[c.UserId] = &UserProfile{
-				UserId:     c.UserId,
-				Username:   c.Username,
-				Background: c.Background,
-			}
+			lobby.Users[c.UserId] = c.Profile
 			lobby.Host = c.UserId
 			c.Lobby = lobby
 
 			lobby.Register <- c
 
-		case events.JoinGameEvent:
+		case events.JoinLobbyEvent:
 			payload, err := events.DecodePayload[JoinLobbyPayload](event)
 			if err != nil {
 				log.Printf("Error decoding join_game payload: %v", err)
@@ -139,14 +135,27 @@ func (c *Client) ReadPump() {
 				continue
 			}
 
+			lobby.Users[c.UserId] = c.Profile
 			c.Lobby = lobby
-			lobby.Users[c.UserId] = &UserProfile{
-				UserId:     c.UserId,
-				Username:   c.Username,
-				Background: c.Background,
+			lobby.Register <- c
+
+		case events.UpdateUserEvent:
+			payload, err := events.DecodePayload[UpdateUserPayload](event)
+			if err != nil {
+				continue
 			}
 
-			lobby.Register <- c
+			username := strings.TrimSpace(payload.Username)
+			if username != "" {
+				c.Profile.Username = username
+			}
+			if payload.Background != "" {
+				c.Profile.Background = payload.Background
+			}
+
+			if c.Lobby != nil {
+				c.Lobby.SyncStateToClients()
+			}
 
 		default:
 			c.SendError("Okänd event-typ")
@@ -169,3 +178,6 @@ func (c *Client) SendSuccess(message string) {
 func (c *Client) SendError(message string) {
 	c.SendEvent(events.ErrorEvent, map[string]string{"message": message})
 }
+
+func (c *Client) Username() string   { return c.Profile.Username }
+func (c *Client) Background() string { return c.Profile.Background }

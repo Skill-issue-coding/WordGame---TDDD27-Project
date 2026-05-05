@@ -23,13 +23,12 @@ const (
 )
 
 type Client struct {
-	UserId     uuid.UUID
-	Username   string
-	Background string
-	Hub        *GameHub
-	Conn       *websocket.Conn
-	Send       chan []byte
-	Lobby      *GameLobby
+	UserId  uuid.UUID
+	Profile *UserProfile
+	Hub     *GameHub
+	Conn    *websocket.Conn
+	Send    chan []byte
+	Lobby   *GameLobby
 }
 
 type UserProfile struct {
