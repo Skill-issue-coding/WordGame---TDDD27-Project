@@ -34,6 +34,8 @@ func handleServerStartup() {
 		log.Fatalf("Could not initialize game hub: %v", err)
 	}
 
+	go gameHub.Run()
+
 	api := router.Group("/api")
 	{
 		api.GET("/status", handlers.HandleStatus)
@@ -48,7 +50,6 @@ func handleServerStartup() {
 
 	log.Println("Server running on http://localhost:8080")
 	router.Run(":8080")
-
 	// terminalTesting(gameHub)
 }
 

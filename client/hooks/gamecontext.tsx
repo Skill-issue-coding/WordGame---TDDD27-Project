@@ -1,7 +1,7 @@
 "use client";
 
 import { User } from "@/lib/game/types";
-import { ToastError } from "@/lib/toast-functions";
+import { ToastError, ToastSucess } from "@/lib/toast-functions";
 import { WSRecievedEvent, WSSendEventType, WSSendPayloadMap } from "@/lib/websocket/types";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
 
@@ -18,9 +18,8 @@ export const GameContext = createContext<GameContextContextProps | null>(null);
 
 export function useGameContext() {
   const context = useContext(GameContext);
-  if (!context) {
-    throw new Error("useGameContext must be used within a GameContextProvider");
-  }
+  if (!context) throw new Error("useGameContext must be used within a GameContextProvider");
+
   return context;
 }
 
@@ -37,7 +36,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws` : `ws://localhost:8080/ws/game`;
+    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws/game` : `ws://localhost:8080/ws/game`;
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
@@ -58,6 +57,9 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
       const { type, payload } = parsedEvent;
 
       switch (type) {
+        case "connected_to_hub":
+          ToastSucess("Välkommen till OrdioArena!");
+
         case "lobby_created":
           // Logic for lobby created
           break;

@@ -33,7 +33,7 @@ type Client struct {
 }
 
 type UserProfile struct {
-	UserId     uuid.UUID `json:"id"`
+	UserId     uuid.UUID `json:"user_id"`
 	Username   string    `json:"username"`
 	Background string    `json:"background"`
 	Score      int       `json:"score"`

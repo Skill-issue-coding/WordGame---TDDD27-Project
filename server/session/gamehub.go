@@ -51,7 +51,7 @@ func (hub *GameHub) Run() {
 		case client := <-hub.Register:
 			hub.Clients[client] = true
 
-			client.SendEvent(events.ConnectedEvent, ConnectedToHubPayload{Username: client.Username, Background: client.Background})
+			client.SendEvent(events.ConnectedEvent, ConnectedToHubPayload{User: *client.Lobby.Users[client.UserId]})
 			log.Printf("[Hub] Client connected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
 				client.UserId,
 				len(hub.Clients),

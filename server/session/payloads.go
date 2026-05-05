@@ -29,6 +29,5 @@ type UpdateSettingPayload struct {
 }
 
 type ConnectedToHubPayload struct {
-	Username   string `json:"username"`
-	Background string `json:"background"`
+	User UserProfile `json:"user"`
 }

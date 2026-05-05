@@ -2,9 +2,10 @@ import { User } from "@/lib/game/types";
 
 /* RECIEVED FROM THE BACkEND */
 export type WSRecievedEvent =
+  | { type: "connected_to_hub"; payload: { username: string; background: string } }
   | { type: "lobby_created" | "joined_lobby"; payload: { user: User; message: string } }
   | { type: "lobby_updated" | "game_started"; payload: any }
-  | { type: "error" | "server_connected" | "left_room"; payload: { message: string } };
+  | { type: "error" | "left_room"; payload: { message: string } };
 
 export type WSEventType = WSRecievedEvent["type"];
 
