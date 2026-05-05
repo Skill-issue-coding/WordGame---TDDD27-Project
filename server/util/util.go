@@ -1,3 +1,4 @@
+// Package util provides stateless helper functions used across the server.
 package util
 
 import (
@@ -6,6 +7,8 @@ import (
 	"math/rand"
 )
 
+// palette is the set of background colors a player can be assigned.
+// Kept in sync with the frontend palette in GameContextProvider.
 var palette = []string{
 	"#8b5cf6",
 	"#ec4899",
@@ -29,6 +32,9 @@ var nouns = []string{
 	"Lobster", "Axolotl", "Mufflon", "Tapir", "Manet",
 }
 
+// GenerateGameCode returns a random room code in the format "XXXX-XXXX",
+// where each segment is four alphanumeric characters. Used as the human-readable
+// lobby identifier players share with friends.
 func GenerateGameCode() string {
 	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
 
@@ -43,15 +49,19 @@ func GenerateGameCode() string {
 	return fmt.Sprintf("%s-%s", segment(), segment())
 }
 
+// CosineDistance computes the cosine distance between two equal-length float64
+// vectors. Returns a value in [0, 2] where 0 means identical direction and 2
+// means opposite direction. Returns math.NaN() if either vector is empty,
+// they differ in length, or either has zero magnitude.
+//
+// This is the core similarity primitive used by all game modes to compare
+// Swedish fastText word vectors.
 func CosineDistance(vecA []float64, vecB []float64) float64 {
 	if len(vecA) == 0 || len(vecB) == 0 || len(vecA) != len(vecB) {
 		return math.NaN()
 	}
 
-	var dot float64
-	var normA float64
-	var normB float64
-
+	var dot, normA, normB float64
 	for i := range vecA {
 		dot += vecA[i] * vecB[i]
 		normA += vecA[i] * vecA[i]
@@ -62,18 +72,20 @@ func CosineDistance(vecA []float64, vecB []float64) float64 {
 		return math.NaN()
 	}
 
-	cosineSimilarity := dot / (math.Sqrt(normA) * math.Sqrt(normB))
-	return 1 - cosineSimilarity
+	return 1 - dot/(math.Sqrt(normA)*math.Sqrt(normB))
 }
 
+// GenerateUsername returns a random Swedish display name in the format
+// "<Adjective><Noun><Number>", e.g. "KnasigFlamingo42".
+// Called once per WebSocket connection in the HTTP upgrade handler.
 func GenerateUsername() string {
 	adj := adjectives[rand.Intn(len(adjectives))]
 	noun := nouns[rand.Intn(len(nouns))]
-	number := rand.Intn(100)
-	return fmt.Sprintf("%s%s%d", adj, noun, number)
+	return fmt.Sprintf("%s%s%d", adj, noun, rand.Intn(100))
 }
 
+// GenerateBackgroundColor returns a random color hex string from the shared
+// player palette. Called once per WebSocket connection alongside GenerateUsername.
 func GenerateBackgroundColor() string {
-	randomIndex := rand.Intn(len(palette))
-	return palette[randomIndex]
+	return palette[rand.Intn(len(palette))]
 }
