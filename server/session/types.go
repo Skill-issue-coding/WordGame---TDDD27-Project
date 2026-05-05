@@ -50,13 +50,14 @@ type LobbyState struct {
 }
 
 type GameLobby struct {
-	ID         string
-	Clients    map[*Client]bool
-	Broadcast  chan []byte
-	Register   chan *Client
-	Unregister chan *Client
-	Host       uuid.UUID
-	Phase      GamePhase
+	ID           string
+	Clients      map[*Client]bool
+	Broadcast    chan []byte
+	Register     chan *Client
+	Unregister   chan *Client
+	SyncRequests chan struct{}
+	Host         uuid.UUID
+	Phase        GamePhase
 
 	// Shared player roster
 	Users map[uuid.UUID]*UserProfile

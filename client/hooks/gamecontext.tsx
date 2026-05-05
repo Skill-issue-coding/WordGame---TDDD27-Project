@@ -99,9 +99,11 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
 
   const updateUser = (updates: Partial<User>) => {
     setUser((prev) => {
-      const nextUser = prev ? { ...prev, ...updates } : ({ ...updates } as User);
-      sendMessage("update_user", { updates });
-      return nextUser;
+      if (prev) {
+        sendMessage("update_user", { updates });
+        return { ...prev, ...updates };
+      }
+      return null;
     });
   };
 

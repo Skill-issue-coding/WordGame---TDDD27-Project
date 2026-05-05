@@ -154,7 +154,7 @@ func (c *Client) ReadPump() {
 			}
 
 			if c.Lobby != nil {
-				c.Lobby.SyncStateToClients()
+				c.Lobby.SyncRequests <- struct{}{}
 			}
 
 		default:
@@ -168,7 +168,12 @@ func (c *Client) pongHandler(_ string) error {
 }
 
 func (c *Client) SendEvent(eventType events.EventType, payload any) {
-	c.Send <- events.PrepareEvent(eventType, payload)
+	b, err := events.PrepareEvent(eventType, payload)
+	if err != nil {
+		log.Printf("error preparing event: %v", err)
+		return
+	}
+	c.Send <- b
 }
 
 func (c *Client) SendSuccess(message string) {

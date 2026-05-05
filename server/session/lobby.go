@@ -11,13 +11,14 @@ import (
 
 func NewLobby(id string) *GameLobby {
 	lobby := &GameLobby{
-		ID:         id,
-		Clients:    make(map[*Client]bool),
-		Broadcast:  make(chan []byte),
-		Register:   make(chan *Client),
-		Unregister: make(chan *Client),
-		Phase:      LobbyPhase,
-		Users:      make(map[uuid.UUID]*UserProfile),
+		ID:           id,
+		Clients:      make(map[*Client]bool),
+		Broadcast:    make(chan []byte),
+		Register:     make(chan *Client),
+		Unregister:   make(chan *Client),
+		SyncRequests: make(chan struct{}),
+		Phase:        LobbyPhase,
+		Users:        make(map[uuid.UUID]*UserProfile),
 	}
 	lobby.SetMode(ModeImpostor)
 	return lobby
@@ -87,6 +88,9 @@ func (lobby *GameLobby) Run() {
 				}
 			}
 
+			lobby.SyncStateToClients()
+
+		case <-lobby.SyncRequests:
 			lobby.SyncStateToClients()
 
 		case <-gameticker.C:

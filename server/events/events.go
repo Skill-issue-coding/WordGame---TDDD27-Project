@@ -59,7 +59,6 @@ func EncodeEvent(eventType EventType, payload any) ([]byte, error) {
 
 // PrepareEvent wraps a given payload into an Event structure with the specified EventType.
 // It returns the JSON-marshaled byte slice of the final event, ready to be sent over the socket.
-func PrepareEvent(eventType EventType, payload any) []byte {
-	finalMessage, _ := EncodeEvent(eventType, payload)
-	return finalMessage
+func PrepareEvent(eventType EventType, payload any) ([]byte, error) {
+	return EncodeEvent(eventType, payload)
 }
