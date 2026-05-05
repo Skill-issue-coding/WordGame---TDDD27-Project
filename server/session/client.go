@@ -118,13 +118,13 @@ func (c *Client) ReadPump() {
 				continue
 			}
 
-			code := strings.TrimSpace(payload.LobbyCode)
-			if code == "" {
+			lobbyCode := strings.TrimSpace(payload.LobbyCode)
+			if lobbyCode == "" {
 				c.SendError("Spelkod krävs.")
 				continue
 			}
 
-			lobby := c.Hub.GetRoom(code)
+			lobby := c.Hub.GetRoom(lobbyCode)
 			if lobby == nil {
 				c.SendError("Hittade inget rum med den koden.")
 				continue
