@@ -13,7 +13,7 @@ export type WSEventType = WSRecievedEvent["type"];
 /* NEXT.JS (FRONTEND) -> GO (Backend) */
 export type WSSendPayloadMap = {
   create_lobby: null;
-  join_lobby: { gameCode: string };
+  join_lobby: { lobbyCode: string };
   update_user: { updates: Partial<User> };
 };
 

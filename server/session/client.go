@@ -118,7 +118,7 @@ func (c *Client) ReadPump() {
 				continue
 			}
 
-			code := strings.TrimSpace(payload.Code)
+			code := strings.TrimSpace(payload.LobbyCode)
 			if code == "" {
 				c.SendError("Spelkod krävs.")
 				continue

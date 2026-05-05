@@ -12,7 +12,7 @@ type ConnectedToHubPayload struct {
 
 // Next.js (client) -> Go (server)
 type JoinLobbyPayload struct {
-	Code string `json:"code"`
+	gameCode string `json:"gameCode"`
 }
 
 type UpdateUserPayload struct {
