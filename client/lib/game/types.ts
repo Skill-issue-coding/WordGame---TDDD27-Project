@@ -1,18 +1,52 @@
+/**
+ * @file types.ts (lib/game)
+ * Domain types that mirror the Go server's session package structs.
+ * These are the shapes of data received in WebSocket payloads and stored
+ * in React state — keep them in sync with the Go types manually or via
+ * a code-generation step.
+ */
+
+/** The lifecycle stage of a lobby, mirroring Go's GamePhase. */
 export type GamePhase = "lobby" | "game_started";
+
+/**
+ * The active game mode, mirroring Go's GameMode.
+ * - impostor:       Who is the Impostor? word-deduction mode.
+ * - contexto_battle: Competitive Contexto guessing under a timer.
+ * - synonym_duel:   King-of-the-Hill synonym elimination.
+ * - anti_match:     Anti-Hivemind unique-word scoring.
+ */
 export type GameMode = "impostor" | "contexto_battle" | "synonym_duel" | "anti_match";
 
+/**
+ * A player's identity and cosmetic profile.
+ * Mirrors Go's UserProfile struct. The server generates username and
+ * background at connection time; the player can update them via update_user.
+ */
 export type User = {
+  /** UUID assigned by the server at connection time. */
   user_id: string;
+  /** Display name shown to all players in the lobby. */
   username: string;
+  /** Hex color string used as the player's avatar background. */
   background: string;
+  /** Cumulative score for the current game session. */
   score: number;
 };
 
+/**
+ * The complete shared lobby state broadcast via sync_gamestate.
+ * All fields are safe to display to any player — private per-player data
+ * (e.g. the Impostor's secret word) is never included here.
+ */
 export type LobbyState = {
+  /** The human-readable room code (e.g. "AbCd-1234"). */
   code: string;
   mode: GameMode;
   phase: GamePhase;
+  /** user_id of the player with host privileges. */
   host: string;
+  /** All players currently in the lobby, keyed by user_id. */
   users: Record<string, User>;
-  // Settings any                        `json:"settings"`
+  // settings: ModeSettings — add typed union once mode settings are finalised.
 };

@@ -4,13 +4,11 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import Link from "next/link";
 import { useGameContext } from "@/hooks/gamecontext";
 
 export default function HomeView() {
   const { sendMessage } = useGameContext();
   const [roomCode, setRoomCode] = useState("");
-  const [selectMode, setSelectMode] = useState<string | null>(null);
 
   const formatCode = (val: string) => {
     const clean = val
@@ -22,6 +20,8 @@ export default function HomeView() {
   };
 
   const handleCreateLobby = () => sendMessage("create_lobby", null);
+  const handleJoinLobby = () => sendMessage("join_lobby", { lobby_code: roomCode });
+
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md flex flex-col animate-slide-up gap-4">
@@ -39,7 +39,7 @@ export default function HomeView() {
           <h2 className="font-display text-base font-bold mb-3 text-foreground flex items-center gap-2">Gå med i rum</h2>
           <div className="flex gap-2">
             <Input placeholder="XXXX-XXXX" value={roomCode} onChange={(e) => setRoomCode(formatCode(e.target.value))} className="font-body text-base font-bold tracking-widest text-center bg-muted border-2 h-12 rounded-lg" maxLength={9} />
-            <Button size="lg" disabled={roomCode.replace("-", "").length !== 8} className="h-12 px-8 font-bold text-base">
+            <Button size="lg" onClick={handleJoinLobby} disabled={roomCode.replace("-", "").length !== 8} className="h-12 px-8 font-bold text-base">
               Gå med
             </Button>
           </div>
