@@ -39,6 +39,7 @@ func handleServerStartup() {
 	api := router.Group("/api")
 	{
 		api.GET("/status", handlers.HandleStatus)
+		api.POST("/game/username", func(c *gin.Context) { handlers.NewUsername(c, gameHub) })
 	}
 
 	ws := router.Group("/ws")

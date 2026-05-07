@@ -5,30 +5,6 @@ import { User } from "@/lib/game/types";
 import { useGameContext } from "@/hooks/gamecontext";
 import { cn } from "@/lib/utils";
 
-// TODO: Temporary
-interface MockPlayer {
-  userId: string;
-  username: string;
-  isHost: boolean;
-  color: string;
-}
-
-// TODO: Temporary
-const MOCK_PLAYERS: MockPlayer[] = [
-  { userId: "1", username: "Alice", isHost: true, color: "#8b5cf6" },
-  { userId: "2", username: "Bob", isHost: false, color: "#ec4899" },
-  { userId: "3", username: "Charlie", isHost: false, color: "#3b82f6" },
-  { userId: "4", username: "David", isHost: false, color: "#10b981" },
-  { userId: "5", username: "Emma", isHost: false, color: "#f59e0b" },
-  { userId: "6", username: "Fanny", isHost: false, color: "#ef4444" },
-  { userId: "7", username: "George", isHost: false, color: "#06b6d4" },
-  { userId: "8", username: "Hannes", isHost: false, color: "#a855f7" },
-  { userId: "9", username: "Ingrid", isHost: false, color: "#8b5cf6" },
-  { userId: "10", username: "John", isHost: false, color: "#f59e0b" },
-  //{ userId: "11", username: "Klara", isHost: false },
-  //{ userId: "12", username: "Leo", isHost: false },
-];
-
 interface PlayerListProps {
   className?: string;
 }
@@ -82,7 +58,7 @@ function EmptySlot() {
 }
 
 export function PlayerList({ className }: PlayerListProps) {
-  const { user, lobbyState } = useGameContext();
+  const { lobbyState } = useGameContext();
   const MAX_SLOTS = 12;
   const playerCount = Object.values(lobbyState?.users || {}).length;
   const emptySlotsCount = Math.max(0, MAX_SLOTS - playerCount);

@@ -48,7 +48,7 @@ export type LobbyState = {
   host: string;
   /** All players currently in the lobby, keyed by user_id. */
   users: Record<string, User>;
-  // settings: ModeSettings — add typed union once mode settings are finalised.
+  settings: ImpostorSettings | ContextoBattleSettings | SynonymDuelSettings | AntiMatchSettings;
 };
 
 export type ChatMessage = {
@@ -58,4 +58,35 @@ export type ChatMessage = {
   message: string;
   /** Server timestamp in Unix milliseconds. */
   date: number;
+};
+
+export type ImpostorSettings = {
+  input_duration: number;
+  discussion_duration: number;
+  impostor_count: number;
+};
+
+export type ContextoBattleSettings = {
+  round_duration: number;
+};
+
+export type SynonymDuelSettings = {
+  round_duration: number;
+  rounds: number;
+};
+
+export type AntiMatchSettings = {
+  input_duration: number;
+  max_distance: number;
+};
+
+export type ModeSettings =
+  | { mode: "impostor"; settings: ImpostorSettings }
+  | { mode: "contexto_battle"; settings: ContextoBattleSettings }
+  | { mode: "synonym_duel"; settings: SynonymDuelSettings }
+  | { mode: "anti_match"; settings: AntiMatchSettings };
+
+export type LocalStorageProfile = {
+  username?: string;
+  background?: string;
 };

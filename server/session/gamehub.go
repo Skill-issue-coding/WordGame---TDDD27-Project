@@ -9,7 +9,7 @@ import (
 )
 
 // NewGameHub initialises and returns a GameHub with a loaded word dictionary.
-// Returns an error if the dictionary files cannot be read or parsed.
+// It returns an error if the dictionary files cannot be read or parsed.
 // The hub's Run goroutine must be started separately by the caller.
 func NewGameHub() (*GameHub, error) {
 	dict, err := words.InitializeDictionary()
@@ -20,7 +20,7 @@ func NewGameHub() (*GameHub, error) {
 	return &GameHub{
 		Dictionary: dict,
 		Clients:    make(map[*Client]bool),
-		Lobbys:     make(map[string]*GameLobby),
+		Lobbies:    make(map[string]*GameLobby),
 		Broadcast:  make(chan []byte),
 		Register:   make(chan *Client),
 		Unregister: make(chan *Client),
@@ -30,14 +30,6 @@ func NewGameHub() (*GameHub, error) {
 // Run is the hub's main event loop and must be started in its own goroutine.
 // It is the single owner of the Clients map, so all mutations to it happen
 // here without additional locking.
-//
-// The loop handles four cases:
-//   - Register: a newly connected client is added to the hub and sent a
-//     connected_to_hub event containing their generated username and color.
-//   - Unregister: a disconnected client is removed; if they were in a lobby,
-//     they are forwarded to that lobby's Unregister channel.
-//   - Broadcast: a raw message is forwarded to every connected client.
-//   - statusTicker: logs a periodic health summary every 30 seconds.
 func (hub *GameHub) Run() {
 	statusTicker := time.NewTicker(30 * time.Second)
 	defer statusTicker.Stop()
@@ -58,7 +50,7 @@ func (hub *GameHub) Run() {
 			})
 
 			log.Printf("[Hub] Client connected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
-				client.UserId, len(hub.Clients), len(hub.Lobbys), hub.totalPlayers())
+				client.UserId, len(hub.Clients), len(hub.Lobbies), hub.totalPlayers())
 
 		case client := <-hub.Unregister:
 			if _, ok := hub.Clients[client]; ok {
@@ -74,7 +66,7 @@ func (hub *GameHub) Run() {
 				close(client.Send) // signals WritePump to exit
 
 				log.Printf("[Hub] Client disconnected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
-					client.UserId, len(hub.Clients), len(hub.Lobbys), hub.totalPlayers())
+					client.UserId, len(hub.Clients), len(hub.Lobbies), hub.totalPlayers())
 			}
 
 		case message := <-hub.Broadcast:
@@ -90,17 +82,17 @@ func (hub *GameHub) Run() {
 
 		case <-statusTicker.C:
 			log.Printf("[Hub] Status — Open rooms: %d | Players in rooms: %d | Connected clients: %d",
-				len(hub.Lobbys), hub.totalPlayers(), len(hub.Clients))
+				len(hub.Lobbies), hub.totalPlayers(), len(hub.Clients))
 		}
 	}
 }
 
 // totalPlayers returns the total number of players across all active lobbies.
-// Must only be called from within the Run goroutine (or while holding
-// RoomsMutex) as it reads the Lobbys map.
+// It must only be called from within the Run goroutine (or while holding
+// LobbiesMutex) as it reads the Lobbies map.
 func (hub *GameHub) totalPlayers() int {
 	total := 0
-	for _, room := range hub.Lobbys {
+	for _, room := range hub.Lobbies {
 		total += len(room.Clients)
 	}
 	return total
@@ -110,17 +102,17 @@ func (hub *GameHub) totalPlayers() int {
 // starts its Run goroutine, registers it in the hub, and returns the code.
 // It is safe to call from any goroutine.
 func (hub *GameHub) CreateUniqueRoom() string {
-	hub.RoomsMutex.Lock()
-	defer hub.RoomsMutex.Unlock()
+	hub.LobbiesMutex.Lock()
+	defer hub.LobbiesMutex.Unlock()
 
 	var code string
 	for {
 		code = util.GenerateGameCode()
-		if _, exists := hub.Lobbys[code]; !exists {
+		if _, exists := hub.Lobbies[code]; !exists {
 			newRoom := NewLobby(code)
-			hub.Lobbys[code] = newRoom
+			hub.Lobbies[code] = newRoom
 			go newRoom.Run()
-			log.Printf("[Hub] Room created (code=%s). Open rooms: %d", code, len(hub.Lobbys))
+			log.Printf("[Hub] Room created (code=%s). Open rooms: %d", code, len(hub.Lobbies))
 			break
 		}
 	}
@@ -130,18 +122,18 @@ func (hub *GameHub) CreateUniqueRoom() string {
 // GetRoom returns the GameLobby for the given room code, or nil if no such
 // lobby exists. It is safe to call from any goroutine.
 func (hub *GameHub) GetRoom(code string) *GameLobby {
-	hub.RoomsMutex.RLock()
-	defer hub.RoomsMutex.RUnlock()
-	return hub.Lobbys[code]
+	hub.LobbiesMutex.RLock()
+	defer hub.LobbiesMutex.RUnlock()
+	return hub.Lobbies[code]
 }
 
 // DeleteRoom removes the lobby with the given code from the hub. It is
 // typically called by the lobby's own Run goroutine when the last player
 // leaves. It is safe to call from any goroutine.
 func (hub *GameHub) DeleteRoom(code string) {
-	hub.RoomsMutex.Lock()
-	defer hub.RoomsMutex.Unlock()
-	delete(hub.Lobbys, code)
+	hub.LobbiesMutex.Lock()
+	defer hub.LobbiesMutex.Unlock()
+	delete(hub.Lobbies, code)
 	log.Printf("[Hub] Room deleted (code=%s). Open rooms: %d | Players in rooms: %d",
-		code, len(hub.Lobbys), hub.totalPlayers())
+		code, len(hub.Lobbies), hub.totalPlayers())
 }

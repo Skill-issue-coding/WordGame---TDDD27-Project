@@ -16,24 +16,24 @@ const (
 	pongWait = 40 * time.Second
 
 	// pingInterval is how often the server sends a ping frame to the client
-	// to keep the connection alive. Must be less than pongWait.
+	// to keep the connection alive. It must be less than pongWait.
 	pingInterval = 20 * time.Second
 
-	// SOCKETREADLIMIT is the maximum size in bytes of a single incoming
-	// WebSocket message. Messages exceeding this are rejected.
-	SOCKETREADLIMIT int64 = 1024
+	// socketReadLimit is the maximum size in bytes of a single incoming
+	// WebSocket message. Messages exceeding this limit are rejected.
+	socketReadLimit int64 = 1024
 
-	// MAXMESSAGESPERSECOND is the rate limit threshold. If a client exceeds
+	// maxMessagesPerSecond is the rate limit threshold. If a client exceeds
 	// this many messages within a one-second window, a warning is issued.
-	MAXMESSAGESPERSECOND int = 30
+	maxMessagesPerSecond int = 30
 
-	// MAXMESSAGEWARNINGS is the number of rate limit violations allowed before
+	// maxMessageWarnings is the number of rate limit violations allowed before
 	// the client is forcibly disconnected.
-	MAXMESSAGEWARNINGS int = 3
+	maxMessageWarnings int = 3
 )
 
 // WritePump runs in its own goroutine and is the only writer to the WebSocket
-// connection. It drains the client's Send channel and forwards each message to
+// connection. It drains the client's Send channel, forwards each message to
 // the socket, and sends periodic ping frames to keep the connection alive.
 //
 // When the Send channel is closed (by the hub on disconnect), WritePump sends
@@ -74,11 +74,8 @@ func (c *Client) WritePump() {
 // appropriate handler logic via a switch on event.Type.
 //
 // ReadPump also enforces per-client rate limiting: if a client sends more than
-// MAXMESSAGESPERSECOND messages in a rolling one-second window more than
-// MAXMESSAGEWARNINGS times, the connection is closed.
-//
-// When ReadPump exits for any reason, it sends the client to hub.Unregister,
-// which closes the Send channel and causes WritePump to exit as well.
+// maxMessagesPerSecond messages in a rolling one-second window more than
+// maxMessageWarnings times, the connection is closed.
 func (c *Client) ReadPump() {
 	defer func() {
 		c.Hub.Unregister <- c
@@ -90,7 +87,7 @@ func (c *Client) ReadPump() {
 		return
 	}
 
-	c.Conn.SetReadLimit(SOCKETREADLIMIT)
+	c.Conn.SetReadLimit(socketReadLimit)
 	c.Conn.SetPongHandler(c.pongHandler)
 
 	messageCount := 0
@@ -114,11 +111,11 @@ func (c *Client) ReadPump() {
 		}
 
 		messageCount++
-		if messageCount > MAXMESSAGESPERSECOND {
+		if messageCount > maxMessagesPerSecond {
 			messageWarnings++
 			messageCount = 0
 			log.Printf("Warning: Client %s sent packages too quickly!", c.UserId)
-			if messageWarnings >= MAXMESSAGEWARNINGS {
+			if messageWarnings >= maxMessageWarnings {
 				break
 			}
 			continue
@@ -133,15 +130,11 @@ func (c *Client) ReadPump() {
 		switch event.Type {
 
 		// create_lobby — creates a new room, assigns this client as host,
-		// and registers them into it. The lobby's Register handler sends
-		// the initial sync_gamestate back.
+		// and registers them into it.
 		case events.CreateLobbyEvent:
 			code := c.Hub.CreateUniqueRoom()
 			lobby := c.Hub.GetRoom(code)
 
-			// Point the lobby's user roster at this client's profile pointer.
-			// No copy is made — mutations to c.Profile are immediately visible
-			// in lobby.Users and vice versa.
 			lobby.Users[c.UserId] = c.Profile
 			lobby.Host = c.UserId
 			c.Lobby = lobby
@@ -149,10 +142,11 @@ func (c *Client) ReadPump() {
 			lobby.Register <- c
 
 		// join_lobby — validates the room code and registers the client into
-		// an existing lobby. The lobby's Register handler sends the sync.
+		// an existing lobby.
 		case events.JoinLobbyEvent:
 			payload, err := events.DecodePayload[JoinLobbyPayload](event)
 			if err != nil {
+				c.SendError("Serverfel vid inläsningen av lobby koden")
 				log.Printf("Error decoding join_game payload: %v", err)
 				continue
 			}
@@ -178,13 +172,19 @@ func (c *Client) ReadPump() {
 			c.Lobby = lobby
 			lobby.Register <- c
 
+		case events.LeaveLobbyRequestEvent:
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
+			c.Lobby.Unregister <- c
+
 		// update_user — updates the client's username and/or background color.
-		// Because lobby.Users holds a pointer to the same UserProfile as
-		// c.Profile, no re-insertion is needed. A SyncRequests signal is sent
-		// to the lobby so all other players receive the updated roster.
 		case events.UpdateUserEvent:
 			payload, err := events.DecodePayload[UpdateUserPayload](event)
 			if err != nil {
+				c.SendError("Serverfel vid inläsningen av uppdateringarna")
+				log.Printf("Error decoding update_user payload: %v", err)
 				continue
 			}
 
@@ -202,12 +202,16 @@ func (c *Client) ReadPump() {
 		case events.ChatMessageRequestEvent:
 			payload, err := events.DecodePayload[ChatMessageRequestPayload](event)
 			if err != nil {
-				c.SendError("Fel vid skickandet av meddelandet")
+				c.SendError("Serverfel vid skickandet av meddelandet")
+				log.Printf("Error decoding send_chatmessage payload: %v", err)
 				continue
 			}
-			// TODO: Checking if the message is ok (skip this for now)
-			serverTimestamp := float64(time.Now().UnixMilli())
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
 
+			serverTimestamp := float64(time.Now().UnixMilli())
 			chatMessage := ChatMessage{
 				Sender:  *c.Profile,
 				Message: payload.Message,
@@ -216,15 +220,43 @@ func (c *Client) ReadPump() {
 
 			c.Lobby.ChatMessages <- chatMessage
 
+		case events.ChangeModeEvent:
+			if c.Lobby == nil || c.Lobby.Host != c.UserId {
+				c.SendError("Endast hosten kan ändra spelläge.")
+				continue
+			}
+
+			payload, err := events.DecodePayload[ChangeModePayload](event)
+			if err != nil {
+				c.SendError("Serverfel vid inläsningen av spelläge")
+				log.Printf("Error decoding change_mode payload: %v", err)
+				continue
+			}
+
+			c.Lobby.ModeUpdateRequests <- payload.Mode
+
+		case events.UpdateSettingEvent:
+			if c.Lobby == nil || c.Lobby.Host != c.UserId {
+				c.SendError("Endast hosten kan ändra inställningar.")
+				continue
+			}
+			payload, err := events.DecodePayload[UpdateSettingPayload](event)
+			if err != nil {
+				c.SendError("Serverfel vid uppdatering av inställningarna")
+				log.Printf("Error decoding update_setting payload: %v", err)
+				continue
+			}
+			c.Lobby.SettingUpdateRequests <- payload
+
 		default:
+			log.Printf("Unknown event type %s", event.Type)
 			c.SendError("Okänd event-typ")
 		}
 	}
 }
 
 // pongHandler is called automatically by the gorilla/websocket library whenever
-// a pong frame is received. It extends the read deadline to keep the connection
-// alive for another pongWait duration.
+// a pong frame is received. It extends the read deadline to keep the connection alive.
 func (c *Client) pongHandler(_ string) error {
 	return c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 }
@@ -242,13 +274,13 @@ func (c *Client) SendEvent(eventType events.EventType, payload any) {
 }
 
 // SendSuccess sends a success event with a human-readable message string.
-// Convenience wrapper around SendEvent.
+// It is a convenience wrapper around SendEvent.
 func (c *Client) SendSuccess(message string) {
 	c.SendEvent(events.SuccessEvent, map[string]string{"message": message})
 }
 
 // SendError sends an error event with a human-readable message string.
-// Convenience wrapper around SendEvent.
+// It is a convenience wrapper around SendEvent.
 func (c *Client) SendError(message string) {
 	c.SendEvent(events.ErrorEvent, map[string]string{"message": message})
 }

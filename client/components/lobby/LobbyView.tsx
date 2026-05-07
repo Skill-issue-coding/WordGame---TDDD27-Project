@@ -1,20 +1,22 @@
 "use client";
-import { Gamepad2, ArrowLeft, User, Timer, Play, BookOpenText } from "lucide-react";
-import GameModeCard, { Color } from "@/components/lobby/GameModeCard";
+import { ArrowLeft, Play, BookOpenText } from "lucide-react";
 import Link from "next/link";
-import { Slider } from "../ui/slider";
-import { Label } from "../ui/label";
-import { useState } from "react";
 import { PlayerList } from "@/components/lobby/PlayerList";
 import { SettingsPanel } from "@/components/lobby/GameSettings";
 import { Button } from "@/components/ui/button";
 import { useGameContext } from "@/hooks/gamecontext";
-import { notFound } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LobbyView() {
-  // const [roomCode, setRoomCode] = useState("");
+  const router = useRouter();
   const { user, lobbyState } = useGameContext();
-  const [gametime, setGametime] = useState(10);
+
+  useEffect(() => {
+    if (!user || !lobbyState) router.push("/");
+  }, [user, lobbyState, router]);
+
+  if (!user || !lobbyState) return null;
 
   const hostUser = lobbyState?.users && lobbyState.host ? lobbyState.users[lobbyState.host] : null;
   const hostName = hostUser?.username;
@@ -29,7 +31,7 @@ export default function LobbyView() {
               <span className="text-sm">Tillbaka</span>
             </button>
           </Link>
-          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">{hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}'s rum`}</h1>
+          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">{hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}s rum`}</h1>
           <div className="w-full" />
         </div>
         <div>
@@ -50,14 +52,6 @@ export default function LobbyView() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function PlayerCard() {
-  return (
-    <div className="flex items-center gap-2 border-2 bg-background">
-      1. <User className="size-6" />
     </div>
   );
 }

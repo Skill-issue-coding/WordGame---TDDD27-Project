@@ -19,11 +19,13 @@
  * ```
  */
 
-import { ChatMessage, LobbyState, User } from "@/lib/game/types";
+import { ChatMessage, LobbyState, LocalStorageProfile, User } from "@/lib/game/types";
+import { tryCatch } from "@/lib/try-catch";
 import { ToastError, ToastSucess } from "@/lib/toast-functions";
 import { WSRecievedEvent, WSSendEventType, WSSendPayloadMap } from "@/lib/websocket/types";
 import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useState } from "react";
+import axios from "axios";
 
 /**
  * Typed sendMessage function. The generic parameter T constrains the payload
@@ -69,7 +71,7 @@ export interface GameContextContextProps {
    * event to the server. The server will propagate the change to all lobby
    * members via sync_gamestate.
    */
-  updateUser: (updates: Partial<User>) => void;
+  updateUser: (updates: Partial<User>) => Promise<void>;
 
   /** The palette of selectable avatar background colors. */
   palette: string[];
@@ -88,6 +90,49 @@ export function useGameContext() {
   const context = useContext(GameContext);
   if (!context) throw new Error("useGameContext must be used within a GameContextProvider");
   return context;
+}
+
+export const GetLocalStorageProfile = (): LocalStorageProfile | undefined => {
+  const stored = typeof window !== "undefined" ? localStorage.getItem("profile") : null;
+  if (!stored) return undefined;
+  try {
+    return JSON.parse(stored) as LocalStorageProfile;
+  } catch (e) {
+    console.error("Could not load profile: ", e);
+    return undefined;
+  }
+};
+
+/**
+ * 
+ *       const existingProfile = GetLocalStorageProfile();
+
+      localStorage.setItem(
+        "profile",
+        JSON.stringify({
+          ...existingProfile,
+          username: nextUpdates.username ?? prev.username,
+          background: nextUpdates.background ?? prev.background,
+        }),
+      );
+ */
+
+const SaveLocalStorageProfile = (profile: LocalStorageProfile) => {
+  if (typeof window === "undefined") return;
+  localStorage.setItem("profile", JSON.stringify(profile));
+};
+
+export async function GetNewUsername(userId: string): Promise<string> {
+  const { data, error } = await tryCatch(
+    axios.post<{ username: string; error?: string }>("http://localhost:8080/game/username", {
+      user_id: userId,
+    }),
+  );
+
+  if (error) throw error;
+  if (!data.data.username) throw new Error(data.data.error ?? "Could not fetch username");
+
+  return data.data.username;
 }
 
 /**
@@ -114,8 +159,9 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   }
 
   useEffect(() => {
-    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws/game` : `ws://localhost:8080/ws/game`;
+    const profile = GetLocalStorageProfile();
 
+    const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws/game` : `ws://localhost:8080/ws/game`;
     const ws = new WebSocket(url);
 
     ws.onopen = () => {
@@ -146,10 +192,23 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
 
         case "connected_to_hub":
           // Server sends this once on connect with the generated user profile.
-          // TODO: Check localStorage for a previously saved username/background
-          // and re-emit update_user if found, so returning players keep their identity.
-          setUser(payload.user);
+          if (profile) {
+            updateUser(profile);
+            const mergeUser = {
+              ...payload.user,
+              username: profile.username ?? payload.user.username,
+              background: profile.background ?? payload.user.background,
+            };
+
+            updateUser(mergeUser);
+          } else setUser(payload.user);
+
           ToastSucess("Välkommen till OrdioArena!");
+          break;
+
+        case "left_lobby":
+          setChatMessages([]);
+          setLobbyState(null);
           break;
 
         case "chat_message":
@@ -193,13 +252,49 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
    * and emits an update_user event to the server. The server will re-broadcast
    * the change to all lobby members via sync_gamestate.
    */
-  const updateUser = (updates: Partial<User>) => {
-    setUser((prev) => {
-      if (prev) {
-        sendEvent("update_user", { updates });
-        return { ...prev, ...updates };
+  const updateUser = async (updates: Partial<Pick<User, "username" | "background">>) => {
+    const currentUser = user;
+    if (!currentUser) return;
+
+    let nextUpdates = { ...updates };
+    const trimmedUsername = updates.username?.trim();
+    if (trimmedUsername === "") {
+      try {
+        const newUsername = await GetNewUsername(currentUser.user_id);
+        nextUpdates = { ...nextUpdates, username: newUsername };
+      } catch (error) {
+        ToastError("Kunde inte skapa nytt anvandarnamn");
+        return;
       }
-      return null;
+    }
+
+    setUser((prev) => {
+      if (!prev) return null;
+
+      sendEvent("update_user", nextUpdates);
+
+      const existingProfile = GetLocalStorageProfile();
+
+      SaveLocalStorageProfile({
+        ...existingProfile,
+        username: nextUpdates.username ?? prev.username,
+        background: nextUpdates.background ?? prev.background,
+      });
+
+      setLobbyState((current) => {
+        if (!current || !current.users[currentUser.user_id]) return current;
+        return {
+          ...current,
+          users: {
+            ...current.users,
+            [currentUser.user_id]: {
+              ...current.users[currentUser.user_id],
+              ...nextUpdates,
+            },
+          },
+        };
+      });
+      return { ...prev, ...nextUpdates };
     });
   };
 

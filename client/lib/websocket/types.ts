@@ -11,7 +11,7 @@
  * can enforce that the correct payload shape is used for each event type.
  */
 
-import { ChatMessage, LobbyState, User } from "@/lib/game/types";
+import { ChatMessage, GameMode, LobbyState, User } from "@/lib/game/types";
 
 // ---------------------------------------------------------------------------
 // Server → Client
@@ -40,7 +40,7 @@ export type WSRecievedEvent =
       payload: { user: User };
     }
   | {
-      type: "joined_lobby";
+      type: "joined_lobby" | "left_lobby";
       /** No payload — use the preceding sync_gamestate for state. */
       payload: null;
     }
@@ -55,13 +55,9 @@ export type WSRecievedEvent =
         message?: string;
       };
     }
-  | {
-      type: "lobby_updated" | "game_started";
-      payload: { lobbystate: LobbyState };
-    }
   | { type: "chat_message"; payload: ChatMessage }
   | {
-      type: "error" | "left_room" | "success";
+      type: "error" | "success";
       payload: { message: string };
     };
 
@@ -88,12 +84,19 @@ export type WSSendPayloadMap = {
    * Update the current player's profile. Only fields that are provided
    * and non-empty are applied on the server.
    */
-  update_user: { updates: Partial<User> };
+  update_user: { username?: string; background?: string };
+
+  /** Send a chat message to server */
+  send_chatmessage: { message: string };
+
+  /** Switches mode and resets all settings to server defaults */
+  change_mode: { mode: GameMode };
 
   /**
-   * Send chat message to server
+   * Updates a single setting key for the current mode.
+   * Value is typed as unknown here — narrow it per-mode in your components.
    */
-  send_chatmessage: { message: string };
+  update_setting: { key: string; value: number };
 };
 
 /** Union of all event type strings the client can send. */

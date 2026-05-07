@@ -21,13 +21,13 @@ const (
 
 	// JoinedLobbyEvent is sent to the joining client after they are registered
 	// into a lobby. The frontend uses this to navigate to the lobby view.
-	// Payload: nil.
+	// Payload: nil
 	JoinedLobbyEvent EventType = "joined_lobby"
 
 	// SyncGameStateEvent is the primary state-sync event. It is broadcast to all
 	// lobby clients whenever any shared state changes (player joined/left, profile
 	// updated, settings changed, phase changed).
-	// Payload: SyncStatePayload.
+	// Payload: SyncStatePayload
 	SyncGameStateEvent EventType = "sync_gamestate"
 
 	// ErrorEvent delivers a human-readable Swedish error message to the client.
@@ -38,18 +38,23 @@ const (
 	// Payload: { "message": string }
 	SuccessEvent EventType = "success"
 
-	// SendChatMessageEvent is sent once a chat message request is recieved from a client
+	// SendChatMessageEvent is broadcasted to clients when a valid chat message is received.
 	// Payload: ChatMessage
 	SendChatMessageEvent EventType = "chat_message"
+
+	// LeftLobbyEvent is sent to the client confirming they have successfully left the lobby.
+	// Payload: nil
+	LeftLobbyEvent EventType = "left_lobby"
 )
 
 // Client → Server event types.
 const (
 	// CreateLobbyEvent requests creation of a new lobby. The client is
-	// automatically registered as host. Payload: nil.
+	// automatically registered as the host.
+	// Payload: nil.
 	CreateLobbyEvent EventType = "create_lobby"
 
-	// JoinLobbyEvent requests joining an existing lobby by room code.
+	// JoinLobbyEvent requests joining an existing lobby using a room code.
 	// Payload: JoinLobbyPayload.
 	JoinLobbyEvent EventType = "join_lobby"
 
@@ -59,9 +64,23 @@ const (
 	// Payload: UpdateUserPayload.
 	UpdateUserEvent EventType = "update_user"
 
-	// ChatMessageRequestEvent is sent to server
-	// Payload: { "message": string }
+	// ChatMessageRequestEvent is sent to the server to broadcast a message to the lobby.
+	// Payload: ChatMessageRequestPayload
 	ChatMessageRequestEvent EventType = "send_chatmessage"
+
+	// LeaveLobbyRequestEvent is sent when a client explicitly requests to leave their current lobby.
+	// Payload: nil
+	LeaveLobbyRequestEvent EventType = "leave_lobby"
+
+	// ChangeModeEvent is received when a user wants to change the game mode.
+	// This event is only processed if the requesting user is the host of the lobby.
+	// Payload: ChangeModePayload
+	ChangeModeEvent EventType = "change_mode"
+
+	// UpdateSettingEvent is received when a user wants to update the lobby settings.
+	// This event is only processed if the requesting user is the host of the lobby.
+	// Payload: UpdateSettingPayload
+	UpdateSettingEvent EventType = "update_setting"
 )
 
 // Event is the wire envelope for all WebSocket messages. Both directions use
@@ -82,7 +101,7 @@ func ParseEvent(message []byte) (Event, error) {
 }
 
 // DecodePayload decodes the raw JSON payload of an event into the requested
-// concrete type T. Use after ParseEvent when the event type is known.
+// concrete type T. It should be used after ParseEvent when the event type is known.
 //
 // Example:
 //
@@ -94,7 +113,7 @@ func DecodePayload[T any](event Event) (T, error) {
 }
 
 // EncodeEvent serialises the given payload and wraps it in an Event envelope
-// with the specified type. Returns the final JSON bytes or an error.
+// with the specified type. It returns the final JSON bytes or an error.
 func EncodeEvent(eventType EventType, payload any) ([]byte, error) {
 	payloadBytes, err := json.Marshal(payload)
 	if err != nil {
@@ -104,7 +123,7 @@ func EncodeEvent(eventType EventType, payload any) ([]byte, error) {
 }
 
 // PrepareEvent is a convenience wrapper around EncodeEvent that returns the
-// JSON-encoded event bytes ready to be written to a WebSocket connection.
+// JSON-encoded event bytes ready to be written directly to a WebSocket connection.
 func PrepareEvent(eventType EventType, payload any) ([]byte, error) {
 	return EncodeEvent(eventType, payload)
 }

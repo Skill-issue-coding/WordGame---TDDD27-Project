@@ -10,20 +10,18 @@ package session
 // Server → Client -------------------------------------------------------
 
 // SyncStatePayload is the payload for the sync_gamestate event. It is sent to
-// every client in a lobby whenever shared state changes. Message is optional
-// and only populated on initial join to confirm the action to the joining player.
+// every client in a lobby whenever shared state changes.
 type SyncStatePayload struct {
 	// GameState is the complete shared lobby state at the time of the sync.
 	GameState LobbyState `json:"lobbystate"`
 
 	// Message is an optional human-readable confirmation shown as a toast on the
-	// frontend (e.g. "Du gick med i spelet!"). Omitted from JSON when empty.
+	// frontend (e.g., "Du gick med i spelet!"). It is omitted from JSON when empty.
 	Message string `json:"message,omitempty"`
 }
 
 // ConnectedToHubPayload is the payload for the connected_to_hub event, sent
-// once to a client immediately after they connect. It contains their
-// server-generated identity so the frontend can display it before any lobby is joined.
+// once to a client immediately after they connect.
 type ConnectedToHubPayload struct {
 	User UserProfile `json:"user"`
 }
@@ -32,20 +30,33 @@ type ConnectedToHubPayload struct {
 
 // JoinLobbyPayload is the payload for the join_lobby event.
 type JoinLobbyPayload struct {
-	// LobbyCode is the room code the player wants to join (e.g. "AbCd-1234").
+	// LobbyCode is the room code the player wants to join (e.g., "AbCd-1234").
 	LobbyCode string `json:"lobby_code"`
 }
 
 // UpdateUserPayload is the payload for the update_user event. All fields are
 // optional — only non-empty values are applied to the player's profile.
 type UpdateUserPayload struct {
-	// Username is the new display name. Ignored if empty or whitespace-only.
+	// Username is the new display name. It is ignored if empty or whitespace-only.
 	Username string `json:"username,omitempty"`
 
-	// Background is the new background color hex string. Ignored if empty.
+	// Background is the new background color hex string. It is ignored if empty.
 	Background string `json:"background,omitempty"`
 }
 
+// ChatMessageRequestPayload is the payload sent by the client to broadcast a chat message.
 type ChatMessageRequestPayload struct {
 	Message string `json:"message"`
+}
+
+// ChangeModePayload is the payload sent by the client when requesting a game mode change.
+type ChangeModePayload struct {
+	Mode GameMode `json:"mode"`
+}
+
+// UpdateSettingPayload carries a single key/value pair for updating lobby settings.
+// Value is stored as float64 because all current settings are numbers.
+type UpdateSettingPayload struct {
+	Key   string  `json:"key"`
+	Value float64 `json:"value"`
 }

@@ -11,19 +11,20 @@ import (
 
 // NewLobby creates and returns a new GameLobby with the given room code.
 // All channels are initialised and the mode is set to ModeImpostor with
-// default settings. The lobby's Run goroutine is NOT started here — the
-// caller (GameHub.CreateUniqueRoom) is responsible for calling go lobby.Run().
+// default settings. The caller is responsible for starting the lobby.Run() goroutine.
 func NewLobby(id string) *GameLobby {
 	lobby := &GameLobby{
-		ID:           id,
-		Clients:      make(map[*Client]bool),
-		Broadcast:    make(chan []byte),
-		Register:     make(chan *Client),
-		Unregister:   make(chan *Client),
-		ChatMessages: make(chan ChatMessage),
-		SyncRequests: make(chan struct{}, 8),
-		Phase:        LobbyPhase,
-		Users:        make(map[uuid.UUID]*UserProfile),
+		ID:                    id,
+		Clients:               make(map[*Client]bool),
+		Broadcast:             make(chan []byte),
+		Register:              make(chan *Client),
+		Unregister:            make(chan *Client),
+		ModeUpdateRequests:    make(chan GameMode),
+		SettingUpdateRequests: make(chan UpdateSettingPayload),
+		ChatMessages:          make(chan ChatMessage),
+		SyncRequests:          make(chan struct{}, 8),
+		Phase:                 LobbyPhase,
+		Users:                 make(map[uuid.UUID]*UserProfile),
 	}
 	lobby.SetMode(ModeImpostor)
 	return lobby
@@ -32,18 +33,9 @@ func NewLobby(id string) *GameLobby {
 // Run is the lobby's main event loop. It must be started in its own goroutine
 // and is the only place where lobby state is mutated, making all field access
 // implicitly single-threaded and safe without additional locking.
-//
-// The loop handles four cases:
-//   - Register: a new client joins the lobby.
-//   - Unregister: a client leaves or disconnects.
-//   - SyncRequests: an external signal (e.g. profile update) requesting a broadcast.
-//   - gameticker: a 1-second tick reserved for future game-phase timer logic.
-//
-// Run exits when the last player leaves, at which point it calls DeleteRoom
-// on the hub to clean up the lobby entry.
 func (lobby *GameLobby) Run() {
-	gameticker := time.NewTicker(1 * time.Second)
-	defer gameticker.Stop()
+	gameTicker := time.NewTicker(1 * time.Second)
+	defer gameTicker.Stop()
 
 	for {
 		select {
@@ -57,8 +49,6 @@ func (lobby *GameLobby) Run() {
 			lobby.Clients[client] = true
 			client.Lobby = lobby
 
-			// Build state once and broadcast to all clients. The joining client
-			// receives an extra Message field to confirm they successfully joined.
 			state := lobby.BuildLobbyState()
 			for c := range lobby.Clients {
 				if _, exists := lobby.Users[c.UserId]; !exists {
@@ -77,7 +67,6 @@ func (lobby *GameLobby) Run() {
 				}
 			}
 
-			// Notify the client's frontend to navigate to the lobby view.
 			client.SendEvent(events.JoinedLobbyEvent, nil)
 			log.Printf("[Room %s] Player '%s' joined. Players in room: %d", lobby.ID, client.Username(), len(lobby.Clients))
 
@@ -109,12 +98,17 @@ func (lobby *GameLobby) Run() {
 			}
 
 			lobby.SyncStateToClients()
+			client.SendEvent(events.LeftLobbyEvent, nil)
 
-		// SyncRequests is a lightweight signal used by events such as
-		// update_user that mutate shared profile data outside the lobby
-		// goroutine. Receiving here ensures the sync happens inside Run,
-		// where all reads of lobby state are safe.
 		case <-lobby.SyncRequests:
+			lobby.SyncStateToClients()
+
+		case mode := <-lobby.ModeUpdateRequests:
+			lobby.SetMode(mode)
+			lobby.SyncStateToClients()
+
+		case update := <-lobby.SettingUpdateRequests:
+			lobby.ApplySetting(update.Key, update.Value)
 			lobby.SyncStateToClients()
 
 		case message := <-lobby.ChatMessages:
@@ -122,7 +116,7 @@ func (lobby *GameLobby) Run() {
 				client.SendEvent(events.SendChatMessageEvent, message)
 			}
 
-		case <-gameticker.C:
+		case <-gameTicker.C:
 			// Reserved for game-phase countdown timers and round management.
 		}
 	}
@@ -143,8 +137,7 @@ func (lobby *GameLobby) SyncStateToClients() {
 }
 
 // BuildLobbyState assembles a point-in-time snapshot of the lobby's shared
-// state, ready to be serialised and sent to clients. The Settings field is
-// populated from the currently active mode's settings struct via ModeSettings.
+// state, ready to be serialised and sent to clients.
 func (lobby *GameLobby) BuildLobbyState() LobbyState {
 	return LobbyState{
 		Code:     lobby.ID,
@@ -157,9 +150,6 @@ func (lobby *GameLobby) BuildLobbyState() LobbyState {
 }
 
 // ModeSettings returns the settings struct for the currently active game mode.
-// Only the struct matching lobby.Mode is meaningful; the others hold defaults.
-// The returned value is embedded in LobbyState.Settings and serialised as a
-// concrete typed JSON object for the frontend.
 func (lobby *GameLobby) ModeSettings() any {
 	switch lobby.Mode {
 	case ModeImpostor:
@@ -176,8 +166,7 @@ func (lobby *GameLobby) ModeSettings() any {
 }
 
 // SetMode switches the lobby to the given game mode and resets its settings
-// to the mode's defaults. Any previously customised settings for that mode
-// are discarded. Should only be called from within the lobby's Run goroutine.
+// to the mode's defaults.
 func (lobby *GameLobby) SetMode(mode GameMode) {
 	lobby.Mode = mode
 	switch mode {
@@ -189,5 +178,39 @@ func (lobby *GameLobby) SetMode(mode GameMode) {
 		lobby.SynonymDuelSettings = game.DefaultSynonymDuelSettings()
 	case ModeAntiMatch:
 		lobby.AntiMatchSettings = game.DefaultAntiHiveSettings()
+	}
+}
+
+// ApplySetting updates a specific setting for the currently active game mode
+// based on the provided key and value.
+func (lobby *GameLobby) ApplySetting(key string, value float64) {
+	switch lobby.Mode {
+	case ModeImpostor:
+		switch key {
+		case "input_duration":
+			lobby.ImpostorSettings.InputDuration = int(value)
+		case "discussion_duration":
+			lobby.ImpostorSettings.DiscussionDuration = int(value)
+		case "impostor_count":
+			lobby.ImpostorSettings.ImpostorCount = int(value)
+		}
+	case ModeContextoBattle:
+		if key == "round_duration" {
+			lobby.ContextoBattleSettings.RoundDuration = int(value)
+		}
+	case ModeSynonymDuel:
+		switch key {
+		case "round_duration":
+			lobby.SynonymDuelSettings.RoundDuration = int(value)
+		case "rounds":
+			lobby.SynonymDuelSettings.Rounds = int(value)
+		}
+	case ModeAntiMatch:
+		switch key {
+		case "input_duration":
+			lobby.AntiMatchSettings.InputDuration = int(value)
+		case "max_distance":
+			lobby.AntiMatchSettings.MaxDistance = value
+		}
 	}
 }

@@ -16,7 +16,7 @@ export default function UserProfileButton() {
   const [open, setOpen] = useState(false);
   const [draftName, setDraftName] = useState("");
   const [draftColor, setDraftColor] = useState(palette[0]);
-  const { theme, setTheme } = useTheme();
+  const { resolvedTheme, setTheme } = useTheme();
 
   const handleOpen = (v: boolean) => {
     if (v && user) {
@@ -40,7 +40,7 @@ export default function UserProfileButton() {
     }
   }, [user]);
   if (!mounted) return null;
-  const toggleTheme = () => setTheme(theme === "dark" ? "light" : "dark");
+  const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
 
   const displayName = user?.username ?? "?";
   const displayColor = user?.background ?? palette[0];
@@ -102,7 +102,7 @@ export default function UserProfileButton() {
               <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Tema</label>
 
               <Button variant="glass" onClick={toggleTheme} className="w-full font-body font-bold justify-start gap-3 h-12">
-                {theme === "light" ? (
+                {resolvedTheme === "light" ? (
                   <>
                     <Sun className="w-5 h-5 text-game-yellow" />
                     Ljust Läge

@@ -120,7 +120,7 @@
   --sidebar-background: oklch(1 0 0);
   --sidebar-foreground: oklch(0.2738 0.0358 274.66);
   --sidebar-primary: oklch(0.5619 0.2421 290);
-  --sidebar-primary-foreground: oklch(100% 0 0);
+  --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.9517 0.0058 264.53);
   --sidebar-accent-foreground: oklch(0.2738 0.0358 274.66);
   --sidebar-border: oklch(0.8962 0.0151 277.83);
@@ -198,6 +198,7 @@
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground font-body antialiased;
     background-image:
@@ -206,9 +207,11 @@
       radial-gradient(circle at 90% 20%, oklch(0.6738 0.1691 251.9 / 0.06) 0%, transparent 40%);
     background-attachment: fixed;
   }
+
   html {
     @apply font-sans;
   }
+
   h1,
   h2,
   h3,
@@ -226,6 +229,7 @@
       transform 0.1s ease,
       box-shadow 0.1s ease;
   }
+
   .btn-3d:active:not(:disabled) {
     transform: translateY(3px);
     box-shadow: 0 1px 0 0 oklch(0.2886 0.0464 274.51 / 0.18);
@@ -244,18 +248,23 @@
   .text-game-pink {
     color: var(--game-pink);
   }
+
   .text-game-blue {
     color: var(--game-blue);
   }
+
   .text-game-yellow {
     color: var(--game-yellow);
   }
+
   .text-game-green {
     color: var(--game-green);
   }
+
   .text-game-purple {
     color: var(--game-purple);
   }
+
   .text-game-orange {
     color: var(--game-orange);
   }
@@ -263,21 +272,27 @@
   .bg-game-pink {
     background-color: var(--game-pink);
   }
+
   .bg-game-blue {
     background-color: var(--game-blue);
   }
+
   .bg-game-yellow {
     background-color: var(--game-yellow);
   }
+
   .bg-game-green {
     background-color: var(--game-green);
   }
+
   .bg-game-purple {
     background-color: var(--game-purple);
   }
+
   .bg-game-orange {
     background-color: var(--game-orange);
   }
+
   .bg-game-red {
     background-color: var(--game-red);
   }
@@ -285,18 +300,23 @@
   .border-game-pink {
     border-color: var(--game-pink);
   }
+
   .border-game-blue {
     border-color: var(--game-blue);
   }
+
   .border-game-yellow {
     border-color: var(--game-yellow);
   }
+
   .border-game-green {
     border-color: var(--game-green);
   }
+
   .border-game-purple {
     border-color: var(--game-purple);
   }
+
   .border-game-orange {
     border-color: var(--game-orange);
   }
@@ -305,9 +325,11 @@
   .heat-hot {
     background: linear-gradient(90deg, var(--heat-hot), oklch(77.83% 0.199 151.27 / 0.7));
   }
+
   .heat-warm {
     background: linear-gradient(90deg, var(--heat-warm), oklch(86.66% 0.1647 88.68 / 0.7));
   }
+
   .heat-cold {
     background: linear-gradient(90deg, var(--heat-cold), oklch(66.61% 0.1774 23.2 / 0.7));
   }
@@ -320,6 +342,7 @@
       radial-gradient(circle at 70% 70%, var(--game-green) 2px, transparent 2px);
     background-size: 200px 200px;
   }
+
   /*
   .text-glow-green {
     text-shadow:
