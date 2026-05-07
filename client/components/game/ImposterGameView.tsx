@@ -44,7 +44,7 @@ const ImpostorGame = () => {
       {phase === "input" && (
         <PhaseTransition phaseKey="input">
           <div className="w-full max-w-md">
-            <CountdownBar duration={5} isRunning color="pink" onComplete={() => setPhase("discuss")} />
+            <CountdownBar duration={5} isRunning onComplete={() => setPhase("discuss")} />
             <div className="mt-6 text-center mb-6">
               <p className="text-muted-foreground text-sm mb-2 font-display uppercase tracking-wider font-bold">Submit a clue</p>
               <p className="text-xs text-muted-foreground font-display">Type a word related to your secret word</p>
@@ -67,7 +67,7 @@ const ImpostorGame = () => {
       {phase === "discuss" && (
         <PhaseTransition phaseKey="discuss">
           <div className="w-full max-w-md">
-            <CountdownBar duration={15} isRunning color="accent" onComplete={() => setPhase("vote")} />
+            <CountdownBar duration={15} isRunning onComplete={() => setPhase("vote")} />
             <div className="mt-6 text-center mb-6">
               <h2 className="font-display text-2xl font-bold text-foreground mb-2">💬 Discussion Phase</h2>
               <p className="text-muted-foreground text-sm font-display font-semibold">Talk it out — who seems suspicious?</p>
@@ -93,7 +93,7 @@ const ImpostorGame = () => {
       {phase === "vote" && (
         <PhaseTransition phaseKey="vote">
           <div className="w-full max-w-md">
-            <CountdownBar duration={10} isRunning color="pink" />
+            <CountdownBar duration={10} isRunning />
             <div className="mt-6 text-center mb-6">
               <h2 className="font-display text-2xl font-bold text-foreground mb-2">🗳️ Vote!</h2>
               <p className="text-muted-foreground text-sm font-display font-semibold">Who is the impostor?</p>

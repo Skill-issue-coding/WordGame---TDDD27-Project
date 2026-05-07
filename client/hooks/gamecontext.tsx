@@ -192,15 +192,16 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
 
         case "connected_to_hub":
           // Server sends this once on connect with the generated user profile.
+          const serverUser = payload.user;
           if (profile) {
             updateUser(profile);
             const mergeUser = {
-              ...payload.user,
+              ...serverUser,
               username: profile.username ?? payload.user.username,
               background: profile.background ?? payload.user.background,
             };
 
-            updateUser(mergeUser);
+            setUser(mergeUser);
           } else setUser(payload.user);
 
           ToastSucess("Välkommen till OrdioArena!");
@@ -268,10 +269,10 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
       }
     }
 
+    sendEvent("update_user", nextUpdates);
+
     setUser((prev) => {
       if (!prev) return null;
-
-      sendEvent("update_user", nextUpdates);
 
       const existingProfile = GetLocalStorageProfile();
 

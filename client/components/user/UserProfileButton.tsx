@@ -39,7 +39,7 @@ export default function UserProfileButton() {
       setDraftColor(user.background);
     }
   }, [user]);
-  if (!mounted) return null;
+  if (!mounted || !user) return null;
   const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
 
   const displayName = user?.username ?? "?";

@@ -33,6 +33,11 @@ const CountdownBar = ({ duration, isRunning, onComplete, color = "green" }: Coun
 
   const percent = (timeLeft / duration) * 100;
   const isUrgent = percent < 25;
+  if (percent >= 80) {
+    color = "green";
+  } else if (25 < percent && percent < 80) {
+    color = "orange";
+  } else color = "red";
 
   return (
     <div className="w-full">
