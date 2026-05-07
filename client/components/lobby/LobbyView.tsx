@@ -1,22 +1,39 @@
 "use client";
-import { ArrowLeft, Play, BookOpenText } from "lucide-react";
+
+import { ArrowLeft, Play, BookOpenText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { PlayerList } from "@/components/lobby/PlayerList";
 import { SettingsPanel } from "@/components/lobby/GameSettings";
 import { Button } from "@/components/ui/button";
 import { useGameContext } from "@/hooks/gamecontext";
-import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
-export default function LobbyView() {
-  const router = useRouter();
-  const { user, lobbyState, sendEvent } = useGameContext();
+export default function LobbyView({ code }: { code: string }) {
+  const { user, lobbyState, sendEvent, isConnected } = useGameContext();
+  const [hasAttemptedJoin, setHasAttemptedJoin] = useState(false);
 
   useEffect(() => {
-    if (!user || !lobbyState) router.push("/");
-  }, [user, lobbyState, router]);
+    if (!code || typeof code !== "string") return;
 
-  if (!user || !lobbyState) return null;
+    if (isConnected && user && !lobbyState && !hasAttemptedJoin) {
+      setHasAttemptedJoin(true);
+      sendEvent("join_lobby", { lobby_code: code });
+    }
+  }, [isConnected, user, lobbyState, code, hasAttemptedJoin, sendEvent]);
+
+  if (!user || !lobbyState) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen p-6">
+        <Loader2 className="w-10 h-10 animate-spin text-game-purple mb-4" />
+        <p className="font-display font-semibold text-muted-foreground mb-6">Ansluter till rummet...</p>
+        <Link href="/">
+          <Button variant="outline" className="font-body font-bold">
+            Avbryt
+          </Button>
+        </Link>
+      </div>
+    );
+  }
 
   const hostUser = lobbyState?.users && lobbyState.host ? lobbyState.users[lobbyState.host] : null;
   const hostName = hostUser?.username;
@@ -25,15 +42,18 @@ export default function LobbyView() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-4xl animate-slide-up">
-        <div className="flex items-center flex-1 mb-6 text-center">
-          <Link href="/" className="flex items-center w-full h-full">
-            <button className="flex items-center gap-2 transition-colors cursor-pointer text-muted-foreground hover:text-foreground">
-              <ArrowLeft className="w-4 h-4" />
-              <span className="text-sm">Tillbaka</span>
-            </button>
-          </Link>
-          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">{hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}s rum`}</h1>
-          <div className="w-full" />
+        <div className="relative flex items-center justify-between mb-6">
+          <div className="flex-1 flex justify-start">
+            <Link href="/" className="flex items-center" onClick={handleLeave}>
+              <button className="flex items-center gap-2 transition-colors cursor-pointer text-muted-foreground hover:text-foreground">
+                <ArrowLeft className="w-4 h-4" />
+                <span className="text-sm">Tillbaka</span>
+              </button>
+            </Link>
+          </div>
+
+          <h1 className="text-4xl font-bold font-display text-game-purple whitespace-nowrap">{hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}s rum`}</h1>
+          <div className="flex-1" />
         </div>
         <div>
           <div className="flex flex-col sm:grid sm:grid-cols-5 gap-6">

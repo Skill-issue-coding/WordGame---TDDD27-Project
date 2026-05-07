@@ -144,14 +144,13 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
     setLobbyState(null);
   }
 
-  console.log(lobbyState);
-  console.log(chatMessages);
-
   useEffect(() => {
     const profile = GetLocalStorageProfile();
 
     const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws/game` : `ws://localhost:8080/ws/game`;
     const ws = new WebSocket(url);
+
+    let currentLobbyCode = "";
 
     ws.onopen = () => {
       setWebSocket(ws);
@@ -178,6 +177,12 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
         case "success":
           ToastSucess(payload.message);
           break;
+
+        case "join_error":
+          router.push("/");
+          break;
+
+        case "connected_to_hub":
 
         case "connected_to_hub":
           const serverUser = payload.user;
@@ -214,6 +219,8 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
           break;
 
         case "sync_gamestate":
+          currentLobbyCode = payload.lobbystate.code;
+
           // Primary state update — replaces lobbyState wholesale.
           setLobbyState(payload.lobbystate);
           if (payload.message) ToastSucess(payload.message);
@@ -222,7 +229,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
         case "joined_lobby":
           // Server confirmation that the lobby registration succeeded.
           // Navigate to the lobby view; state is already set via sync_gamestate.
-          router.push("/lobby");
+          router.push(`/lobby/${currentLobbyCode}`);
           break;
       }
     };

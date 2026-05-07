@@ -147,24 +147,28 @@ func (c *Client) ReadPump() {
 			payload, err := events.DecodePayload[JoinLobbyPayload](event)
 			if err != nil {
 				c.SendError("Serverfel vid inläsningen av lobby koden")
+				c.SendEvent(events.JoinLobbyErrorEvent, nil)
 				log.Printf("Error decoding join_game payload: %v", err)
 				continue
 			}
 
-			lobbyCode := strings.TrimSpace(payload.LobbyCode)
+			lobbyCode := strings.ToLower(strings.TrimSpace(payload.LobbyCode))
 			if lobbyCode == "" {
 				c.SendError("Spelkod krävs.")
+				c.SendEvent(events.JoinLobbyErrorEvent, nil)
 				continue
 			}
 
 			lobby := c.Hub.GetRoom(lobbyCode)
 			if lobby == nil {
 				c.SendError("Hittade inget rum med den koden.")
+				c.SendEvent(events.JoinLobbyErrorEvent, nil)
 				continue
 			}
 
 			if lobby.Phase == GameStarted {
 				c.SendError("Spelet har redan börjat.")
+				c.SendEvent(events.JoinLobbyErrorEvent, nil)
 				continue
 			}
 
@@ -265,6 +269,11 @@ func (c *Client) pongHandler(_ string) error {
 // specified type and queues it on the client's Send channel for WritePump
 // to deliver. It is safe to call from any goroutine.
 func (c *Client) SendEvent(eventType events.EventType, payload any) {
+	defer func() {
+		if r := recover(); r != nil {
+		}
+	}()
+
 	b, err := events.PrepareEvent(eventType, payload)
 	if err != nil {
 		log.Printf("error preparing event: %v", err)

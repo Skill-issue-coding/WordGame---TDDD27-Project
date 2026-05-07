@@ -9,12 +9,12 @@ const RoomCodeDisplay = () => {
   const { lobbyState } = useGameContext();
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(lobbyState?.code || "XXXX-XXXX");
+    navigator.clipboard.writeText(lobbyState?.code || "xxxx-xxxx");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const chars = (lobbyState?.code || "XXXX-XXXX").split("");
+  const chars = (lobbyState?.code || "xxxx-xxxx").split("");
 
   return (
     <button onClick={handleCopy} className="flex items-center justify-center gap-3 px-5 py-3 transition-colors border cursor-pointer bg-muted/40 border-border rounded-xl hover:bg-border/50 group">

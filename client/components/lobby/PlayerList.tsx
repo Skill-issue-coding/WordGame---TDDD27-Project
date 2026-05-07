@@ -4,6 +4,9 @@ import { Crown, Users } from "lucide-react";
 import { User } from "@/lib/game/types";
 import { useGameContext } from "@/hooks/gamecontext";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
+import { useRef } from "react";
+import { useEffect } from "react";
 
 interface PlayerListProps {
   className?: string;
@@ -20,21 +23,32 @@ function PlayerAvatar({ name, color }: { name: string; color: string }) {
   );
 }
 
-// TODO: function PlayerCard({ username, isHost, userId }: User & { isHost: boolean })
-function PlayerCard({ player, isHost }: { player: User; isHost: boolean }) {
-  //const { user } = useGameContext();
+function PlayerCard({ player }: { player: User }) {
+  const { lobbyState, user } = useGameContext();
+  const [shouldAnimate, setShouldAnimate] = useState(false);
+  const textRef = useRef<HTMLSpanElement>(null);
 
-  //if (!user) return null;
+  const isHost = lobbyState?.host === player.user_id;
+  const currentPlayer = user?.user_id === player.user_id;
+
+  useEffect(() => {
+    if (textRef.current) {
+      const isOverflowing = textRef.current.scrollWidth > textRef.current.parentElement!.clientWidth;
+      setShouldAnimate(isOverflowing);
+    }
+  }, [player.username]);
 
   return (
     <div className="flex items-center px-4 py-3 gap-4 transition-all rounded-lg bg-muted/50 border-2 border-border hover:border-primary font-display">
       <PlayerAvatar name={player.username} color={player.background} />
       <div className="flex-1 min-w-0">
         <div className="flex items-center">
-          <span className="text-base truncate text-foreground font-bold">
-            {player.username}
-            {isHost && <span className="text-xs text-muted-foreground ml-2"> (Du)</span>}
-          </span>
+          <div className="relative overflow-hidden w-full">
+            <span ref={textRef} className="inline-block text-base text-foreground font-bold whitespace-nowrap hover:animate-[marquee_5s_linear_infinite] cursor-default text-center">
+              {player.username}
+              {currentPlayer && <span className="text-xs text-muted-foreground ml-2 shrink-0"> (Du)</span>}
+            </span>
+          </div>
         </div>
       </div>
       {isHost && (
@@ -49,9 +63,16 @@ function PlayerCard({ player, isHost }: { player: User; isHost: boolean }) {
 function EmptySlot() {
   return (
     <div className="flex items-center px-4 py-3 border border-dashed gap-4 rounded-lg border-border/90 opacity-90 bg-muted/5">
-      <div className="w-10 h-10 rounded-full border border-dashed border-border/50 shrink-0 bg-muted/10 flex items-center justify-center text-muted-foreground/30">?</div>
+      <div className="w-10 h-10 rounded-full border border-dashed border-border/50 shrink-0 bg-muted/10 flex items-center justify-center text-muted-foreground/30 animate-pulse">?</div>
       <div className="flex-1">
-        <span className="text-sm italic text-muted-foreground/40">Väntar på spelare...</span>
+        <span className="flex text-sm italic text-muted-foreground/60 animate-pulse">
+          Väntar på spelare
+          <span className="flex w-6">
+            <span className="animate-[loading_1.4s_infinite] ml-0.5">.</span>
+            <span className="animate-[loading_1.4s_infinite_0.2s] ml-0.5">.</span>
+            <span className="animate-[loading_1.4s_infinite_0.4s] ml-0.5">.</span>
+          </span>
+        </span>
       </div>
     </div>
   );
@@ -74,7 +95,7 @@ export function PlayerList({ className }: PlayerListProps) {
           <span className="font-display font-bold text-sm px-2.5 py-0.5 rounded-full bg-muted text-foreground tabular-nums">{playerCount}/12</span>
         </div>
         <div className="flex flex-col gap-2 max-h-105 overflow-y-auto custom-scrollbar">
-          {lobbyState?.users && Object.values(lobbyState.users).map((player) => <PlayerCard key={player.user_id} player={player} isHost={player.user_id === lobbyState?.host} />)}
+          {lobbyState?.users && Object.values(lobbyState.users).map((player) => <PlayerCard key={player.user_id} player={player} />)}
           {Array.from({ length: emptySlotsCount }).map((_, index) => (
             <EmptySlot key={`empty-${index}`} />
           ))}

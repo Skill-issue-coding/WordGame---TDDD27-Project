@@ -45,6 +45,10 @@ const (
 	// LeftLobbyEvent is sent to the client confirming they have successfully left the lobby.
 	// Payload: nil
 	LeftLobbyEvent EventType = "left_lobby"
+
+	// JoinLobbyErrorEvent is sent when the user is trying to join a lobby but an error occurs
+	// not allowing the user to join
+	JoinLobbyErrorEvent EventType = "join_error"
 )
 
 // Client → Server event types.

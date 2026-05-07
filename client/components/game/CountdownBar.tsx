@@ -17,9 +17,7 @@ const barColorMap = {
 const CountdownBar = ({ duration, isRunning, onComplete, color = "green" }: CountdownBarProps) => {
   const [timeLeft, setTimeLeft] = useState(duration);
 
-  useEffect(() => {
-    setTimeLeft(duration);
-  }, [duration, isRunning]);
+  useEffect(() => setTimeLeft(duration), [duration, isRunning]);
 
   useEffect(() => {
     if (!isRunning) return;

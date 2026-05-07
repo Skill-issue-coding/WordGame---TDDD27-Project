@@ -8,6 +8,7 @@ import UserProfileButton from "@/components/user/UserProfileButton";
 import { ThemeProvider } from "next-themes";
 import LobbyChat from "@/components/lobby/LobbyChat";
 import ThemedToaster from "@/components/themed-toaster";
+import { Suspense } from "react";
 
 const fredoka = Fredoka({
   subsets: ["latin"],
@@ -65,7 +66,9 @@ export default function RootLayout({
           <GameContextProvider>
             <TooltipProvider>
               {children}
-              <LobbyChat />
+              <Suspense fallback={null}>
+                <LobbyChat />
+              </Suspense>
               <UserProfileButton />
             </TooltipProvider>
           </GameContextProvider>

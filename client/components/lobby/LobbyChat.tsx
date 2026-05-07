@@ -9,8 +9,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useGameContext } from "@/hooks/gamecontext";
 
-const ALLOWED = ["/lobby", "/game"];
-
 const formatTime = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 const ChatButton = () => {
@@ -21,7 +19,7 @@ const ChatButton = () => {
   const [lastReadIndex, setLastReadIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const visible = ALLOWED.includes(location) && Boolean(lobbyState);
+  const visible = (location.startsWith("/lobby") || location.startsWith("/game")) && Boolean(lobbyState);
 
   const unread = Math.max(0, chatMessages.length - lastReadIndex);
 
@@ -30,9 +28,7 @@ const ChatButton = () => {
       setLastReadIndex(chatMessages.length);
       return;
     }
-    if (lastReadIndex > chatMessages.length) {
-      setLastReadIndex(chatMessages.length);
-    }
+    if (lastReadIndex > chatMessages.length) setLastReadIndex(chatMessages.length);
   }, [open, chatMessages, lastReadIndex]);
 
   if (!visible) return null;

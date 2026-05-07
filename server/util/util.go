@@ -32,11 +32,11 @@ var nouns = []string{
 	"Lobster", "Axolotl", "Mufflon", "Tapir", "Manet",
 }
 
-// GenerateGameCode returns a random room code in the format "XXXX-XXXX",
+// GenerateGameCode returns a random room code in the format "xxxx-xxxx",
 // where each segment is four alphanumeric characters. Used as the human-readable
 // lobby identifier players share with friends.
 func GenerateGameCode() string {
-	const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
+	const chars = "abcdefghijklmnopqrstuvwxyz0123456789"
 
 	segment := func() string {
 		b := make([]byte, 4)

@@ -36,7 +36,13 @@ export default function HomeView() {
         <motion.div className="game-card border-game-blue/30 mt-2" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 1200, damping: 40, delay: 0.25 }}>
           <h2 className="font-display text-base font-bold mb-3 text-foreground flex items-center gap-2">Gå med i rum</h2>
           <div className="flex gap-2">
-            <Input placeholder="XXXX-XXXX" value={roomCode} onChange={(e) => setRoomCode(formatCode(e.target.value))} className="font-body text-base font-bold tracking-widest text-center bg-muted border-2 h-12 rounded-lg" maxLength={9} />
+            <Input
+              placeholder="xxxx-xxxx"
+              value={roomCode}
+              onChange={(e) => setRoomCode(formatCode(e.target.value.toLowerCase()))}
+              className="font-body text-base font-bold tracking-widest text-center bg-muted border-2 h-12 rounded-lg"
+              maxLength={9}
+            />
             <Button size="lg" onClick={handleJoinLobby} disabled={roomCode.replace("-", "").length !== 8} className="h-12 px-8 font-bold text-base">
               Gå med
             </Button>

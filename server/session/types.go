@@ -94,7 +94,7 @@ type LobbyState struct {
 // GameLobby represents an active game room. It has its own Run() goroutine that
 // processes all state changes sequentially via channels.
 type GameLobby struct {
-	// ID is the human-readable room code (e.g., "AbCd-1234").
+	// ID is the human-readable room code (e.g., "abcd-1234").
 	ID string
 
 	// Clients is the set of currently connected players in this lobby.

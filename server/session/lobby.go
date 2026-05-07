@@ -80,6 +80,8 @@ func (lobby *GameLobby) Run() {
 
 			log.Printf("[Room %s] Player '%s' left. Players remaining: %d", lobby.ID, client.Username(), len(lobby.Clients))
 
+			client.SendEvent(events.LeftLobbyEvent, nil)
+
 			// If the lobby is now empty, shut it down.
 			if len(lobby.Clients) == 0 {
 				log.Printf("[Room %s] Room is empty, closing.", lobby.ID)
@@ -98,7 +100,6 @@ func (lobby *GameLobby) Run() {
 			}
 
 			lobby.SyncStateToClients()
-			client.SendEvent(events.LeftLobbyEvent, nil)
 
 		case <-lobby.SyncRequests:
 			lobby.SyncStateToClients()

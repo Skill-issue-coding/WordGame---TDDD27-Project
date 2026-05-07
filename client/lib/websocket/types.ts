@@ -40,7 +40,7 @@ export type WSRecievedEvent =
       payload: { user: User };
     }
   | {
-      type: "joined_lobby" | "left_lobby";
+      type: "joined_lobby" | "left_lobby" | "join_error";
       /** No payload — use the preceding sync_gamestate for state. */
       payload: null;
     }
