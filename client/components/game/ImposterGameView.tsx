@@ -31,7 +31,7 @@ const ImpostorGame = () => {
             <div className="text-5xl mb-3">🤫</div>
             <p className="text-muted-foreground text-sm mb-4 uppercase tracking-wider font-display font-bold">Ditt hemliga ord</p>
             <div className="game-card mb-6 border-game-pink py-10">
-              <h2 className="font-display text-6xl font-bold text-game-pink">Apple</h2>
+              <h2 className="font-display text-6xl font-bold text-game-pink">Äpple</h2>
             </div>
             <p className="text-muted-foreground text-sm mb-6 font-display font-semibold">Kom ihåg ordet! Låt inte imposters få reda på det.</p>
             <Button size="lg" onClick={() => setPhase("input")} className="w-full">

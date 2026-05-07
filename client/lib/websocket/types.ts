@@ -97,6 +97,9 @@ export type WSSendPayloadMap = {
    * Value is typed as unknown here — narrow it per-mode in your components.
    */
   update_setting: { key: string; value: number };
+
+  /** Sends a reuqest to the backend to leave the lobby */
+  leave_lobby: null;
 };
 
 /** Union of all event type strings the client can send. */

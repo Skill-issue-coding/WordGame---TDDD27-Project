@@ -103,20 +103,6 @@ export const GetLocalStorageProfile = (): LocalStorageProfile | undefined => {
   }
 };
 
-/**
- * 
- *       const existingProfile = GetLocalStorageProfile();
-
-      localStorage.setItem(
-        "profile",
-        JSON.stringify({
-          ...existingProfile,
-          username: nextUpdates.username ?? prev.username,
-          background: nextUpdates.background ?? prev.background,
-        }),
-      );
- */
-
 const SaveLocalStorageProfile = (profile: LocalStorageProfile) => {
   if (typeof window === "undefined") return;
   localStorage.setItem("profile", JSON.stringify(profile));
@@ -158,6 +144,9 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
     setLobbyState(null);
   }
 
+  console.log(lobbyState);
+  console.log(chatMessages);
+
   useEffect(() => {
     const profile = GetLocalStorageProfile();
 
@@ -191,10 +180,9 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
           break;
 
         case "connected_to_hub":
-          // Server sends this once on connect with the generated user profile.
           const serverUser = payload.user;
+
           if (profile) {
-            updateUser(profile);
             const mergeUser = {
               ...serverUser,
               username: profile.username ?? payload.user.username,
@@ -202,7 +190,16 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
             };
 
             setUser(mergeUser);
-          } else setUser(payload.user);
+
+            ws.send(
+              JSON.stringify({
+                type: "update_user",
+                payload: { username: mergeUser.username, background: mergeUser.background },
+              }),
+            );
+          } else {
+            setUser(payload.user);
+          }
 
           ToastSucess("Välkommen till OrdioArena!");
           break;
@@ -282,19 +279,21 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
         background: nextUpdates.background ?? prev.background,
       });
 
-      setLobbyState((current) => {
-        if (!current || !current.users[currentUser.user_id]) return current;
-        return {
-          ...current,
-          users: {
-            ...current.users,
-            [currentUser.user_id]: {
-              ...current.users[currentUser.user_id],
-              ...nextUpdates,
+      if (lobbyState) {
+        setLobbyState((current) => {
+          if (!current || !current.users[currentUser.user_id]) return current;
+          return {
+            ...current,
+            users: {
+              ...current.users,
+              [currentUser.user_id]: {
+                ...current.users[currentUser.user_id],
+                ...nextUpdates,
+              },
             },
-          },
-        };
-      });
+          };
+        });
+      }
       return { ...prev, ...nextUpdates };
     });
   };

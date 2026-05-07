@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { useTheme } from "next-themes";
 import { useGameContext } from "@/hooks/gamecontext";
+import { motion } from "framer-motion";
 
 export default function UserProfileButton() {
   const { user, updateUser, palette } = useGameContext();
@@ -47,17 +48,19 @@ export default function UserProfileButton() {
 
   return (
     <>
-      <button
-        onClick={() => user && handleOpen(true)}
-        aria-label="Edit profile"
-        aria-disabled={!user}
-        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center cursor-pointer font-body font-bold text-xl text-white border-4 border-card transition-transform hover:scale-110 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
-        style={{
-          backgroundColor: displayColor,
-          boxShadow: `0 4px 0 0 ${displayColor}88, 0 8px 20px oklch(0.2738 0.0358 274.66 / 0.2)`,
-        }}>
-        {displayName.charAt(0).toUpperCase()}
-      </button>
+      <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 1200, damping: 40, delay: 0.25 }}>
+        <button
+          onClick={() => user && handleOpen(true)}
+          aria-label="Edit profile"
+          aria-disabled={!user}
+          className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center cursor-pointer font-body font-bold text-xl text-white border-4 border-card transition-transform hover:scale-110 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
+          style={{
+            backgroundColor: displayColor,
+            boxShadow: `0 4px 0 0 ${displayColor}88, 0 8px 20px oklch(0.2738 0.0358 274.66 / 0.2)`,
+          }}>
+          {displayName.charAt(0).toUpperCase()}
+        </button>
+      </motion.div>
 
       <Dialog open={open} onOpenChange={handleOpen}>
         <DialogContent className="border-2">

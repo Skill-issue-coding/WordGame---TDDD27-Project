@@ -10,7 +10,7 @@ import { useEffect } from "react";
 
 export default function LobbyView() {
   const router = useRouter();
-  const { user, lobbyState } = useGameContext();
+  const { user, lobbyState, sendEvent } = useGameContext();
 
   useEffect(() => {
     if (!user || !lobbyState) router.push("/");
@@ -20,6 +20,7 @@ export default function LobbyView() {
 
   const hostUser = lobbyState?.users && lobbyState.host ? lobbyState.users[lobbyState.host] : null;
   const hostName = hostUser?.username;
+  const handleLeave = () => sendEvent("leave_lobby", null);
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">

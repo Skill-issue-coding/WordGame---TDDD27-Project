@@ -9,9 +9,9 @@ interface CountdownBarProps {
 }
 
 const barColorMap = {
-  green: "--heat-hot",
-  orange: "--heat-warm",
-  red: "--heat-cold",
+  green: "heat-hot",
+  orange: "heat-warm",
+  red: "heat-cold",
 };
 
 const CountdownBar = ({ duration, isRunning, onComplete, color = "green" }: CountdownBarProps) => {
@@ -35,7 +35,7 @@ const CountdownBar = ({ duration, isRunning, onComplete, color = "green" }: Coun
   const isUrgent = percent < 25;
   if (percent >= 80) {
     color = "green";
-  } else if (25 < percent && percent < 80) {
+  } else if (25 < percent) {
     color = "orange";
   } else color = "red";
 
@@ -45,7 +45,7 @@ const CountdownBar = ({ duration, isRunning, onComplete, color = "green" }: Coun
         <span className={cn("font-display text-3xl font-bold tabular-nums px-4 py-1 rounded-xl bg-card border-2 border-border", isUrgent && "text-destructive border-destructive animate-pulse")}>{Math.ceil(timeLeft)}</span>
       </div>
       <div className="h-3 bg-muted rounded-full overflow-hidden border border-border">
-        <div className={cn("h-full rounded-full transition-all duration-100", barColorMap[color], isUrgent && "bg-destructive")} style={{ width: `${Math.max(0, percent)}%` }} />
+        <div className={cn("h-full rounded-full transition-all duration-100", barColorMap[color])} style={{ width: `${Math.max(0, percent)}%` }} />
       </div>
     </div>
   );
