@@ -1,21 +1,47 @@
 package session
 
-// Go (server) -> Next.js (client)
+// This file defines all WebSocket payload structs used by the session package.
+// Payloads are always nested inside an events.Event envelope on the wire.
+//
+// Naming convention:
+//   - Structs ending in "Payload" are client → server (inbound).
+//   - Structs ending in "Payload" prefixed with a server concept are server → client (outbound).
+
+// Server → Client -------------------------------------------------------
+
+// SyncStatePayload is the payload for the sync_gamestate event. It is sent to
+// every client in a lobby whenever shared state changes. Message is optional
+// and only populated on initial join to confirm the action to the joining player.
 type SyncStatePayload struct {
+	// GameState is the complete shared lobby state at the time of the sync.
 	GameState LobbyState `json:"lobbystate"`
-	Message   string     `json:"message,omitempty"`
+
+	// Message is an optional human-readable confirmation shown as a toast on the
+	// frontend (e.g. "Du gick med i spelet!"). Omitted from JSON when empty.
+	Message string `json:"message,omitempty"`
 }
 
+// ConnectedToHubPayload is the payload for the connected_to_hub event, sent
+// once to a client immediately after they connect. It contains their
+// server-generated identity so the frontend can display it before any lobby is joined.
 type ConnectedToHubPayload struct {
 	User UserProfile `json:"user"`
 }
 
-// Next.js (client) -> Go (server)
+// Client → Server -------------------------------------------------------
+
+// JoinLobbyPayload is the payload for the join_lobby event.
 type JoinLobbyPayload struct {
-	gameCode string `json:"gameCode"`
+	// LobbyCode is the room code the player wants to join (e.g. "AbCd-1234").
+	LobbyCode string `json:"lobby_code"`
 }
 
+// UpdateUserPayload is the payload for the update_user event. All fields are
+// optional — only non-empty values are applied to the player's profile.
 type UpdateUserPayload struct {
-	Username   string `json:"username,omitempty"`
+	// Username is the new display name. Ignored if empty or whitespace-only.
+	Username string `json:"username,omitempty"`
+
+	// Background is the new background color hex string. Ignored if empty.
 	Background string `json:"background,omitempty"`
 }
