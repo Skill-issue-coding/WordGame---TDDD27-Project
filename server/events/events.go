@@ -37,6 +37,10 @@ const (
 	// SuccessEvent delivers a human-readable Swedish success message to the client.
 	// Payload: { "message": string }
 	SuccessEvent EventType = "success"
+
+	// SendChatMessageEvent is sent once a chat message request is recieved from a client
+	// Payload: ChatMessage
+	SendChatMessageEvent EventType = "chat_message"
 )
 
 // Client → Server event types.
@@ -54,6 +58,10 @@ const (
 	// a SyncGameStateEvent broadcast to the lobby.
 	// Payload: UpdateUserPayload.
 	UpdateUserEvent EventType = "update_user"
+
+	// ChatMessageRequestEvent is sent to server
+	// Payload: { "message": string }
+	ChatMessageRequestEvent EventType = "send_chatmessage"
 )
 
 // Event is the wire envelope for all WebSocket messages. Both directions use

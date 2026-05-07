@@ -66,31 +66,16 @@ function GameMode() {
               onClick={() => setSelectedMode(m.id)} // TODO: Add host checks
               className={cn(
                 "relative text-left rounded-lg border-2 p-3 transition-all flex items-center gap-3",
-                active
-                  ? `bg-card border-current ${m.textClass} shadow-md`
-                  : "bg-muted/40 border-border hover:border-muted-foreground/40",
+                active ? `bg-card border-current ${m.textClass} shadow-md` : "bg-muted/40 border-border hover:border-muted-foreground/40",
                 "cursor-pointer opacity-80",
               )}>
-              <div
-                className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0",
-                  `bg-game-${m.color}`,
-                )}>
-                {m.icon}
-              </div>
+              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0", `bg-game-${m.color}`)}>{m.icon}</div>
               <div className="flex-1 min-w-0">
-                <div
-                  className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>
-                  {m.title}
-                </div>
+                <div className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>{m.title}</div>
                 <div className="text-xs text-muted-foreground truncate">{m.players}</div>
               </div>
               {active && (
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0",
-                    `bg-game-${m.color}`,
-                  )}>
+                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0", `bg-game-${m.color}`)}>
                   <Check className="w-4 h-4" />
                 </div>
               )}
@@ -117,16 +102,7 @@ function GameSettings() {
           Betänketid
         </div>
         <div className="flex items-center gap-4">
-          <Slider
-            name="game-time-slider"
-            id="game-time-slider"
-            min={10}
-            max={60}
-            step={5}
-            value={[roundTime]}
-            onValueChange={([v]) => setRoundTime(v)}
-            className="flex-1"
-          />
+          <Slider name="game-time-slider" id="game-time-slider" min={10} max={60} step={5} value={[roundTime]} onValueChange={([v]) => setRoundTime(v)} className="flex-1" />
           <span className=" text-sm font-bold text-right text-foreground tabular-nums">{roundTime} s</span>
         </div>
       </div>
@@ -136,16 +112,7 @@ function GameSettings() {
           Omgångar
         </div>
         <div className="flex items-center gap-4">
-          <Slider
-            name="game-time-slider"
-            id="game-time-slider"
-            min={1}
-            max={5}
-            step={1}
-            value={[gameRounds]}
-            onValueChange={([v]) => setGameRounds(v)}
-            className="flex-1"
-          />
+          <Slider name="game-time-slider" id="game-time-slider" min={1} max={5} step={1} value={[gameRounds]} onValueChange={([v]) => setGameRounds(v)} className="flex-1" />
           <span className=" text-sm font-bold text-right text-foreground tabular-nums">{gameRounds}</span>
         </div>
       </div>
@@ -157,16 +124,14 @@ export function SettingsPanel({ className }: SettingsPanelProps) {
   return (
     <div className={cn("game-card flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border", className)}>
       <div className="flex flex-col gap-4">
-        <CodeDisplay code="XXXX-XXXX" />
+        <CodeDisplay />
         <div className="flex items-center justify-between">
           <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelläge</p>
           {/*<Info className="text-muted-foreground" />*/}
         </div>
         <GameMode />
         <div className="flex items-center justify-between">
-          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">
-            Spelinställningar
-          </p>
+          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelinställningar</p>
           {/*<Info className="text-muted-foreground" />*/}
         </div>
         <GameSettings />

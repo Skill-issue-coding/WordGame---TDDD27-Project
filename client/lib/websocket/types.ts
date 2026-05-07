@@ -11,7 +11,7 @@
  * can enforce that the correct payload shape is used for each event type.
  */
 
-import { LobbyState, User } from "@/lib/game/types";
+import { ChatMessage, LobbyState, User } from "@/lib/game/types";
 
 // ---------------------------------------------------------------------------
 // Server → Client
@@ -21,7 +21,7 @@ import { LobbyState, User } from "@/lib/game/types";
  * Union of all events the Go server can send to the frontend.
  * Use the `type` discriminant to narrow to the correct payload shape.
  *
- * | type               | when it fires                                      |
+ * | type               | when it fires                                       |
  * |--------------------|----------------------------------------------------|
  * | connected_to_hub   | Immediately after WebSocket connection is opened   |
  * | joined_lobby       | After the client is registered into a lobby        |
@@ -30,7 +30,8 @@ import { LobbyState, User } from "@/lib/game/types";
  * | game_started       | (reserved) game phase transition                   |
  * | error              | Any server-side validation or runtime error        |
  * | success            | Generic acknowledgement                            |
- * | left_room          | Confirmation that the client left a lobby          |
+ * | left_room          | Confirmation that the client left a lobby           |
+ * | chat_message       | Recieved chat message from the server side         |
  */
 export type WSRecievedEvent =
   | {
@@ -58,6 +59,7 @@ export type WSRecievedEvent =
       type: "lobby_updated" | "game_started";
       payload: { lobbystate: LobbyState };
     }
+  | { type: "chat_message"; payload: ChatMessage }
   | {
       type: "error" | "left_room" | "success";
       payload: { message: string };
@@ -87,6 +89,11 @@ export type WSSendPayloadMap = {
    * and non-empty are applied on the server.
    */
   update_user: { updates: Partial<User> };
+
+  /**
+   * Send chat message to server
+   */
+  send_chatmessage: { message: string };
 };
 
 /** Union of all event type strings the client can send. */

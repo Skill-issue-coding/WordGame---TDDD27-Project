@@ -8,61 +8,17 @@ import { useState } from "react";
 import { PlayerList } from "@/components/lobby/PlayerList";
 import { SettingsPanel } from "@/components/lobby/GameSettings";
 import { Button } from "@/components/ui/button";
-
-// 12 distinct player colors
-const PLAYER_COLORS = [
-  "#00e5a0",
-  "#7c5cfc",
-  "#ff5c8a",
-  "#ffa726",
-  "#42a5f5",
-  "#ab47bc",
-  "#ef5350",
-  "#26c6da",
-  "#fdd835",
-  "#43a047",
-  "#3f51b5",
-  "#8d6e63",
-];
-
-const gamemodes = [
-  {
-    id: "imposter",
-    title: "Hitta Impostern",
-    description: "En spelare får ett unikt ord. Hitta imposter innan det är försent!",
-    icon: "🕵️",
-    players: "4-12",
-    color: "pink" as Color,
-  },
-  {
-    id: "contexto",
-    title: "Kontext Strid",
-    description: "Race att hitta det dålda ordet.",
-    icon: "🧠",
-    players: "2-12",
-    color: "blue" as Color,
-  },
-  {
-    id: "synonym",
-    title: "Synonym Duell",
-    description: "Ange den bästa synonymen varje runda. Det sämsta åker ut!",
-    icon: "⚔️",
-    players: "3-12",
-    color: "green" as Color,
-  },
-  {
-    id: "antimatch",
-    title: "Anti-Matchning",
-    description: "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
-    icon: "🎯",
-    players: "3-12",
-    color: "yellow" as Color,
-  },
-];
+import { useGameContext } from "@/hooks/gamecontext";
+import { notFound } from "next/navigation";
 
 export default function LobbyView() {
   // const [roomCode, setRoomCode] = useState("");
+  const { user, lobbyState } = useGameContext();
   const [gametime, setGametime] = useState(10);
+
+  const hostUser = lobbyState?.users && lobbyState.host ? lobbyState.users[lobbyState.host] : null;
+  const hostName = hostUser?.username;
+
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-4xl animate-slide-up">
@@ -73,7 +29,7 @@ export default function LobbyView() {
               <span className="text-sm">Tillbaka</span>
             </button>
           </Link>
-          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">XXXX's rum</h1>
+          <h1 className="w-full text-4xl font-bold font-display text-glow-green text-game-purple">{hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}'s rum`}</h1>
           <div className="w-full" />
         </div>
         <div>

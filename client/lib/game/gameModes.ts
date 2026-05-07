@@ -17,15 +17,14 @@ export const GAME_MODES: GameMode[] = [
     title: "Hitta Impostern",
     description: "En spelare får ett unikt ord. Försök att tillsammans hitta impostern innan det är försent!",
     icon: "🕵️",
-    players: "4 spelare",
+    players: "4-12 spelare",
     color: "red",
     textClass: "text-game-red",
   },
   {
     id: "contexto",
     title: "Kontext Strid",
-    description:
-      "Tävla om att hitta det dålda ordet. Semantiska likheter leder dig närmare och närmare det rätta ordet!",
+    description: "Tävla om att hitta det dålda ordet. Semantiska likheter leder dig närmare och närmare det rätta ordet!",
     icon: "🧠",
     players: "2-12 spelare",
     color: "blue",
@@ -43,8 +42,7 @@ export const GAME_MODES: GameMode[] = [
   {
     id: "antimatch",
     title: "Anti-matchning",
-    description:
-      "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
+    description: "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
     icon: "🎯",
     players: "3-12 spelare",
     color: "yellow",

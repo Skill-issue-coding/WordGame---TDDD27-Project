@@ -19,7 +19,7 @@
  * ```
  */
 
-import { LobbyState, User } from "@/lib/game/types";
+import { ChatMessage, LobbyState, User } from "@/lib/game/types";
 import { ToastError, ToastSucess } from "@/lib/toast-functions";
 import { WSRecievedEvent, WSSendEventType, WSSendPayloadMap } from "@/lib/websocket/types";
 import { useRouter } from "next/navigation";
@@ -47,7 +47,7 @@ export interface GameContextContextProps {
    * Send a typed event to the Go server. Silently no-ops if the socket is
    * not open and shows an error toast instead.
    */
-  sendMessage: SendMessageType;
+  sendEvent: SendMessageType;
 
   /**
    * The current player's profile as assigned/confirmed by the server.
@@ -73,6 +73,9 @@ export interface GameContextContextProps {
 
   /** The palette of selectable avatar background colors. */
   palette: string[];
+
+  /** Chatmessages sent internaly in the lobby */
+  chatMessages: ChatMessage[];
 }
 
 export const GameContext = createContext<GameContextContextProps | null>(null);
@@ -98,6 +101,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   const [connectionError, setConnectionError] = useState<boolean>(false);
   const [user, setUser] = useState<User | null>(null);
   const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
 
   const router = useRouter();
 
@@ -148,6 +152,10 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
           ToastSucess("Välkommen till OrdioArena!");
           break;
 
+        case "chat_message":
+          setChatMessages((prev) => [...prev, payload]);
+          break;
+
         case "sync_gamestate":
           // Primary state update — replaces lobbyState wholesale.
           setLobbyState(payload.lobbystate);
@@ -169,7 +177,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
    * sendMessage serialises and sends a typed event to the server.
    * Memoised on the websocket instance to avoid stale closures in child components.
    */
-  const sendMessage: SendMessageType = useCallback(
+  const sendEvent: SendMessageType = useCallback(
     (type, payload) => {
       if (!websocket || websocket.readyState !== WebSocket.OPEN) {
         ToastError("Ej ansluten till servern");
@@ -188,7 +196,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   const updateUser = (updates: Partial<User>) => {
     setUser((prev) => {
       if (prev) {
-        sendMessage("update_user", { updates });
+        sendEvent("update_user", { updates });
         return { ...prev, ...updates };
       }
       return null;
@@ -196,13 +204,14 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   };
 
   const value: GameContextContextProps = {
-    sendMessage,
+    sendEvent,
     isConnected,
     user,
     connectionError,
     updateUser,
     palette,
     lobbyState,
+    chatMessages,
   };
 
   return <GameContext.Provider value={value}>{children}</GameContext.Provider>;

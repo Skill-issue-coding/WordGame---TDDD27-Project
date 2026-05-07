@@ -125,6 +125,9 @@ type GameLobby struct {
 	// Unregister removes a client from the lobby (on disconnect or leave).
 	Unregister chan *Client
 
+	// ChatmMessages is a chan to send chatmessages to all clients in a lobby
+	ChatMessages chan ChatMessage
+
 	// SyncRequests is a signal channel. Send an empty struct to trigger a
 	// SyncStateToClients broadcast without going through Register/Unregister.
 	// Used by UpdateUserEvent to propagate profile changes.
@@ -171,4 +174,10 @@ type GameHub struct {
 	Broadcast  chan []byte
 	Register   chan *Client
 	Unregister chan *Client
+}
+
+type ChatMessage struct {
+	Sender  UserProfile `json:"sender"`
+	Message string      `json:"message"`
+	Date    float64     `json:"date"`
 }

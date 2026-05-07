@@ -199,6 +199,23 @@ func (c *Client) ReadPump() {
 				c.Lobby.SyncRequests <- struct{}{}
 			}
 
+		case events.ChatMessageRequestEvent:
+			payload, err := events.DecodePayload[ChatMessageRequestPayload](event)
+			if err != nil {
+				c.SendError("Fel vid skickandet av meddelandet")
+				continue
+			}
+			// TODO: Checking if the message is ok (skip this for now)
+			serverTimestamp := float64(time.Now().UnixMilli())
+
+			chatMessage := ChatMessage{
+				Sender:  *c.Profile,
+				Message: payload.Message,
+				Date:    serverTimestamp,
+			}
+
+			c.Lobby.ChatMessages <- chatMessage
+
 		default:
 			c.SendError("Okänd event-typ")
 		}

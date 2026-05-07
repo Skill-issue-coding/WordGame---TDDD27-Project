@@ -6,7 +6,6 @@ import { MessageCircle, Send } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { useChat } from "@/contexts/ChatContext";
 import { cn } from "@/lib/utils";
 import { useGameContext } from "@/hooks/gamecontext";
 
@@ -16,28 +15,32 @@ const formatTime = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: "
 
 const ChatButton = () => {
   const location = usePathname();
-  const { messages, sendMessage, unread, markRead } = useChat();
-  const { user } = useGameContext();
+  const { chatMessages, sendEvent, user } = useGameContext();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
+  const [lastReadIndex, setLastReadIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const visible = ALLOWED.includes(location);
 
+  const unread = Math.max(0, chatMessages.length - lastReadIndex);
+
   useEffect(() => {
     if (open) {
-      markRead();
-      requestAnimationFrame(() => {
-        scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
-      });
+      setLastReadIndex(chatMessages.length);
+      return;
     }
-  }, [open, messages, markRead]);
+    if (lastReadIndex > chatMessages.length) {
+      setLastReadIndex(chatMessages.length);
+    }
+  }, [open, chatMessages, lastReadIndex]);
 
   if (!visible) return null;
 
   const handleSend = () => {
     if (!draft.trim()) return;
-    sendMessage(draft, user?.username || "", user?.background || "");
+    // sendMessage(draft, user?.username || "", user?.background || "");
+    sendEvent("send_chatmessage", { message: draft });
     setDraft("");
   };
 
@@ -62,24 +65,24 @@ const ChatButton = () => {
         </div>
 
         <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-3">
-          {messages.length === 0 && <p className="text-center text-sm text-muted-foreground font-display py-8">No messages yet. Say hi! 👋</p>}
-          {messages.map((m) => {
-            const self = m.author === user?.username;
+          {chatMessages.length === 0 && <p className="text-center text-sm text-muted-foreground font-display py-8">No messages yet. Say hi! 👋</p>}
+          {chatMessages.map((m) => {
+            const self = m.sender.user_id === user?.user_id;
             return (
-              <div key={m.id} className={cn("flex gap-2 items-end", self && "flex-row-reverse")}>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center font-display font-bold text-white text-xs border-2 border-card shrink-0" style={{ backgroundColor: m.color }}>
-                  {m.author.charAt(0).toUpperCase()}
+              <div key={`${m.sender.user_id}-${m.date}`} className={cn("flex gap-2 items-end", self && "flex-row-reverse")}>
+                <div className="w-7 h-7 rounded-full flex items-center justify-center font-display font-bold text-white text-xs border-2 border-card shrink-0" style={{ backgroundColor: m.sender.background }}>
+                  {m.sender.username.charAt(0).toUpperCase()}
                 </div>
                 <div className={cn("max-w-[75%]", self && "text-right")}>
                   <div className="text-[10px] font-display font-bold text-muted-foreground px-1 mb-0.5">
-                    {self ? "You" : m.author} · {formatTime(m.timestamp)}
+                    {self ? "You" : m.sender.username} · {formatTime(m.date)}
                   </div>
                   <div
                     className={cn(
                       "px-3 py-2 rounded-2xl border-2 font-display font-semibold text-sm wrap-break-word",
                       self ? "bg-primary text-primary-foreground border-primary rounded-br-md" : "bg-muted border-border text-foreground rounded-bl-md",
                     )}>
-                    {m.text}
+                    {m.message}
                   </div>
                 </div>
               </div>

@@ -1,0 +1,4 @@
+{
+  "$schema": "http://json.schemastore.org/vsls",
+  "excludeFiles": ["node_modules", ".git", "dist", "build", ".venv", "preprocessing"]
+}

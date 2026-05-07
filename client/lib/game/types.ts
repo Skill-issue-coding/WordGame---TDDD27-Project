@@ -50,3 +50,12 @@ export type LobbyState = {
   users: Record<string, User>;
   // settings: ModeSettings — add typed union once mode settings are finalised.
 };
+
+export type ChatMessage = {
+  /** The sender of the message. */
+  sender: User;
+  /** The message itself. */
+  message: string;
+  /** Server timestamp in Unix milliseconds. */
+  date: number;
+};

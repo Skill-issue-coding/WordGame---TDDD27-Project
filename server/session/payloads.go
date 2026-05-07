@@ -45,3 +45,7 @@ type UpdateUserPayload struct {
 	// Background is the new background color hex string. Ignored if empty.
 	Background string `json:"background,omitempty"`
 }
+
+type ChatMessageRequestPayload struct {
+	Message string `json:"message"`
+}

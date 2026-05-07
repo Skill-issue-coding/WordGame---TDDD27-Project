@@ -7,20 +7,17 @@ import { Button } from "@/components/ui/button";
 import { useGameContext } from "@/hooks/gamecontext";
 
 export default function HomeView() {
-  const { sendMessage } = useGameContext();
+  const { sendEvent } = useGameContext();
   const [roomCode, setRoomCode] = useState("");
 
   const formatCode = (val: string) => {
-    const clean = val
-      .replace(/[^a-zA-Z0-9]/g, "")
-      .toUpperCase()
-      .slice(0, 8);
+    const clean = val.replace(/[^a-zA-Z0-9]/g, "").slice(0, 8);
     if (clean.length > 4) return clean.slice(0, 4) + "-" + clean.slice(4);
     return clean;
   };
 
-  const handleCreateLobby = () => sendMessage("create_lobby", null);
-  const handleJoinLobby = () => sendMessage("join_lobby", { lobby_code: roomCode });
+  const handleCreateLobby = () => sendEvent("create_lobby", null);
+  const handleJoinLobby = () => sendEvent("join_lobby", { lobby_code: roomCode });
 
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6">

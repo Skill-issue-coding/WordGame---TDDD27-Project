@@ -20,6 +20,7 @@ func NewLobby(id string) *GameLobby {
 		Broadcast:    make(chan []byte),
 		Register:     make(chan *Client),
 		Unregister:   make(chan *Client),
+		ChatMessages: make(chan ChatMessage),
 		SyncRequests: make(chan struct{}, 8),
 		Phase:        LobbyPhase,
 		Users:        make(map[uuid.UUID]*UserProfile),
@@ -115,6 +116,11 @@ func (lobby *GameLobby) Run() {
 		// where all reads of lobby state are safe.
 		case <-lobby.SyncRequests:
 			lobby.SyncStateToClients()
+
+		case message := <-lobby.ChatMessages:
+			for client := range lobby.Clients {
+				client.SendEvent(events.SendChatMessageEvent, message)
+			}
 
 		case <-gameticker.C:
 			// Reserved for game-phase countdown timers and round management.
