@@ -8,6 +8,7 @@ def main():
     print("starting stage 5")
     logging.info("=" * 60)
     logging.info(f"Stage 5: CSV Export → {OUTPUT_DIR}")
+    logging.info("=" * 60)
 
     # Load from Stage 4
     with open(INTERMEDIATE_DIR / "stage4_reduced.pkl", "rb") as f:
@@ -29,7 +30,7 @@ def main():
                 writer.writerow(row)
 
     print(f"Pipeline complete! ✓ Output files in: {OUTPUT_DIR}")
-    logging.info("Stage 5 complete.")
+    logging.info("\nStage 5 complete.")
 
 if __name__ == "__main__":
     main()

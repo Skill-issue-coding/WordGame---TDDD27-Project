@@ -22,8 +22,19 @@ PCA_DIMS            = 100
 NEIGHBOURS_PER_SEED = 70
 TOP_N_PER_SEED      = 50
 MIN_WORD_LEN        = 3
-MIN_KORP_FREQ       = 5
-ALLOWED_POS         = {"NOUN", "PROPN"}
+
+# NEW: Dynamic Korp Frequencies
+DEFAULT_KORP_FREQ = 300 # High threshold for general words (verbs, adjectives, standard nouns)
+CATEGORY_KORP_FREQ = {
+    "character": 5,     # Keep low for specific names
+    "game": 5,          
+    "media": 10,
+    "celebrity": 20,
+    "company": 50,
+}
+
+# NEW: Expanded POS tags for better party-game vocabulary
+ALLOWED_POS = {"NOUN", "PROPN", "VERB", "ADJ"}
 
 CATEGORY_MAPPING = {
     "swedish_celebrities": ("celebrity",  "celebrities_vectors.csv"),
@@ -35,6 +46,7 @@ CATEGORY_MAPPING = {
     "swedish_geography":   ("geography",  "geography_vectors.csv"),
     "swedish_tv_and_film": ("media",      "media_vectors.csv"),
     "video_games":         ("game",       "games_vectors.csv"),
+    "swedish_culture":     ("general",    "culture_vectors.csv"), 
 }
 
 # ── Logging Setup (Terminal clean, File detailed) ─────────────────────────────
@@ -79,8 +91,16 @@ def load_spacy():
         logging.error(f"spaCy model '{SPACY_MODEL}' not found.")
         sys.exit(1)
 
+# In shared.py
 def load_korp_freq() -> Optional[Dict[str, int]]:
     if not KORP_DIR.exists(): return None
+    
+    cache_path = INTERMEDIATE_DIR / "korp_cache.pkl"
+    if cache_path.exists():
+        import pickle
+        with open(cache_path, "rb") as f:
+            return pickle.load(f)
+
     freq = defaultdict(int)
     for csv_path in sorted(KORP_DIR.glob("*.csv")):
         try:
@@ -95,4 +115,13 @@ def load_korp_freq() -> Optional[Dict[str, int]]:
                     word = row.get("word", "").strip().lower()
                     if word: freq[word] += int(float(row.get("Totalt", 0) or 0))
         except Exception: pass
-    return dict(freq) if freq else None
+    result = dict(freq) if freq else None
+    
+    # Save to cache
+    if result:
+        import pickle
+        INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
+        with open(cache_path, "wb") as f:
+            pickle.dump(result, f)
+            
+    return result
