@@ -4,17 +4,37 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 
+# ── Timeout fix ───────────────────────────────────────────────────────────────
+# REMOVED: wdt:P31/wdt:P279* (transitive subclass traversal — main timeout cause)
+# REPLACED WITH: wdt:P31 + VALUES listing concrete character QIDs directly.
+#
+# Covers beloved Swedish/global characters known in Sweden:
+#   fictional human, fictional animal, fictional robot, animated character,
+#   comic character, literary character, mascot — all direct P31 targets.
+# ─────────────────────────────────────────────────────────────────────────────
+
 SELECT DISTINCT ?character ?characterLabel ?sitelinks WHERE {
-  # Must have a Swedish Wiki page
+
+  # Anchor: Swedish Wikipedia page (very selective, evaluated first)
   ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
              schema:about ?character .
 
-  ?character wdt:P31/wdt:P279* wd:Q95074 . # fictional character
-  
-  ?character wikibase:sitelinks ?sitelinks.
-  FILTER(?sitelinks > 5)
+  VALUES ?charType {
+    wd:Q95074     # fictional character (generic)
+    wd:Q15632617  # fictional human
+    wd:Q1347376   # fictional animal
+    wd:Q15773317  # animated character
+    wd:Q1114461   # comic book character
+    wd:Q15773347  # literary character
+    wd:Q15773321  # film character
+    wd:Q21070568  # fictional robot
+    wd:Q14073567  # mascot
+  }
+  ?character wdt:P31 ?charType .  # direct only — no P279*
 
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
+  ?character wikibase:sitelinks ?sitelinks .
+  FILTER(?sitelinks > 4)
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en" . }
 }
-ORDER BY DESC(?sitelinks)
-LIMIT 400
+LIMIT 500

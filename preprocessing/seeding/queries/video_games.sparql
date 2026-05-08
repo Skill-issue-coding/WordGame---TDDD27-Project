@@ -4,20 +4,42 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 
+# ── Timeout fix ───────────────────────────────────────────────────────────────
+# REMOVED: wdt:P31/wdt:P279* (transitive subclass traversal — main timeout cause)
+# REPLACED WITH: wdt:P31 wd:Q7889 (video game — direct only).
+#
+# Two UNION branches:
+#   (A) Globally popular games on Swedish Wikipedia (high sitelinks)
+#       — Minecraft, GTA, FIFA, Pokémon, … are huge vector seeds.
+#   (B) Swedish-developed games regardless of sitelinks
+#       — Minecraft (Mojang), Battlefield (DICE), Candy Crush (King),
+#         Goat Simulator (Coffee Stain), Magicka (Arrowhead) …
+#       These are fantastic culturally-relevant Swedish seeds.
+# ─────────────────────────────────────────────────────────────────────────────
+
 SELECT DISTINCT ?game ?gameLabel ?sitelinks WHERE {
-  # 1. Start with Swedish Wikipedia
-  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
-             schema:about ?game .
+  {
+    # (A) Popular games — anchored to Swedish Wikipedia, high sitelinks
+    ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+               schema:about ?game .
 
-  # 2. instance of: video game
-  ?game wdt:P31/wdt:P279* wd:Q7889 .
+    ?game wdt:P31 wd:Q7889 .   # video game — direct only, no P279*
 
-  ?game wikibase:sitelinks ?sitelinks.
-  FILTER(?sitelinks > 10)
+    ?game wikibase:sitelinks ?sitelinks .
+    FILTER(?sitelinks > 8)
+  }
+  UNION
+  {
+    # (B) Swedish-developed games (developer's country P495 = Sweden)
+    ?game wdt:P31 wd:Q7889 .
+    ?game wdt:P495 wd:Q34 .    # country of origin: Sweden
+
+    ?game wikibase:sitelinks ?sitelinks .
+    FILTER(?sitelinks > 1)
+  }
 
   SERVICE wikibase:label {
-    bd:serviceParam wikibase:language "sv".
+    bd:serviceParam wikibase:language "sv,en" .
   }
 }
-ORDER BY DESC(?sitelinks)
 LIMIT 400

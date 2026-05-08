@@ -5,24 +5,37 @@ PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
 
+# ── Timeout guards ────────────────────────────────────────────────────────────
+# Uses wdt:P31 (direct only, no P279* traversal) and is anchored to
+# Swedish Wikipedia pages first — the most selective filter.
+# The sitelinks upper-cap has been removed so mega-famous Swedes (Zlatan,
+# ABBA members, Robyn, Björn Borg …) are included as seeds.
+# ─────────────────────────────────────────────────────────────────────────────
+
 SELECT DISTINCT ?person ?personLabel ?sitelinks ?birthDate WHERE {
-  # 1. Start with Swedish Wikipedia
+
+  # Anchor: must have a Swedish Wikipedia article (very selective)
   ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
              schema:about ?person .
 
-  ?person wdt:P31 wd:Q5 .
-  ?person wdt:P27 wd:Q34 .
+  ?person wdt:P31 wd:Q5 .   # human (direct only — no P279*)
+  ?person wdt:P27 wd:Q34 .  # Swedish citizen
   ?person wdt:P569 ?birthDate .
 
-  ?person wikibase:sitelinks ?sitelinks.
+  ?person wikibase:sitelinks ?sitelinks .
+
+  # Born 1950 or later — captures Björn Borg (1956), ABBA (1946–1950 era),
+  # Robyn (1979), Zlatan (1981), Zara Larsson (1997) etc.
+  # Sitelinks > 5: drops truly obscure stubs while keeping cult figures.
+  # No upper cap: the most famous people have hundreds of sitelinks and
+  # are the BEST seeds for word-vector neighbours.
   FILTER(
-    ?sitelinks > 3 && ?sitelinks < 50 &&
-    ?birthDate >= "1990-01-01T00:00:00Z"^^xsd:dateTime
+    ?sitelinks > 5 &&
+    ?birthDate >= "1950-01-01T00:00:00Z"^^xsd:dateTime
   )
 
   SERVICE wikibase:label {
-    bd:serviceParam wikibase:language "sv".
+    bd:serviceParam wikibase:language "sv,en" .
   }
 }
-ORDER BY DESC(?sitelinks)
-LIMIT 500
+LIMIT 600

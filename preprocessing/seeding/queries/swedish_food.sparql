@@ -4,26 +4,57 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 
+# ── Timeout fix ───────────────────────────────────────────────────────────────
+# REMOVED: wdt:P31/wdt:P279* (transitive subclass traversal — main timeout cause)
+# REPLACED WITH: wdt:P31 + VALUES listing concrete food/drink QIDs.
+#
+# Two complementary patterns run in UNION so each sub-query is small:
+#   (A) General food/drink types on the Swedish Wikipedia — captures global
+#       foods that Swedes know (pizza, sushi, hamburger, …)
+#   (B) Dishes/products explicitly tagged with Swedish cuisine (P361 Q858139)
+#       — catches klassiker like kanelbulle, semla, surströmming, köttbullar
+#       even if they have fewer sitelinks.
+# ─────────────────────────────────────────────────────────────────────────────
+
 SELECT DISTINCT ?food ?foodLabel ?sitelinks WHERE {
-  # Must have a Swedish Wiki page (proves it's known in Sweden)
-  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
-             schema:about ?food .
+  {
+    # (A) Food/drink with Swedish Wikipedia article
+    ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+               schema:about ?food .
 
-  VALUES ?foodType {
-    wd:Q2095       # food
-    wd:Q178359     # drink
-    wd:Q746549     # dish
-    wd:Q213441     # candy
-    wd:Q132710     # pastry/baked good
-    wd:Q28113351   # fast food
+    VALUES ?foodType {
+      wd:Q2095       # food
+      wd:Q40050      # alcoholic drink
+      wd:Q10884      # tea
+      wd:Q8492       # coffee
+      wd:Q8341       # beer
+      wd:Q178359     # beverage
+      wd:Q746549     # dish
+      wd:Q213441     # candy / confectionery
+      wd:Q132710     # pastry / baked good
+      wd:Q28113351   # fast food dish
+      wd:Q1778821    # Swedish cuisine dish  
+      wd:Q19861951   # food product
+    }
+    ?food wdt:P31 ?foodType .   # direct only — no P279*
+
+    ?food wikibase:sitelinks ?sitelinks .
+    FILTER(?sitelinks > 4)
   }
-  ?food wdt:P31/wdt:P279* ?foodType .
+  UNION
+  {
+    # (B) Explicitly part of Swedish cuisine (lower sitelinks OK — still culturally important)
+    ?food wdt:P361 wd:Q858139 .  # part of: Swedish cuisine
 
-  ?food wikibase:sitelinks ?sitelinks.
-  FILTER(?sitelinks > 5)
+    VALUES ?foodType {
+      wd:Q2095 wd:Q746549 wd:Q132710 wd:Q213441 wd:Q19861951
+    }
+    ?food wdt:P31 ?foodType .
 
-  # Fallback to English if Swedish label is missing
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
+    ?food wikibase:sitelinks ?sitelinks .
+    FILTER(?sitelinks > 1)
+  }
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en" . }
 }
-ORDER BY DESC(?sitelinks)
 LIMIT 400

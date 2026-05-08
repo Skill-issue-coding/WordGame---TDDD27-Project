@@ -4,29 +4,51 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 
+# ── Timeout fix ───────────────────────────────────────────────────────────────
+# REMOVED: wdt:P106/wdt:P279* (transitive occupation walk — timeout cause)
+# REPLACED WITH: wdt:P106 + VALUES listing concrete music-occupation QIDs.
+#
+# Swedish music is one of the most fruitful seed categories:
+#   ABBA, Robyn, Avicii, Swedish House Mafia, Björn Again, Roxette …
+# A wide occupation VALUES list ensures we catch DJs, producers, rappers
+# (Håkan Hellström, Silvana Imam) and classical composers alike.
+# ─────────────────────────────────────────────────────────────────────────────
+
 SELECT DISTINCT ?artist ?artistLabel ?sitelinks WHERE {
-  # 1. Start with Swedish Wikipedia
+
+  # Anchor: Swedish Wikipedia page (very selective)
   ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
              schema:about ?artist .
 
-  # 2. Music group OR human musician check
   {
-    ?artist wdt:P31 wd:Q215380 .
-    ?artist wdt:P17 wd:Q34 .
+    # Branch A: Swedish music group (P31 = music group, P17 = Sweden)
+    ?artist wdt:P31 wd:Q215380 .  # music group — direct, no P279*
+    ?artist wdt:P17 wd:Q34 .      # country: Sweden
   }
   UNION
   {
-    ?artist wdt:P31 wd:Q5 .
-    ?artist wdt:P27 wd:Q34 .
-    ?artist wdt:P106/wdt:P279* wd:Q639669 .  # occupation: musician
+    # Branch B: Individual Swedish musician — P106 direct + VALUES (no P279*)
+    ?artist wdt:P31 wd:Q5 .   # human
+    ?artist wdt:P27 wd:Q34 .  # Swedish citizen
+
+    VALUES ?occupation {
+      wd:Q639669   # musician
+      wd:Q36834    # composer
+      wd:Q177220   # singer
+      wd:Q753110   # songwriter
+      wd:Q486748   # rapper
+      wd:Q855091   # DJ
+      wd:Q2865819  # record producer
+      wd:Q488205   # singer-songwriter
+    }
+    ?artist wdt:P106 ?occupation .  # direct only — no P279*
   }
 
-  ?artist wikibase:sitelinks ?sitelinks.
-  FILTER(?sitelinks > 5)
+  ?artist wikibase:sitelinks ?sitelinks .
+  FILTER(?sitelinks > 3)
 
   SERVICE wikibase:label {
-    bd:serviceParam wikibase:language "sv".
+    bd:serviceParam wikibase:language "sv,en" .
   }
 }
-ORDER BY DESC(?sitelinks)
 LIMIT 500

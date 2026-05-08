@@ -4,11 +4,22 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 
+# ── Already safe (no P279* traversal) ────────────────────────────────────────
+# All P31 lookups use VALUES → direct instances only → fast.
+#
+# Additions vs original:
+#   - tech/software companies (Q2500638) — Spotify, Klarna, King, iZettle…
+#   - media company (Q10870555)         — SVT, TV4, Aftonbladet …
+#   - airline (Q46970)                  — SAS, Norwegian
+#   - Added sitelinks > 2 filter to drop purely stub articles.
+# ─────────────────────────────────────────────────────────────────────────────
+
 SELECT DISTINCT ?company ?companyLabel ?sitelinks WHERE {
+
+  # Anchor: Swedish Wikipedia page
   ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
              schema:about ?company .
 
-  # Direct instances only (wdt:P31) to prevent timeouts
   VALUES ?companyType {
     wd:Q270791    # supermarket chain
     wd:Q180792    # department store
@@ -20,12 +31,18 @@ SELECT DISTINCT ?company ?companyLabel ?sitelinks WHERE {
     wd:Q6881511   # enterprise
     wd:Q783794    # company
     wd:Q891723    # public company
+    wd:Q2500638   # software company / tech company
+    wd:Q10870555  # media company
+    wd:Q46970     # airline
+    wd:Q740752    # insurance company
+    wd:Q17149090  # brand
   }
-  ?company wdt:P31 ?companyType .
-  ?company wdt:P17 wd:Q34 . 
+  ?company wdt:P31 ?companyType .   # direct only — no P279*
+  ?company wdt:P17 wd:Q34 .         # country: Sweden
 
-  ?company wikibase:sitelinks ?sitelinks.
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
+  ?company wikibase:sitelinks ?sitelinks .
+  FILTER(?sitelinks > 2)
+
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en" . }
 }
-ORDER BY DESC(?sitelinks)
 LIMIT 400
