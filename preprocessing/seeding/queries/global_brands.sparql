@@ -4,37 +4,19 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 
-# ── Already safe (no P279* traversal) ────────────────────────────────────────
-# All P31 lookups use VALUES → direct instances only → fast.
-#
-# Additions vs original:
-#   - franchise (Q196922)         — McDonald's, Starbucks, IKEA …
-#   - sports brand (Q4830453)     — Nike, Adidas, Puma …
-#   - clothing brand (Q245081)    — H&M, Zara, Uniqlo (very recognisable)
-# Raised sitelinks threshold to > 40 (global brands should be universally known).
-# ─────────────────────────────────────────────────────────────────────────────
-
 SELECT DISTINCT ?brand ?brandLabel ?sitelinks WHERE {
-
-  # Anchor: Swedish Wikipedia page (proves it's known in Sweden)
-  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
-             schema:about ?brand .
-
   VALUES ?brandType {
-    wd:Q4830453   # business enterprise
-    wd:Q431289    # brand
-    wd:Q783794    # company
-    wd:Q6881511   # enterprise
-    wd:Q891723    # public company
-    wd:Q196922    # franchise
-    wd:Q245081    # clothing brand
-    wd:Q17149090  # brand (alt)
+    wd:Q4830453 wd:Q431289 wd:Q783794 wd:Q6881511 wd:Q891723
   }
-  ?brand wdt:P31 ?brandType .   # direct only — no P279*
+  ?brand wdt:P31 ?brandType .
+
+  ?svArticle schema:about ?brand ;
+             schema:isPartOf <https://sv.wikipedia.org/> .
 
   ?brand wikibase:sitelinks ?sitelinks .
-  FILTER(?sitelinks > 40)
-
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en" . }
+  FILTER(?sitelinks > 30)
+  
+  SERVICE wikibase:label { 
+    bd:serviceParam wikibase:language "sv,en". 
+  }
 }
-LIMIT 500

@@ -3,14 +3,17 @@ import os
 import random
 import socket
 import time
+import json
+import logging
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 from urllib.error import HTTPError, URLError
-import json
 
 from SPARQLWrapper import JSON, SPARQLWrapper
 
+# 1. Grab the master logger from main.py
+log = logging.getLogger(__name__)
 
 @dataclass(frozen=True)
 class Query:
@@ -40,7 +43,6 @@ class Query:
         time.sleep(base_seconds + random.random() * 0.5)
 
     def run_query(self) -> Dict[str, object]:
-        # ... (Keep your existing run_query logic exactly the same) ...
         query_text = self._load_query()
         for attempt in range(self.MAX_RETRIES + 1):
             sparql = SPARQLWrapper(self.ENDPOINT)
@@ -56,20 +58,21 @@ class Query:
             self._sleep_with_jitter(self.BASE_DELAY_SECONDS)
 
             try:
-                # REMOVE this line:
-                # return sparql.query().convert()
-                
-                # ADD these lines instead:
                 result = sparql.query()
                 raw_json_str = result.response.read().decode("utf-8")
                 return json.loads(raw_json_str, strict=False)
 
             except HTTPError as exc:
                 if exc.code not in self.RETRY_STATUS_CODES or attempt >= self.MAX_RETRIES:
+                    log.error(f"[{self.name}] HTTP Error {exc.code} on attempt {attempt + 1}. Aborting.")
                     raise
-            except (URLError, socket.timeout):
+                log.warning(f"[{self.name}] HTTP Error {exc.code}. Retrying... ({attempt + 1}/{self.MAX_RETRIES})")
+                
+            except (URLError, socket.timeout, json.JSONDecodeError) as e:
                 if attempt >= self.MAX_RETRIES:
+                    log.error(f"[{self.name}] Network/Decode Error on attempt {attempt + 1}. Aborting. Details: {e}")
                     raise
+                log.warning(f"[{self.name}] Network/Decode Error. Retrying... ({attempt + 1}/{self.MAX_RETRIES})")
 
             backoff_seconds = self.BASE_DELAY_SECONDS * (self.BACKOFF_BASE ** attempt)
             self._sleep_with_jitter(backoff_seconds)
@@ -77,7 +80,6 @@ class Query:
         raise RuntimeError("Failed to execute query after retries.")
 
     def parse_results(self, result: Dict[str, object]) -> Tuple[List[str], List[Dict[str, str]]]:
-        """Parses Wikidata JSON response into headers and dictionary rows."""
         head = result.get("head", {})
         headers = list(head.get("vars", []))
         bindings = result.get("results", {}).get("bindings", [])
@@ -93,9 +95,14 @@ class Query:
         return headers, rows
 
     def run_and_save(self, output_dir: Path) -> List[Dict[str, str]]:
-        """Executes the query, saves it to CSV, and returns the parsed rows."""
         raw_result = self.run_query()
         headers, rows = self.parse_results(raw_result)
+
+        # Offload the sorting to Python to prevent Wikidata 502/500 crashes
+        if "sitelinks" in headers:
+            rows.sort(key=lambda x: int(x.get('sitelinks', 0)), reverse=True)
+            # Keep top 500
+            rows = rows[:500]
 
         output_path = output_dir / self.output_filepath
         output_path.parent.mkdir(parents=True, exist_ok=True)

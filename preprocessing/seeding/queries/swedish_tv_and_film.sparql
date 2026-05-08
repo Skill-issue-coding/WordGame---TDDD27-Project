@@ -4,40 +4,24 @@ PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
 PREFIX schema: <http://schema.org/>
 
-# ── Timeout fix ───────────────────────────────────────────────────────────────
-# REMOVED: wdt:P31/wdt:P279* (transitive subclass traversal — main timeout cause)
-# REPLACED WITH: wdt:P31 + VALUES listing concrete media QIDs directly.
-#
-# Added more specific Swedish production types for richer seeds:
-#   animated film (Q202866), documentary film (Q93204),
-#   miniseries (Q1259759), web series (Q526877)
-# Kept P495=Q34 (country of origin: Sweden) to stay focused on Swedish content.
-# ─────────────────────────────────────────────────────────────────────────────
-
 SELECT DISTINCT ?work ?workLabel ?sitelinks WHERE {
-
-  # Anchor: Swedish Wikipedia page
   ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
              schema:about ?work .
 
   VALUES ?workType {
     wd:Q11424      # film
-    wd:Q202866     # animated film
-    wd:Q93204      # documentary film
     wd:Q5398426    # television series
     wd:Q15416      # television program
-    wd:Q1259759    # miniseries
-    wd:Q526877     # web series
-    wd:Q581714     # TV film
   }
-  ?work wdt:P31 ?workType .   # direct only — no P279*
-
+  ?work wdt:P31/wdt:P279* ?workType .
+  
   # Must be a Swedish production
   ?work wdt:P495 wd:Q34 .
 
-  ?work wikibase:sitelinks ?sitelinks .
-  FILTER(?sitelinks > 1)
+  ?work wikibase:sitelinks ?sitelinks.
+  FILTER(?sitelinks > 1) 
 
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en" . }
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en". }
 }
+# ORDER BY DESC(?sitelinks)
 LIMIT 500

@@ -4,13 +4,8 @@ from typing import Dict, Iterable, List
 from termcolor import colored
 from .query import Query
 
-LOG_FILE = Path(__file__).resolve().parent / "seeding_pipeline.log"
-logging.basicConfig(
-    filename=str(LOG_FILE),
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s",
-    datefmt="%Y-%m-%d %H:%M:%S"
-)
+# 1. Grab the master logger from main.py
+log = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent / "queries"
 
@@ -46,34 +41,36 @@ def run_all_and_save(queries: Iterable[Query], output_dir: Path) -> Dict[str, Li
     per_query_rows: Dict[str, List[Dict[str, str]]] = {}
     failed_queries: List[str] = []
     
-    logging.info("=== Starting New Seeding Batch ===")
+    log.info("=== Starting New Seeding Batch ===")
     
     for query in queries:
-        print(f"Executing: {query.name}...")
-        logging.info(f"Executing query: {query.name}")
+        # Terminal UI (no newline yet)
+        print(f"  executing {query.name}... \n", end="", flush=True)
+        # File log
+        log.info(f"Executing query: {query.name}")
         
         try:
             rows = query.run_and_save(output_dir)
             per_query_rows[query.name] = rows
             
+            # Terminal UI completes the line
+            print("  success \n")
+            # File log gets the details
             success_msg = f"Success: {query.name} ({len(rows)} rows saved)"
-            print(success_msg)
-            logging.info(success_msg)
+            log.info(success_msg)
             
         except Exception as exc:
+            # Terminal UI completes the line
+            print("  fail, read log file")
+            # File log gets the stack trace/error
             error_msg = f"FAILED: {query.name} - {str(exc)}"
-            print(error_msg)
-            logging.error(error_msg)
+            log.error(error_msg)
             failed_queries.append(query.name)
             
-    print("\n--- SEEDING SUMMARY ---")
+    log.info("--- SEEDING SUMMARY ---")
     if failed_queries:
-        print(f"Completed with {len(failed_queries)} failures.")
-        print(f"Failed queries: {', '.join(failed_queries)}")
-        print(f"Check {LOG_FILE.name} for details.")
-        logging.warning(f"Batch completed with failures: {failed_queries}")
+        log.warning(f"Completed with {len(failed_queries)} failures: {', '.join(failed_queries)}")
     else:
-        print("All queries executed successfully!")
-        logging.info("Batch completed successfully with no errors.")
+        log.info("All queries executed successfully!")
         
     return per_query_rows

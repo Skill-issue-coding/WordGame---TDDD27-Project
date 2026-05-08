@@ -62,15 +62,18 @@ CATEGORY_MAPPING: Dict[str, Tuple[str, str]] = {
  
 
 # ── Logging ───────────────────────────────────────────────────────────────────
+file_handler = logging.FileHandler(BASE_DIR / "pipeline.log", encoding="utf-8")
+file_handler.setLevel(logging.INFO)
+
+# Terminal only gets warnings and errors
+console_handler = logging.StreamHandler(sys.stdout)
+console_handler.setLevel(logging.WARNING)
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
-    handlers=[
-        logging.FileHandler(BASE_DIR / "pipeline.log"),
-        logging.StreamHandler(sys.stdout),
-    ],
+    handlers=[file_handler, console_handler],
 )
-log = logging.getLogger(__name__)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Helpers
@@ -108,16 +111,16 @@ def load_fasttext(path: Path):
     try:
         import fasttext
     except ImportError:
-        log.error("fasttext not installed. Run: pip install fasttext")
+        logging.error("fasttext not installed. Run: pip install fasttext")
         sys.exit(1)
  
     if not path.exists():
-        log.error(f"fastText model not found: {path}")
+        logging.error(f"fastText model not found: {path}")
         sys.exit(1)
  
-    log.info(f"Loading fastText model from {path} …")
+    logging.info(f"Loading fastText model from {path} …")
     model = fasttext.load_model(str(path))
-    log.info("fastText model loaded.")
+    logging.info("fastText model loaded.")
     return model
 
 def load_spacy(model_name: str):
@@ -125,20 +128,20 @@ def load_spacy(model_name: str):
     try:
         import spacy
     except ImportError:
-        log.error("spaCy not installed. Run: pip install spacy")
+        logging.error("spaCy not installed. Run: pip install spacy")
         sys.exit(1)
  
-    log.info(f"Loading spaCy model '{model_name}' …")
+    logging.info(f"Loading spaCy model '{model_name}' …")
     try:
         nlp = spacy.load(model_name, disable=["parser", "ner", "senter"])
     except OSError:
-        log.error(
+        logging.error(
             f"spaCy model '{model_name}' not found.\n"
             f"Run: python -m spacy download {model_name}"
         )
         sys.exit(1)
  
-    log.info("spaCy loaded.")
+    logging.info("spaCy loaded.")
     return nlp
 
 def load_korp_freq(korp_dir: Path) -> Optional[Dict[str, int]]:
@@ -155,14 +158,14 @@ def load_korp_freq(korp_dir: Path) -> Optional[Dict[str, int]]:
     which gracefully disables the frequency filter downstream.
     """
     if not korp_dir.exists():
-        log.warning(
+        logging.warning(
             f"Korp directory not found at {korp_dir} — frequency filter disabled."
         )
         return None
  
     csv_files = sorted(korp_dir.glob("*.csv"))
     if not csv_files:
-        log.warning(f"No CSV files found in {korp_dir} — frequency filter disabled.")
+        logging.warning(f"No CSV files found in {korp_dir} — frequency filter disabled.")
         return None
  
     freq: Dict[str, int] = defaultdict(int)
@@ -176,14 +179,14 @@ def load_korp_freq(korp_dir: Path) -> Optional[Dict[str, int]]:
  
                 # Normalise header names: strip whitespace and BOM
                 if reader.fieldnames is None:
-                    log.warning(f"  {csv_path.name}: could not read headers, skipping.")
+                    logging.warning(f"  {csv_path.name}: could not read headers, skipping.")
                     continue
  
                 headers = [h.lstrip("\ufeff").strip() for h in reader.fieldnames]
  
                 # Validate that the two columns we need are present
                 if "word" not in headers or "Totalt" not in headers:
-                    log.warning(
+                    logging.warning(
                         f"  {csv_path.name}: missing 'word' or 'Totalt' column "
                         f"(found: {headers[:6]}…), skipping."
                     )
@@ -206,17 +209,17 @@ def load_korp_freq(korp_dir: Path) -> Optional[Dict[str, int]]:
                     file_rows += 1
  
         except Exception as exc:
-            log.warning(f"  {csv_path.name}: error reading file — {exc}")
+            logging.warning(f"  {csv_path.name}: error reading file — {exc}")
             continue
  
-        log.info(f"  {csv_path.name}: {file_rows:,} rows merged.")
+        logging.info(f"  {csv_path.name}: {file_rows:,} rows merged.")
         total_rows += file_rows
  
     if not freq:
-        log.warning("Korp: no frequency data loaded — filter disabled.")
+        logging.warning("Korp: no frequency data loaded — filter disabled.")
         return None
  
-    log.info(
+    logging.info(
         f"Korp complete — {len(freq):,} unique words, "
         f"{total_rows:,} total rows from {len(csv_files)} files."
     )
@@ -246,7 +249,7 @@ def _neighbours_for_seed(model,seed_label: str,k: int = NEIGHBOURS_PER_SEED) -> 
             raw = model.get_nearest_neighbors(tokens[0], k=k)
             return [(sim, w) for sim, w in raw]
         except Exception as exc:
-            log.debug(f"  fastText error for '{tokens[0]}': {exc}")
+            logging.debug(f"  fastText error for '{tokens[0]}': {exc}")
             return []
  
     # Multi-word: avg-pool then re-rank
@@ -274,16 +277,16 @@ def stage2_vector_lookup(seed_data: Dict[str, List[Dict[str, str]]],model) -> Di
     Returns:
         { output_csv: [(word, category, similarity, raw_300d_vector), …] }
     """
-    log.info("=" * 60)
-    log.info("Stage 2: Vector Lookup")
-    log.info("=" * 60)
+    logging.info("=" * 60)
+    logging.info("Stage 2: Vector Lookup")
+    logging.info("=" * 60)
  
     # Group seed labels by output CSV
     per_output: Dict[str, List[Tuple[str, str]]] = defaultdict(list)
     for query_name, rows in seed_data.items():
         mapping = CATEGORY_MAPPING.get(query_name)
         if not mapping:
-            log.warning(f"  No CATEGORY_MAPPING entry for query '{query_name}', skipping.")
+            logging.warning(f"  No CATEGORY_MAPPING entry for query '{query_name}', skipping.")
             continue
         category, output_csv = mapping
         for row in rows:
@@ -294,7 +297,7 @@ def stage2_vector_lookup(seed_data: Dict[str, List[Dict[str, str]]],model) -> Di
     results: Dict[str, List[Tuple[str, str, float, np.ndarray]]] = defaultdict(list)
  
     for output_csv, seeds in per_output.items():
-        log.info(f"  {output_csv}: processing {len(seeds)} seeds …")
+        logging.info(f"  {output_csv}: processing {len(seeds)} seeds …")
         # Track seen words per file to deduplicate across seeds
         seen: Dict[str, float] = {}  # word → best similarity
  
@@ -318,10 +321,10 @@ def stage2_vector_lookup(seed_data: Dict[str, List[Dict[str, str]]],model) -> Di
             cat = seeds[0][1] if seeds else "unknown"
             results[output_csv].append((word, cat, sim, vec))
  
-        log.info(f"    → {len(results[output_csv]):,} unique candidate words")
+        logging.info(f"    → {len(results[output_csv]):,} unique candidate words")
  
     total = sum(len(v) for v in results.values())
-    log.info(f"Stage 2 complete — {total:,} total candidate words across all files.")
+    logging.info(f"Stage 2 complete — {total:,} total candidate words across all files.")
     return dict(results)
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -359,9 +362,9 @@ def stage3_validity_filter(
     korp_freq: Optional[Dict[str, int]],
 ) -> Dict[str, List[Tuple[str, str, float, np.ndarray]]]:
     """Stage 3: drop words that fail POS, stopword, or Korp-frequency filters."""
-    log.info("=" * 60)
-    log.info("Stage 3: Validity Filter")
-    log.info("=" * 60)
+    logging.info("=" * 60)
+    logging.info("Stage 3: Validity Filter")
+    logging.info("=" * 60)
  
     filtered: Dict[str, List[Tuple[str, str, float, np.ndarray]]] = {}
  
@@ -372,12 +375,12 @@ def stage3_validity_filter(
             if _is_valid(word, nlp, korp_freq)
         ]
         filtered[output_csv] = valid
-        log.info(
+        logging.info(
             f"  {output_csv}: {len(entries):,} in → {len(valid):,} valid "
             f"({len(entries) - len(valid):,} dropped)"
         )
  
-    log.info("Stage 3 complete.")
+    logging.info("Stage 3 complete.")
     return filtered
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -393,21 +396,21 @@ def stage4_reduce_dimensions(validated: Dict[str, List[Tuple[str, str, float, np
     geography, etc.) rather than all words combined.
     """
  
-    log.info("=" * 60)
-    log.info(f"Stage 4: Dimension Reduction (300 → {PCA_DIMS})")
-    log.info("=" * 60)
+    logging.info("=" * 60)
+    logging.info(f"Stage 4: Dimension Reduction (300 → {PCA_DIMS})")
+    logging.info("=" * 60)
  
     reduced: Dict[str, List[Tuple[str, str, np.ndarray]]] = {}
  
     for output_csv, entries in validated.items():
         if not entries:
-            log.warning(f"  {output_csv}: 0 entries — skipping PCA.")
+            logging.warning(f"  {output_csv}: 0 entries — skipping PCA.")
             reduced[output_csv] = []
             continue
  
         n_components = min(PCA_DIMS, len(entries), 300)
         if n_components < PCA_DIMS:
-            log.warning(
+            logging.warning(
                 f"  {output_csv}: only {len(entries)} words — "
                 f"reducing to {n_components} dims instead of {PCA_DIMS}."
             )
@@ -417,7 +420,7 @@ def stage4_reduce_dimensions(validated: Dict[str, List[Tuple[str, str, float, np
         reduced_matrix = pca.fit_transform(matrix)
  
         variance_retained = pca.explained_variance_ratio_.sum()
-        log.info(
+        logging.info(
             f"  {output_csv}: {len(entries):,} words, "
             f"variance retained: {variance_retained:.1%}"
         )
@@ -432,7 +435,7 @@ def stage4_reduce_dimensions(validated: Dict[str, List[Tuple[str, str, float, np
             for i, (word, cat, _sim, _vec) in enumerate(entries)
         ]
  
-    log.info("Stage 4 complete.")
+    logging.info("Stage 4 complete.")
     return reduced
 
 # ══════════════════════════════════════════════════════════════════════════════
@@ -441,9 +444,9 @@ def stage4_reduce_dimensions(validated: Dict[str, List[Tuple[str, str, float, np
  
 def stage5_export_csv(reduced: Dict[str, List[Tuple[str, str, np.ndarray]]], output_dir: Path) -> None:
     """Stage 5: write [word, category, v0 … v{PCA_DIMS-1}] CSVs."""
-    log.info("=" * 60)
-    log.info(f"Stage 5: CSV Export → {output_dir}")
-    log.info("=" * 60)
+    logging.info("=" * 60)
+    logging.info(f"Stage 5: CSV Export → {output_dir}")
+    logging.info("=" * 60)
  
     output_dir.mkdir(parents=True, exist_ok=True)
     dim_headers = [f"v{i}" for i in range(PCA_DIMS)]
@@ -451,7 +454,7 @@ def stage5_export_csv(reduced: Dict[str, List[Tuple[str, str, np.ndarray]]], out
  
     for output_csv, entries in reduced.items():
         if not entries:
-            log.warning(f"  Skipping {output_csv} — no entries.")
+            logging.warning(f"  Skipping {output_csv} — no entries.")
             continue
  
         path = output_dir / output_csv
@@ -465,9 +468,9 @@ def stage5_export_csv(reduced: Dict[str, List[Tuple[str, str, np.ndarray]]], out
                     row[f"v{i}"] = f"{float(vec[i]):.6f}" if i < len(vec) else "0.000000"
                 writer.writerow(row)
  
-        log.info(f"  Wrote {len(entries):,} rows → {path}")
+        logging.info(f"  Wrote {len(entries):,} rows → {path}")
  
-    log.info("Stage 5 complete.")
+    logging.info("Stage 5 complete.")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # Pipeline entry point
@@ -478,14 +481,16 @@ def pipeline() -> None:
     seeding_output_dir.mkdir(parents=True, exist_ok=True)
  
     # ── Stage 1: SPARQL Seeding ──────────────────────────────────────────────
-    log.info("=" * 60)
-    log.info("Stage 1: SPARQL Seeding")
-    log.info("=" * 60)
+    print("starting stage 1")                   
+    logging.info("=" * 60)
+    logging.info("Stage 1: SPARQL Seeding")
+    logging.info("=" * 60)
     seed_data = query_runner.run_all_and_save(
         queries=query_runner.QUERIES,
         output_dir=seeding_output_dir,
     )
-    log.info("Stage 1 complete.\n")
+    print("stage 1 complete\n")                 
+    logging.info("Stage 1 complete.\n")
  
     # ── Load shared resources ────────────────────────────────────────────────
     model    = load_fasttext(FASTTEXT_MODEL_PATH)
@@ -493,14 +498,22 @@ def pipeline() -> None:
     korp     = load_korp_freq(KORP_DIR)
  
     # ── Stages 2–5 ───────────────────────────────────────────────────────────
+    print("starting stage 2")             
     candidates  = stage2_vector_lookup(seed_data, model)
+    
+    print("starting stage 3")             
     validated   = stage3_validity_filter(candidates, nlp, korp)
+    
+    print("starting stage 4")          
     reduced     = stage4_reduce_dimensions(validated)
+    
+    print("starting stage 5")                
     stage5_export_csv(reduced, OUTPUT_DIR)
  
-    log.info("")
-    log.info("Pipeline complete! ✓")
-    log.info(f"Output files in: {OUTPUT_DIR}")
+    print(f"\nPipeline complete! ✓ Output files in: {OUTPUT_DIR}") 
+    logging.info("")
+    logging.info("Pipeline complete! ✓")
+    logging.info(f"Output files in: {OUTPUT_DIR}")
  
  
 if __name__ == "__main__":

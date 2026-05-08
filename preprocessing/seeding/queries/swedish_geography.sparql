@@ -2,43 +2,20 @@ PREFIX wd: <http://www.wikidata.org/entity/>
 PREFIX wdt: <http://www.wikidata.org/prop/direct/>
 PREFIX wikibase: <http://wikiba.se/ontology#>
 PREFIX bd: <http://www.bigdata.com/rdf#>
-PREFIX schema: <http://schema.org/>
-
-# ── Timeout fix ───────────────────────────────────────────────────────────────
-# REMOVED: wdt:P31/wdt:P279* (transitive subclass traversal — main timeout cause)
-# REPLACED WITH: wdt:P31 + VALUES listing concrete Swedish place QIDs directly.
-#
-# Added types for richer Swedish cultural geography:
-#   municipality (Q127448), county (Q200547), historical province (Q192211),
-#   national park (Q46169), river (Q4022), archipelago (Q188509)
-# Anchored to Swedish Wikipedia and P17=Q34 (country: Sweden) for safety.
-# ─────────────────────────────────────────────────────────────────────────────
 
 SELECT DISTINCT ?place ?placeLabel ?sitelinks WHERE {
-
-  # Anchor: Swedish Wikipedia page
-  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
-             schema:about ?place .
-
   VALUES ?placeType {
     wd:Q515        # city
-    wd:Q127448     # municipality of Sweden (Swedish: kommun)
-    wd:Q200547     # county of Sweden (Swedish: län)
-    wd:Q192211     # historical province (landskap)
+    wd:Q192211     # province of Sweden (Landskap)
     wd:Q23397      # lake
     wd:Q23442      # island
     wd:Q8502       # mountain
-    wd:Q4022       # river
-    wd:Q188509     # archipelago
-    wd:Q46169      # national park
-    wd:Q1970741    # fjord
-    wd:Q131681     # bay (vik)
   }
-  ?place wdt:P31 ?placeType .   # direct only — no P279*
-  ?place wdt:P17 wd:Q34 .       # country: Sweden
+  ?place wdt:P31/wdt:P279* ?placeType .
+  ?place wdt:P17 wd:Q34 .
 
-  ?place wikibase:sitelinks ?sitelinks .
-
-  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv,en" . }
+  ?place wikibase:sitelinks ?sitelinks.
+  SERVICE wikibase:label { bd:serviceParam wikibase:language "sv". }
 }
+# ORDER BY DESC(?sitelinks)
 LIMIT 500
