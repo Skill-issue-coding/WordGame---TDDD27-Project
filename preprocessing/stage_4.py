@@ -4,6 +4,36 @@ import numpy as np
 from sklearn.decomposition import PCA
 from shared import INTERMEDIATE_DIR, PCA_DIMS
 
+"""
+    MENTAL NOTE:
+
+    See if its possible to move parts of this to the GPU.
+
+    CuPy -> pip install cupy-cuda11x
+
+    ```
+    from cuml import PCA  # CuML is a drop-in replacement!
+    import cupy as cp
+
+    # ... inside main() ...
+
+    # Move the entire matrix to GPU
+    matrix_gpu = cp.array(all_vectors, dtype=cp.float32)
+
+    # Fit PCA on the GPU
+    n_components = min(PCA_DIMS, len(matrix_gpu), 300)
+    pca = PCA(n_components=n_components, random_state=42)
+    pca.fit(matrix_gpu)
+
+    # ... inside your loop ...
+    cat_matrix_gpu = cp.array([vec for _, _, _, vec in entries], dtype=cp.float32)
+
+    # Transform on the GPU and pull back to CPU
+    reduced_matrix_gpu = pca.transform(cat_matrix_gpu)
+    reduced_matrix = reduced_matrix_gpu.get() # .get() moves it back to numpy array
+    ```
+"""
+
 def main():
     print("starting stage 4")
     logging.info("=" * 60)

@@ -1,4 +1,3 @@
-# shared.py
 import csv
 import logging
 import re
@@ -7,6 +6,20 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, Optional
 from dotenv import load_dotenv
+
+"""
+    MENTAL NOTE:
+
+    Move the spacy model to the GPU -> pip install cupy-cuda11x spacy[cuda]
+    ```python
+    import spacy
+    
+    def load_spacy():
+        # Tell spaCy to allocate tensors on the GPU
+        spacy.prefer_gpu() 
+        return spacy.load(SPACY_MODEL, disable=["parser", "ner"]) # Disable unused pipes for extra speed
+    ```
+"""
 
 BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=BASE_DIR / ".env.local")
@@ -23,7 +36,6 @@ NEIGHBOURS_PER_SEED = 70
 TOP_N_PER_SEED      = 50
 MIN_WORD_LEN        = 3
 
-# NEW: Dynamic Korp Frequencies
 DEFAULT_KORP_FREQ = 300 # High threshold for general words (verbs, adjectives, standard nouns)
 CATEGORY_KORP_FREQ = {
     "character": 5,     # Keep low for specific names
@@ -47,6 +59,7 @@ CATEGORY_MAPPING = {
     "swedish_tv_and_film": ("media",      "media_vectors.csv"),
     "video_games":         ("game",       "games_vectors.csv"),
     "swedish_culture":     ("general",    "culture_vectors.csv"), 
+    "maktbarometern":      ("celebrity",  "celebrities_vectors.csv"),
 }
 
 # ── Logging Setup (Terminal clean, File detailed) ─────────────────────────────
@@ -125,3 +138,41 @@ def load_korp_freq() -> Optional[Dict[str, int]]:
             pickle.dump(result, f)
             
     return result
+
+def load_kelly() -> set:
+    """Parses kelly.xml to build a strict Swedish dictionary lookup, with caching."""
+    cache_path = INTERMEDIATE_DIR / "kelly_cache.pkl"
+    if cache_path.exists():
+        import pickle
+        with open(cache_path, "rb") as f:
+            return pickle.load(f)
+
+    import xml.etree.ElementTree as ET
+    import logging
+    
+    # Assumes kelly.xml is in the same directory as shared.py
+    kelly_path = BASE_DIR / "kelly.xml"
+    words = set()
+    
+    if not kelly_path.exists():
+        logging.warning(f"kelly.xml not found at {kelly_path}! Strict filtering will be disabled.")
+        return words
+
+    try:
+        tree = ET.parse(kelly_path)
+        # Extract the 'val' attribute from every <feat att="writtenForm" val="..."/> tag
+        for feat in tree.findall(".//feat[@att='writtenForm']"):
+            val = feat.attrib.get("val")
+            if val:
+                words.add(val.lower())
+                
+        if words:
+            INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
+            import pickle
+            with open(cache_path, "wb") as f:
+                pickle.dump(words, f)
+                
+    except Exception as e:
+        logging.error(f"Failed to parse kelly.xml: {e}")
+
+    return words

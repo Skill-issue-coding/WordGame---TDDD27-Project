@@ -66,10 +66,10 @@ def main():
     logging.info("\nStage 1: SPARQL Seeding")
     logging.info("=" * 60)
     
-    # query_runner.run_all_and_save(
-    #     queries=query_runner.QUERIES,
-    #     output_dir=seeding_output_dir,
-    # )
+    query_runner.run_all_and_save(
+        queries=query_runner.QUERIES,
+        output_dir=seeding_output_dir,
+    )
 
     print("\nProcessing Maktbarometern data...")
     process_maktbarometern()
