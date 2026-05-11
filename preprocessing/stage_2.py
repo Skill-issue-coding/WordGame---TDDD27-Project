@@ -95,17 +95,26 @@ def main():
             
             candidates = set()
             for t in tokens:
-                try: candidates.update(w for _, w in model.get_nearest_neighbors(t, k=NEIGHBOURS_PER_SEED))
-                except Exception: pass
+                try: 
+                    # Gensim's most_similar returns a list of (word, similarity) tuples
+                    neighbors = model.wv.most_similar(positive=[t], topn=NEIGHBOURS_PER_SEED)
+                    candidates.update(w for w, _ in neighbors)
+                except KeyError: 
+                    pass # Token not in vocabulary
                 
             candidates_list = list(candidates)
             if not candidates_list:
                 continue
                 
-            avg_vec = np.mean([model.get_word_vector(t) for t in tokens], axis=0)
-            
+            # Gensim accesses vectors using model.wv[word]
+            valid_tokens = [t for t in tokens if t in model.wv]
+            if not valid_tokens:
+                continue
+                
+            avg_vec = np.mean([model.wv[t] for t in valid_tokens], axis=0)
+
             # --- START OF VECTORIZED MATH ---
-            cand_matrix = np.array([model.get_word_vector(w) for w in candidates_list])
+            cand_matrix = np.array([model.wv[w] for w in candidates_list])
 
             cand_norms = np.linalg.norm(cand_matrix, axis=1, keepdims=True)
             cand_norms[cand_norms == 0] = 1 # Prevent division by zero
@@ -133,7 +142,8 @@ def main():
 
         for word, sim in seen.items():
             cat = seeds[0][1] if seeds else "unknown"
-            results[output_csv].append((word, cat, sim, model.get_word_vector(word)))
+            # Append the 300-dimension vector using Gensim's API
+            results[output_csv].append((word, cat, sim, model.wv[word]))
 
     # 3. Save to disk for Stage 3
     print("Saving intermediate candidate vectors to disk...")

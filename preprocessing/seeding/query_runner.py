@@ -3,8 +3,8 @@ from pathlib import Path
 from typing import Dict, Iterable, List
 from termcolor import colored
 from .query import Query
+import time
 
-# 1. Grab the master logger from main.py
 log = logging.getLogger(__name__)
 
 BASE_DIR = Path(__file__).resolve().parent / "queries"
@@ -43,21 +43,24 @@ def run_all_and_save(queries: Iterable[Query], output_dir: Path) -> Dict[str, Li
     
     log.info("=== Starting New Seeding Batch ===")
     
-    for query in queries:
-        # Terminal UI (no newline yet)
+    for i, query in enumerate(queries):
         print(f"  executing {query.name}... \n", end="", flush=True)
-        # File log
         log.info(f"Executing query: {query.name}")
         
         try:
             rows = query.run_and_save(output_dir)
             per_query_rows[query.name] = rows
             
-            # Terminal UI completes the line
             print("  success \n")
-            # File log gets the details
             success_msg = f"Success: {query.name} ({len(rows)} rows saved)"
             log.info(success_msg)
+            
+            # --- NEW: Global Cooldown ---
+            # Wait 10 seconds between queries to prevent triggering the 429 limits
+            # Don't sleep after the very last query
+            if i < len(list(queries)) - 1: 
+                log.info(f"Cooling down for 10 seconds before next query...")
+                time.sleep(10)
             
         except Exception as exc:
             # Terminal UI completes the line

@@ -3,10 +3,10 @@ from shared import BASE_DIR, setup_dirs
 from seeding import query_runner
 import csv
 from pathlib import Path
+from shared import BASE_DIR
 
 def process_maktbarometern():
     """Reads Maktbarometern CSVs, filters by rank, and formats for Stage 2."""
-    from shared import BASE_DIR # Ensure BASE_DIR is accessible
     
     makt_dir = BASE_DIR / "seeding" / "maktbarometern" / "csv"
     output_dir = BASE_DIR / "seeding" / "output"

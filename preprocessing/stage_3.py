@@ -18,7 +18,7 @@ def main():
         candidates = pickle.load(f)
 
     nlp = load_spacy()
-    korp_freq = load_korp_freq()
+    # korp_freq = load_korp_freq()
     kelly_words = load_kelly()  # Load the Kelly dictionary
     filtered = {}
 
@@ -39,10 +39,10 @@ def main():
             if not VOWEL_REGEX.search(word):
                 continue
                 
-            # 4. Dynamic Korp Frequency Check
-            req_freq = CATEGORY_KORP_FREQ.get(cat, DEFAULT_KORP_FREQ)
-            if korp_freq is None or korp_freq.get(word, 0) < req_freq:
-                continue
+            # # 4. Dynamic Korp Frequency Check
+            # req_freq = CATEGORY_KORP_FREQ.get(cat, DEFAULT_KORP_FREQ)
+            # if korp_freq is None or korp_freq.get(word, 0) < req_freq:
+            #     continue
 
             pre_filtered.append(e)
             
@@ -50,9 +50,9 @@ def main():
             filtered[output_csv] = []
             continue
 
-        # Sort by Korp frequency BEFORE deduplication to favor common lemmas
-        if korp_freq:
-            pre_filtered.sort(key=lambda x: korp_freq.get(x[0], 0), reverse=True)
+        # # Sort by Korp frequency BEFORE deduplication to favor common lemmas
+        # if korp_freq:
+        #     pre_filtered.sort(key=lambda x: korp_freq.get(x[0], 0), reverse=True)
 
         words = [e[0] for e in pre_filtered]
         docs = nlp.pipe(words, batch_size=1000)

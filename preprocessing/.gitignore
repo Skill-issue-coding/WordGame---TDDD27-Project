@@ -221,3 +221,7 @@ __marimo__/
 
 # intermediate files
 intermediate
+
+model/*.bin
+model/*npy
+old-model

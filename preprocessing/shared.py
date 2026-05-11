@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=BASE_DIR / ".env.local")
 
 # ── Configuration ─────────────────────────────────────────────────────────────
-FASTTEXT_MODEL_PATH = BASE_DIR / "cc.sv.300.bin"
+FASTTEXT_MODEL_PATH = BASE_DIR / "model" / "kubord-fasttext-afb-2010-2024-token.bin"
 KORP_DIR            = BASE_DIR / "korp"
 OUTPUT_DIR          = BASE_DIR.parent / "server" / "wordfiles"
 INTERMEDIATE_DIR    = BASE_DIR / "intermediate"
@@ -90,11 +90,12 @@ def _extract_label(row: Dict[str, str]) -> Optional[str]:
     return None
 
 def load_fasttext():
-    import fasttext
+    from gensim.models import FastText
     if not FASTTEXT_MODEL_PATH.exists():
-        logging.error(f"fastText model not found: {FASTTEXT_MODEL_PATH}")
+        logging.error(f"Språkbanken model not found: {FASTTEXT_MODEL_PATH}")
         sys.exit(1)
-    return fasttext.load_model(str(FASTTEXT_MODEL_PATH))
+    # Gensim's native load method automatically maps the .npy files into memory
+    return FastText.load(str(FASTTEXT_MODEL_PATH))
 
 def load_spacy():
     import spacy

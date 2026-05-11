@@ -14,7 +14,7 @@ Before running the pipeline, ensure you have the required models and environment
    MAIL=your-email@example.com
    ```
 
-2. **FastText Model:** Download the Swedish fastText model [(`cc.sv.300.bin`)](https://fasttext.cc/docs/en/crawl-vectors.html) [_(might switch to one of these models)_](https://spraakbanken.gu.se/en/resources/kubord-fasttext) and place it in the `preprocessing/` root.
+2. **FastText Model:** Download a model from [Språkbanken](https://spraakbanken.gu.se/en/resources/kubord-fasttext) and place it in the `preprocessing/` root.
 
 3. **spaCy Model:** Install the Swedish language model for spaCy:
 

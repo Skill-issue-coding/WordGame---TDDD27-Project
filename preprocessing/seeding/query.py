@@ -66,6 +66,19 @@ class Query:
                 if exc.code not in self.RETRY_STATUS_CODES or attempt >= self.MAX_RETRIES:
                     log.error(f"[{self.name}] HTTP Error {exc.code} on attempt {attempt + 1}. Aborting.")
                     raise
+                
+                # --- NEW: Specific 429 Rate Limit Handling ---
+                if exc.code == 429:
+                    # Try to get the Retry-After header from the urllib HTTPError
+                    retry_after = exc.headers.get("Retry-After") if hasattr(exc, "headers") else None
+                    
+                    # If header exists, use it. Otherwise, default to 65 seconds (to clear the 1 min ban)
+                    wait_time = int(retry_after) if (retry_after and retry_after.isdigit()) else 65
+                    
+                    log.warning(f"[{self.name}] HTTP 429 (Rate Limited). Sleeping for {wait_time} seconds to clear penalty...")
+                    time.sleep(wait_time)
+                    continue  # Skip the standard exponential backoff and go to the next attempt
+
                 log.warning(f"[{self.name}] HTTP Error {exc.code}. Retrying... ({attempt + 1}/{self.MAX_RETRIES})")
                 
             except (URLError, socket.timeout, json.JSONDecodeError) as e:
