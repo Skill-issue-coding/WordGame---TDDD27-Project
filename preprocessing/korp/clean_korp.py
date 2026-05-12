@@ -17,7 +17,7 @@ except ImportError as e:
     HAS_SHARED = False
     print(f"Varning: Kunde inte importera från 'shared.py': {e}")
 
-# --- Configuration ---
+# === Configuration ===
 KORP_DIR = "korp"
 OUTPUT_DIR = "korp_cleaned"
 MIN_FREQ = 10           # Minimum occurrences across ALL files
