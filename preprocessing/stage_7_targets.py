@@ -20,6 +20,7 @@ CalculateDistance() for every guess — no precomputed rankings needed.
 
 import json
 import sys
+import logging
 from pathlib import Path
 
 import pandas as pd
@@ -41,6 +42,22 @@ MIN_KORP_FREQ = 1_000
 # Word length limits — too short = ambiguous, too long = obscure
 MIN_WORD_LEN = 4
 MAX_WORD_LEN = 20
+
+def _setup_logger() -> logging.Logger:
+    log_path = Path(__file__).resolve().parent / "pipeline.log"
+    root = logging.getLogger()
+    if not any(
+        isinstance(h, logging.FileHandler) and h.baseFilename == str(log_path)
+        for h in root.handlers
+    ):
+        handler = logging.FileHandler(log_path, encoding="utf-8")
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
+    return logging.getLogger(__name__)
+
+log = _setup_logger()
 
 
 def load_encoded_vocab() -> set[str]:
@@ -110,10 +127,15 @@ def collect_entity_targets(encoded: set[str]) -> list[str]:
 def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+    log.info("Stage 7: start")
+
     encoded = load_encoded_vocab()
+    log.info(f"Stage 7: encoded vocab size {len(encoded)}")
 
     general  = collect_general_targets(encoded)
     entities = collect_entity_targets(encoded)
+    log.info(f"Stage 7: general targets {len(general)}")
+    log.info(f"Stage 7: entity targets {len(entities)}")
 
     # Deduplicate, entities take priority (they have richer context)
     seen: set[str] = set()
@@ -132,6 +154,7 @@ def main():
 
     with OUT_FILE.open("w", encoding="utf-8") as f:
         json.dump(targets, f, ensure_ascii=False, indent=2)
+    log.info(f"Stage 7: wrote {OUT_FILE} ({len(targets)})")
 
     print(f"Klar! {len(targets):,} målord sparade till {OUT_FILE}")
     print(f"  varav {len(entities):,} entiteter och {len(general):,} generella ord")

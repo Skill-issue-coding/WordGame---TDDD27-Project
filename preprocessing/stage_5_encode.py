@@ -18,6 +18,7 @@ entity passage is kept and the naked word form is dropped.
 
 import json
 import sys
+import logging
 from pathlib import Path
 
 import numpy as np
@@ -32,6 +33,22 @@ OUTPUT_DIR = BASE_DIR / "intermediate" / "stage5_encoded"
 MODEL_NAME     = "intfloat/multilingual-e5-large"
 BATCH_SIZE     = 512
 SUMMARY_MAX_CHARS = 1500
+
+def _setup_logger() -> logging.Logger:
+    log_path = Path(__file__).resolve().parent / "pipeline.log"
+    root = logging.getLogger()
+    if not any(
+        isinstance(h, logging.FileHandler) and h.baseFilename == str(log_path)
+        for h in root.handlers
+    ):
+        handler = logging.FileHandler(log_path, encoding="utf-8")
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
+    return logging.getLogger(__name__)
+
+log = _setup_logger()
 
 
 # ── Passage builders ──────────────────────────────────────────────────────────
@@ -110,13 +127,17 @@ def main():
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
+    log.info("Stage 5: start")
+    log.info(f"Device: {device}")
 
     # 1. Collect items
     entity_records = load_entities()
     print(f"Entiteter (stage 3): {len(entity_records):,}")
+    log.info(f"Stage 5: entities {len(entity_records)}")
 
     word_records = load_general_words(set(entity_records.keys()))
     print(f"Generella ord (stage 4): {len(word_records):,}")
+    log.info(f"Stage 5: general words {len(word_records)}")
 
     # Entities first so their indices stay grouped, then general words
     all_items = list(entity_records.values()) + list(word_records.values())
@@ -127,6 +148,7 @@ def main():
     vocab    = [name    for name, _       in all_items]
     passages = [passage for _,    passage in all_items]
     print(f"Totalt att koda: {len(passages):,}")
+    log.info(f"Stage 5: total passages {len(passages)}")
 
     # 2. Load E5 model
     try:
@@ -136,10 +158,12 @@ def main():
         sys.exit(1)
 
     print(f"Laddar modell '{MODEL_NAME}'...")
+    log.info(f"Stage 5: loading model {MODEL_NAME}")
     model = SentenceTransformer(MODEL_NAME, device=device)
 
     # 3. Encode
     print(f"Kodar i batchar om {BATCH_SIZE}...")
+    log.info(f"Stage 5: encoding batch_size={BATCH_SIZE}")
     embeddings = model.encode(
         passages,
         batch_size=BATCH_SIZE,
@@ -157,6 +181,9 @@ def main():
     np.save(str(emb_path), embeddings)
     with vocab_path.open("w", encoding="utf-8") as f:
         json.dump(vocab, f, ensure_ascii=False)
+
+    log.info(f"Stage 5: wrote {emb_path}")
+    log.info(f"Stage 5: wrote {vocab_path}")
 
     print(f"\nKlar! {len(vocab):,} poster kodade.")
     print(f"  embeddings : {emb_path}  (shape {embeddings.shape})")

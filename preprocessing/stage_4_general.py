@@ -1,7 +1,9 @@
 import os
+import logging
 import pandas as pd
 import spacy
 import time
+from pathlib import Path
 
 try:
     from shared import (
@@ -17,6 +19,22 @@ except ImportError as e:
     print(f"Varning: Kunde inte importera från shared.py: {e}")
     exit()
 
+def _setup_logger() -> logging.Logger:
+    log_path = Path(__file__).resolve().parent / "pipeline.log"
+    root = logging.getLogger()
+    if not any(
+        isinstance(h, logging.FileHandler) and h.baseFilename == str(log_path)
+        for h in root.handlers
+    ):
+        handler = logging.FileHandler(log_path, encoding="utf-8")
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
+    return logging.getLogger(__name__)
+
+log = _setup_logger()
+
 # === Configuration ===
 OUTPUT_DIR = "intermediate/stage4_general"
 SPACY_MODEL = "sv_core_news_sm"
@@ -27,9 +45,11 @@ def main():
     print("=" * 50)
     print("STAGE 4: LINGUISTIC FILTERING (spaCy + Kelly)")
     print("=" * 50)
+    log.info("Stage 4: start")
 
     # 1. Load Korp Data
     print("Laddar Korp-frekvenser...")
+    log.info("Stage 4: loading Korp")
     if HAS_SHARED:
         korp_data = read_korp() 
         
@@ -45,12 +65,14 @@ def main():
     
     original_len = len(df)
     print(f" -> Hittade {original_len:,} ord i Korp.")
+    log.info(f"Stage 4: Korp rows {original_len}")
 
     # 2. Filter by Baseline Frequency
     # We enforce a strict minimum frequency for general words to ensure they are well-known
     df['Totalt'] = pd.to_numeric(df['Totalt'], errors='coerce').fillna(0)
     df = df[df['Totalt'] >= DEFAULT_KORP_FREQ]
     print(f" -> Efter frekvenskrav (>= {DEFAULT_KORP_FREQ}): {len(df):,} ord kvar.")
+    log.info(f"Stage 4: after freq filter {len(df)}")
 
     # 3. Load Kelly & Stopwords
     kelly_words = set()
@@ -58,6 +80,7 @@ def main():
     if HAS_SHARED:
         kelly_words = load_kelly()
         stopwords = load_custom_stopwords()
+    log.info(f"Stage 4: kelly_words={len(kelly_words)} stopwords={len(stopwords)}")
     
     # Drop custom stopwords immediately to save spaCy processing time
     if stopwords:
@@ -65,6 +88,7 @@ def main():
 
     # 4. Process with spaCy (The heavy lifting)
     print(f"\nLaddar spaCy-modellen '{SPACY_MODEL}'...")
+    log.info(f"Stage 4: loading spaCy model {SPACY_MODEL}")
     try:
         # Disable parser and ner for massive speed improvements
         nlp = spacy.load(SPACY_MODEL, disable=['parser', 'ner', 'senter'])
@@ -76,6 +100,7 @@ def main():
     valid_words = []
     
     print(f"Börjar ordklasstaggning (POS) av {len(words_to_process):,} ord...")
+    log.info(f"Stage 4: POS tagging {len(words_to_process)} words")
     start_time = time.time()
 
     # nlp.pipe is highly optimized for processing large lists of text
@@ -106,6 +131,7 @@ def main():
         })
 
     print(f"Taggning klar på {time.time() - start_time:.1f} sekunder.")
+    log.info("Stage 4: POS tagging complete")
 
     # 5. Merge and Finalize
     valid_df = pd.DataFrame(valid_words)
@@ -116,6 +142,7 @@ def main():
 
     out_path = os.path.join(OUTPUT_DIR, "general_words.csv")
     final_df.to_csv(out_path, index=False)
+    log.info(f"Stage 4: wrote {out_path} ({len(final_df)})")
 
     print("\n" + "=" * 50)
     print(f"RESULTAT: Reducerade {original_len:,} -> {len(final_df):,} högkvalitativa ord.")

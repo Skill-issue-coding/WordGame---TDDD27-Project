@@ -1,9 +1,11 @@
 import os
 import glob
+import logging
 import pandas as pd
 import requests
 import time
 import re
+from pathlib import Path
 
 # ===Configuration ===
 INPUT_DIR = "intermediate/stage2_wiki"
@@ -18,6 +20,22 @@ TARGET_PROPERTIES = {
     "P178": "Utvecklare", # Developer (for games)
     "P641": "Sport",      # Sport (for athletes)
 }
+
+def _setup_logger() -> logging.Logger:
+    log_path = Path(__file__).resolve().parent / "pipeline.log"
+    root = logging.getLogger()
+    if not any(
+        isinstance(h, logging.FileHandler) and h.baseFilename == str(log_path)
+        for h in root.handlers
+    ):
+        handler = logging.FileHandler(log_path, encoding="utf-8")
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
+    return logging.getLogger(__name__)
+
+log = _setup_logger()
 
 def extract_qid(val):
     """Safely extracts a Q-ID from a URL or string."""
@@ -73,6 +91,7 @@ def fetch_wikidata_labels(qids, session):
 def main():
     if not os.path.exists(INPUT_DIR):
         print(f"Fel: Hittar inte {INPUT_DIR}. Kör stage 2 först!")
+        log.warning(f"Stage 3: input dir missing: {INPUT_DIR}")
         return
         
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -84,6 +103,9 @@ def main():
     print("=" * 50)
     print("STAGE 3: WIKIDATA ATTRIBUTE ENRICHMENT")
     print("=" * 50)
+    log.info("Stage 3: start")
+    log.info(f"Input dir: {INPUT_DIR}")
+    log.info(f"CSV files: {len(csv_files)}")
 
     for file in csv_files:
         filename = os.path.basename(file)
@@ -91,6 +113,7 @@ def main():
         
         if os.path.exists(output_path):
             print(f"Hoppar över {filename} (redan bearbetad).")
+            log.info(f"Stage 3: skip {filename} (already processed)")
             continue
             
         df = pd.read_csv(file)
@@ -105,15 +128,19 @@ def main():
         # If no Q-ID column exists (like in Maktbarometern), just pass the file through unchanged
         if not qid_col:
             print(f"Fil: {filename} | Inga Wikidata-länkar hittades (troligen sociala medier). Passerar igenom.")
+            log.info(f"Stage 3: {filename} has no QID column")
             df['wiki_attributes'] = ""
             df.to_csv(output_path, index=False)
+            log.info(f"Stage 3: wrote {output_path}")
             continue
             
         print(f"\nFil: {filename} | Hämtar attribut...")
+        log.info(f"Stage 3: processing {filename}")
         
         # Extract clean Q-IDs
         df['clean_qid'] = df[qid_col].apply(extract_qid)
         valid_qids = df['clean_qid'].dropna().unique().tolist()
+        log.info(f"Stage 3: {filename} has {len(valid_qids)} QIDs")
         
         # 2. Fetch all claims
         claims_data = fetch_wikidata_claims(valid_qids, session)
@@ -132,6 +159,7 @@ def main():
                             
         # 4. Fetch the Swedish translations for those Q-IDs
         print(f" -> Översätter {len(needed_label_qids)} unika egenskaper till svenska...")
+        log.info(f"Stage 3: translating {len(needed_label_qids)} property QIDs")
         property_labels = fetch_wikidata_labels(list(needed_label_qids), session)
         
         # 5. Assemble the final text strings
@@ -168,7 +196,9 @@ def main():
         
         found_count = sum(1 for a in attributes_list if a)
         print(f"✅ Klar! Hittade strukturerad data för {found_count}/{len(df)} entiteter.")
+        log.info(f"Stage 3: {filename} attributes {found_count}/{len(df)}")
         df.to_csv(output_path, index=False)
+        log.info(f"Stage 3: wrote {output_path}")
 
 if __name__ == "__main__":
     main()

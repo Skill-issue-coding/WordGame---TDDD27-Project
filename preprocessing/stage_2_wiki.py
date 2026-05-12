@@ -1,5 +1,6 @@
 import os
 import glob
+import logging
 import pandas as pd
 import requests
 import time
@@ -18,6 +19,22 @@ load_dotenv(dotenv_path=BASE_DIR / ".env.local")
 MAIL = os.getenv("MAIL", "")
 if not MAIL:
     raise ValueError("Environment variable 'MAIL' must be set for the Wikipedia User-Agent policy.")
+
+def _setup_logger() -> logging.Logger:
+    log_path = Path(__file__).resolve().parent / "pipeline.log"
+    root = logging.getLogger()
+    if not any(
+        isinstance(h, logging.FileHandler) and h.baseFilename == str(log_path)
+        for h in root.handlers
+    ):
+        handler = logging.FileHandler(log_path, encoding="utf-8")
+        handler.setLevel(logging.INFO)
+        handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(message)s"))
+        root.addHandler(handler)
+        root.setLevel(logging.INFO)
+    return logging.getLogger(__name__)
+
+log = _setup_logger()
 
 class RateLimiter:
     def __init__(self, min_interval_seconds: float) -> None:
@@ -57,6 +74,7 @@ def fetch_wikipedia_summaries(entities):
     summaries = {}
     
     print(f"Börjar hämta {len(entities)} sammanfattningar från sv.wikipedia.org...")
+    log.info(f"Stage 2: fetching {len(entities)} Wikipedia summaries")
     
     limiter = RateLimiter(MIN_INTERVAL_SECONDS)
 
@@ -84,6 +102,10 @@ def fetch_wikipedia_summaries(entities):
                     f"Rate limited for '{entity}' (status {resp.status_code}). "
                     f"Sleeping {wait_seconds:.1f}s before retry."
                 )
+                log.warning(
+                    f"Rate limited for '{entity}' (status {resp.status_code}), "
+                    f"sleeping {wait_seconds:.1f}s"
+                )
                 time.sleep(wait_seconds)
                 limiter.wait()
                 resp = session.get(url, params=params, timeout=5)
@@ -95,6 +117,10 @@ def fetch_wikipedia_summaries(entities):
                 print(
                     f"Fel vid hämtning av '{entity}': Invalid JSON "
                     f"(status {resp.status_code}). Body: {snippet}"
+                )
+                log.warning(
+                    f"Invalid JSON for '{entity}' (status {resp.status_code}). "
+                    f"Body: {snippet}"
                 )
                 summaries[entity] = ""
                 continue
@@ -111,6 +137,7 @@ def fetch_wikipedia_summaries(entities):
                     
         except Exception as e:
             print(f"Fel vid hämtning av '{entity}': {e}")
+            log.warning(f"Fetch error for '{entity}': {e}")
             summaries[entity] = ""
             
         # Print progress every 100 entities
@@ -126,6 +153,7 @@ def main():
     input_dir = get_input_dir()
     if not input_dir:
         print("Kunde inte hitta någon mapp med seeding-filer.")
+        log.warning("Stage 2: no input dir found")
         return
         
     os.makedirs(OUTPUT_DIR, exist_ok=True)
@@ -134,6 +162,9 @@ def main():
     print("=" * 50)
     print("STAGE 2: WIKIPEDIA CONTEXT ENRICHMENT")
     print("=" * 50)
+    log.info("Stage 2: start")
+    log.info(f"Input dir: {input_dir}")
+    log.info(f"CSV files: {len(csv_files)}")
     
     for file in csv_files:
         filename = os.path.basename(file)
@@ -142,6 +173,7 @@ def main():
         output_path = os.path.join(OUTPUT_DIR, filename)
         if os.path.exists(output_path):
             print(f"Hoppar över {filename} (redan bearbetad).")
+            log.info(f"Stage 2: skip {filename} (already processed)")
             continue
             
         df = pd.read_csv(file)
@@ -153,11 +185,13 @@ def main():
             
         if not label_col:
             print(f"Varning: Hittade ingen namn-kolumn i {filename}. Hoppar över.")
+            log.warning(f"Stage 2: no label column in {filename}")
             continue
             
         # Extract unique entities to fetch
         unique_entities = df[label_col].dropna().unique()
         print(f"\nFil: {filename} | Hittade {len(unique_entities)} unika entiteter.")
+        log.info(f"Stage 2: {filename} has {len(unique_entities)} entities")
         
         # Fetch the summaries
         summaries_dict = fetch_wikipedia_summaries(unique_entities)
@@ -168,9 +202,13 @@ def main():
         # Calculate success rate
         found_count = (df['wiki_summary'] != "").sum()
         print(f"Klar med {filename}. Hittade wiki-text för {found_count}/{len(df)} entiteter.")
+        log.info(
+            f"Stage 2: {filename} summaries {found_count}/{len(df)}"
+        )
         
         # Save to intermediate/stage2_wiki/
         df.to_csv(output_path, index=False)
+        log.info(f"Stage 2: wrote {output_path}")
 
 if __name__ == "__main__":
     main()
