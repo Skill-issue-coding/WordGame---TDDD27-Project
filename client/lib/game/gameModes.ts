@@ -7,8 +7,22 @@ export interface GameMode {
   description: string;
   icon: string;
   players: string;
+  min_players: number;
   color: GameModeColor;
   textClass: string;
+}
+
+export type SettingType = "choice" | "slider" | "boolean";
+
+export interface ModeSetting {
+  key: string;
+  label: string;
+  type: SettingType;
+  options?: { value: string | number; label: string }[];
+  min?: number;
+  max?: number;
+  step?: number;
+  default: number;
 }
 
 export const GAME_MODES: GameMode[] = [
@@ -18,15 +32,18 @@ export const GAME_MODES: GameMode[] = [
     description: "En spelare får ett unikt ord. Försök att tillsammans hitta impostern innan det är försent!",
     icon: "🕵️",
     players: "4-12 spelare",
+    min_players: 4,
     color: "red",
     textClass: "text-game-red",
   },
   {
     id: "contexto",
     title: "Kontext Strid",
-    description: "Tävla om att hitta det dålda ordet. Semantiska likheter leder dig närmare och närmare det rätta ordet!",
+    description:
+      "Tävla om att hitta det dålda ordet. Semantiska likheter leder dig närmare och närmare det rätta ordet!",
     icon: "🧠",
     players: "2-12 spelare",
+    min_players: 2,
     color: "blue",
     textClass: "text-game-blue",
   },
@@ -36,18 +53,118 @@ export const GAME_MODES: GameMode[] = [
     description: "Ange den bästa synonymen varje runda. Den som svarar med den sämsta åker ut!",
     icon: "⚔️",
     players: "3-12 spelare",
+    min_players: 3,
     color: "green",
     textClass: "text-game-green",
   },
   {
     id: "antimatch",
     title: "Anti-matchning",
-    description: "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
+    description:
+      "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
     icon: "🎯",
     players: "3-12 spelare",
+    min_players: 3,
     color: "yellow",
     textClass: "text-game-yellow",
   },
 ];
 
 export const getMode = (id: string): GameMode => GAME_MODES.find((m) => m.id === id) ?? GAME_MODES[0];
+
+export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
+  impostor: [
+    {
+      key: "impostorCount",
+      label: "Antal Impostors",
+      type: "choice",
+      options: [
+        { value: 1, label: "1" },
+        { value: 2, label: "2" },
+        { value: 3, label: "3" },
+        { value: 4, label: "4" },
+      ],
+      default: 1,
+    },
+    {
+      key: "thinkTime",
+      label: "Betänketid",
+      type: "slider",
+      min: 10,
+      max: 60,
+      step: 5,
+      default: 30,
+    },
+    /*
+    {
+      key: "discussionTime",
+      label: "Diskussionstid",
+      type: "slider",
+      min: 10,
+      max: 60,
+      step: 5,
+      default: 30,
+    },
+    */
+  ],
+  contexto: [
+    {
+      key: "thinkTime",
+      label: "Betänketid",
+      type: "slider",
+      min: 60,
+      max: 600,
+      step: 60,
+      default: 120,
+    },
+    {
+      key: "roundCount",
+      label: "Antal rundor",
+      type: "slider",
+      min: 1,
+      max: 5,
+      step: 1,
+      default: 3,
+    },
+  ],
+  synonym: [
+    {
+      key: "thinkTime",
+      label: "Betänketid",
+      type: "slider",
+      min: 10,
+      max: 60,
+      step: 10,
+      default: 20,
+    },
+    {
+      key: "roundCount",
+      label: "Antal rundor",
+      type: "slider",
+      min: 1,
+      max: 5,
+      step: 1,
+      default: 3,
+    },
+  ],
+  antimatch: [
+    {
+      key: "thinkTime",
+      label: "Betänketid",
+      type: "slider",
+      min: 10,
+      max: 60,
+      step: 10,
+      default: 20,
+    },
+    {
+      key: "roundCount",
+      label: "Antal rundor",
+      type: "slider",
+      min: 1,
+      max: 5,
+      step: 1,
+      default: 3,
+    },
+  ],
+};
