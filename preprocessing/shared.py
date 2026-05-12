@@ -6,7 +6,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
-from gensim.models import FastText
+from korp import clean_korp
+from seeding import clean_seeding
 
 """
     MENTAL NOTE:
@@ -27,7 +28,10 @@ load_dotenv(dotenv_path=BASE_DIR / ".env.local")
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 FASTTEXT_MODEL_PATH = BASE_DIR / "model" / "kubord-fasttext-afb-2010-2024-token.bin"
-KORP_DIR            = BASE_DIR / "korp_cleaned"
+BASE_KORP_DIR       = BASE_DIR / "korp"
+CLEANED_KORP_DIR    = BASE_DIR / "korp_cleaned"
+SEEDING_DIR         = BASE_DIR / "seeding"
+SEEDING_CLEANED_DIR = BASE_DIR / "seeding_cleaned"
 OUTPUT_DIR          = BASE_DIR.parent / "server" / "wordfiles"
 INTERMEDIATE_DIR    = BASE_DIR / "intermediate"
 SPACY_MODEL         = "sv_core_news_sm"
@@ -122,13 +126,6 @@ def _extract_label(row: Dict[str, str]) -> Optional[str]:
 
     return None
 
-def load_fasttext():
-    if not FASTTEXT_MODEL_PATH.exists():
-        logging.error(f"Språkbanken model not found: {FASTTEXT_MODEL_PATH}")
-        sys.exit(1)
-    # Gensim's native load method automatically maps the .npy files into memory
-    return FastText.load(str(FASTTEXT_MODEL_PATH))
-
 def load_spacy():
     import spacy
     try:
@@ -137,79 +134,36 @@ def load_spacy():
         logging.error(f"spaCy model '{SPACY_MODEL}' not found.")
         sys.exit(1)
 
-# In shared.py
-def load_korp_freq() -> Optional[Dict[str, int]]:
-    if not KORP_DIR.exists(): return None
-    
-    cache_path = INTERMEDIATE_DIR / "korp_cache.pkl"
-    if cache_path.exists():
-        import pickle
-        with open(cache_path, "rb") as f:
-            return pickle.load(f)
-
-    freq = defaultdict(int)
-    for csv_path in sorted(KORP_DIR.glob("*.csv")):
-        try:
-            with csv_path.open(encoding="utf-8", newline="") as f:
-                reader = csv.DictReader(f)
-                headers = [h.lstrip("\ufeff").strip() for h in reader.fieldnames or []]
-                if "word" not in headers or "Totalt" not in headers: continue
-                f.seek(0)
-                reader = csv.DictReader(f, fieldnames=headers)
-                next(reader)
-                for row in reader:
-                    word = row.get("word", "").strip().lower()
-                    if word: freq[word] += int(float(row.get("Totalt", 0) or 0))
-        except Exception: pass
-    result = dict(freq) if freq else None
-    
-    # Save to cache
-    if result:
-        import pickle
-        INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
-        with open(cache_path, "wb") as f:
-            pickle.dump(result, f)
-            
-    return result
-
-def load_korp_csvs() -> List[Dict[str, str]]:
+def read_korp() -> List[Dict[str, str]]:
     """Loads all Korp CSV rows into a single list of dicts.
 
     Normalizes headers by stripping BOMs and whitespace, and skips files
     that don't have headers or can't be read. Only rows with a word
     longer than 3 characters and containing only A-Ö are included.
     """
-    if not KORP_DIR.exists():
+    if not CLEANED_KORP_DIR.exists():
+        print("Had to clean up the korp files")
+        clean_korp.main()
+
+    combined_path = CLEANED_KORP_DIR / "korp_combined_cleaned.csv"
+    if not combined_path.exists():
+        logging.warning(f"Combined Korp file not found: {combined_path}")
         return []
 
     rows: List[Dict[str, str]] = []
-    for csv_path in sorted(KORP_DIR.glob("*.csv")):
-        try:
-            with csv_path.open(encoding="utf-8", newline="") as f:
-                reader = csv.DictReader(f)
-                headers = [h.lstrip("\ufeff").strip() for h in reader.fieldnames or []]
-                if not headers:
-                    continue
-                f.seek(0)
-                reader = csv.DictReader(f, fieldnames=headers)
-                next(reader, None)
-                for row in reader:
-                    word = row.get("word") or row.get("Word") or row.get("token")
-                    if not word and row:
-                        word = list(row.values())[0]
-
-                    if not word:
-                        continue
-
-                    word = str(word).strip()
-                    if len(word) <= 3:
-                        continue
-                    if not re.fullmatch(r"[A-Öa-ö]+", word):
-                        continue
-
-                    rows.append(row)
-        except Exception:
-            continue
+    try:
+        with combined_path.open(encoding="utf-8", newline="") as f:
+            reader = csv.DictReader(f)
+            headers = [h.lstrip("\ufeff").strip() for h in reader.fieldnames or []]
+            if not headers:
+                return []
+            f.seek(0)
+            reader = csv.DictReader(f, fieldnames=headers)
+            next(reader, None)
+            for row in reader:
+                rows.append(row)
+    except Exception:
+        return []
 
     return rows
 
@@ -283,3 +237,33 @@ def load_custom_stopwords() -> set:
             pickle.dump(stopwords, f)
             
     return stopwords
+
+def load_seeding() -> List[Dict[str, str]]:
+    """Loads cleaned seeding CSV rows into a single list of dicts."""
+    if not SEEDING_CLEANED_DIR.exists():
+        print("Had to clean up the seeding files")
+        clean_seeding.process_seeding()
+
+    rows: List[Dict[str, str]] = []
+    if not SEEDING_CLEANED_DIR.exists():
+        logging.warning(f"Cleaned seeding dir not found: {SEEDING_CLEANED_DIR}")
+        return rows
+
+    for csv_path in sorted(SEEDING_CLEANED_DIR.glob("*.csv")):
+        try:
+            with csv_path.open(encoding="utf-8", newline="") as f:
+                reader = csv.DictReader(f)
+                headers = [h.lstrip("\ufeff").strip() for h in reader.fieldnames or []]
+                if not headers:
+                    continue
+                f.seek(0)
+                reader = csv.DictReader(f, fieldnames=headers)
+                next(reader, None)
+                source_name = csv_path.stem
+                for row in reader:
+                    row["_source"] = source_name
+                    rows.append(row)
+        except Exception:
+            continue
+
+    return rows

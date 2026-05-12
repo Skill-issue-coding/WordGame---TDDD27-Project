@@ -1,0 +1,92 @@
+"""
+Stage 6: Export encoded embeddings to binary format for the Go backend.
+
+Input:
+  - intermediate/stage5_encoded/embeddings.npy   (float32, shape N×1024)
+  - intermediate/stage5_encoded/vocab.json        (list of N word strings)
+
+Output (server/wordfiles/):
+  - vocab.bin   raw little-endian float32, N×1024 — loaded via mmap in Go
+  - vocab.json  JSON list of N canonical word strings (same order as rows)
+  - meta.json   {"n": N, "dims": 1024} so the Go loader knows the matrix shape
+
+The Go backend prepends "query: " to player inputs before computing dot products
+against these "passage: "-prefixed vectors. Since stage 5 L2-normalises all
+vectors, cosine similarity == dot product — no sqrt needed at runtime.
+"""
+
+import json
+import struct
+import sys
+from pathlib import Path
+
+import numpy as np
+
+BASE_DIR   = Path(__file__).resolve().parent
+INPUT_DIR  = BASE_DIR / "intermediate" / "stage5_encoded"
+OUTPUT_DIR = BASE_DIR.parent / "server" / "wordfiles"
+
+EMB_FILE   = INPUT_DIR  / "embeddings.npy"
+VOCAB_FILE = INPUT_DIR  / "vocab.json"
+
+OUT_BIN    = OUTPUT_DIR / "vocab.bin"
+OUT_VOCAB  = OUTPUT_DIR / "vocab.json"
+OUT_META   = OUTPUT_DIR / "meta.json"
+
+
+def main():
+    # ── Validate inputs ───────────────────────────────────────────────────────
+    if not EMB_FILE.exists():
+        print(f"Fel: {EMB_FILE} saknas. Kör stage 5 först.")
+        sys.exit(1)
+    if not VOCAB_FILE.exists():
+        print(f"Fel: {VOCAB_FILE} saknas. Kör stage 5 först.")
+        sys.exit(1)
+
+    OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
+
+    # ── Load ──────────────────────────────────────────────────────────────────
+    print("Laddar embeddings…")
+    embeddings = np.load(str(EMB_FILE))          # float32, (N, D)
+
+    with VOCAB_FILE.open("r", encoding="utf-8") as f:
+        vocab = json.load(f)                     # list[str], length N
+
+    n, dims = embeddings.shape
+    print(f"  {n:,} ord, {dims} dimensioner")
+
+    if len(vocab) != n:
+        print(f"Fel: vocab har {len(vocab)} poster men embeddings har {n} rader.")
+        sys.exit(1)
+
+    # Guarantee little-endian float32 regardless of host byte order
+    data = embeddings.astype("<f4")
+
+    # ── Write vocab.bin ───────────────────────────────────────────────────────
+    print(f"Skriver {OUT_BIN} ({data.nbytes / 1_048_576:.1f} MB)…")
+    with OUT_BIN.open("wb") as f:
+        f.write(data.tobytes())
+
+    # ── Write vocab.json ──────────────────────────────────────────────────────
+    print(f"Skriver {OUT_VOCAB}…")
+    with OUT_VOCAB.open("w", encoding="utf-8") as f:
+        json.dump(vocab, f, ensure_ascii=False)
+
+    # ── Write meta.json ───────────────────────────────────────────────────────
+    meta = {"n": n, "dims": dims}
+    with OUT_META.open("w", encoding="utf-8") as f:
+        json.dump(meta, f)
+    print(f"Skriver {OUT_META}: {meta}")
+
+    # ── Sanity check: round-trip one vector ───────────────────────────────────
+    raw = OUT_BIN.read_bytes()
+    first_vec = np.frombuffer(raw[:dims * 4], dtype="<f4")
+    if not np.allclose(first_vec, embeddings[0], atol=1e-6):
+        print("VARNING: round-trip-kontroll misslyckades — binärfilen kan vara korrupt.")
+        sys.exit(1)
+
+    print(f"\nKlar! {n:,} vektorer exporterade till {OUTPUT_DIR}")
+
+
+if __name__ == "__main__":
+    main()

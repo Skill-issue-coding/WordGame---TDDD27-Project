@@ -3,7 +3,6 @@ import glob
 import pandas as pd
 import re
 import sys
-import os
 
 # Get the directory one level up (the preprocessing folder)
 parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
@@ -11,16 +10,16 @@ parent_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, parent_dir)
 
 try:
-    from shared import load_custom_stopwords
+    from shared import load_custom_stopwords, CLEANED_KORP_DIR
     HAS_SHARED = True
 except ImportError as e:
     HAS_SHARED = False
     print(f"Varning: Kunde inte importera från 'shared.py': {e}")
+    CLEANED_KORP_DIR = os.path.join(parent_dir, "korp_cleaned")
 
 # === Configuration ===
 KORP_DIR = "korp"
-OUTPUT_DIR = "korp_cleaned"
-MIN_FREQ = 10           # Minimum occurrences across ALL files
+MIN_FREQ = 5           # Minimum occurrences across ALL files
 MIN_LEN = 2             # Minimum character length
 MAX_LEN = 25            # Maximum character length
 
@@ -40,7 +39,7 @@ def is_valid_word(word):
     return True
 
 def main():
-    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    os.makedirs(CLEANED_KORP_DIR, exist_ok=True)
     korp_files = glob.glob(os.path.join(KORP_DIR, "*.csv"))
     
     if not korp_files:
@@ -89,7 +88,7 @@ def main():
             if len(all_dfs) == 0: 
                 print(f" -> Stopwords look like this: {stop_list[:10]}")
                 if "och" not in stop_list:
-                    print("⚠️ VARNING: 'och' finns inte i dina inladdade stoppord!")
+                    print("VARNING: 'och' finns inte i dina inladdade stoppord!")
             
             df = df[~df['word'].isin(stop_list)]
 

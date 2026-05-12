@@ -2,6 +2,7 @@ package words
 
 import (
 	"errors"
+	"log"
 	"math"
 	"math/rand/v2"
 	"server/util"
@@ -18,13 +19,19 @@ const (
 )
 
 func InitializeDictionary() (Dictionary, error) {
-	wordMap := ReadAllCSVFiles()
+	// Prefer the compact binary format produced by stage 6; fall back to CSVs.
+	wordMap := ReadBinaryFiles()
+	if len(wordMap) == 0 {
+		log.Printf("words: binary files absent or invalid, falling back to CSV loader")
+		wordMap = ReadAllCSVFiles()
+	}
 	if len(wordMap) == 0 {
 		return Dictionary{}, errors.New("dictionary is empty")
 	}
 
 	return Dictionary{
 		WordMap: wordMap,
+		Targets: LoadTargets(),
 	}, nil
 }
 
@@ -50,6 +57,19 @@ func (dictionary *Dictionary) CalculateDistance(word string) float64 {
 func (dictionary *Dictionary) IsValid(word string) bool {
 	_, exists := dictionary.lookup(word)
 	return exists
+}
+
+// SetRandomContextoTarget picks a random word from the curated target list.
+// Falls back to SetRandomActiveWord if no target list is loaded.
+func (dictionary *Dictionary) SetRandomContextoTarget() error {
+	if len(dictionary.Targets) > 0 {
+		word := dictionary.Targets[rand.IntN(len(dictionary.Targets))]
+		if _, ok := dictionary.lookup(word); ok {
+			dictionary.ActiveWord = word
+			return nil
+		}
+	}
+	return dictionary.SetRandomActiveWord()
 }
 
 func (dictionary *Dictionary) SetRandomActiveWord() error {

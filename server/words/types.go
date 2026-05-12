@@ -1,8 +1,11 @@
 package words
 
 type Dictionary struct {
-	ActiveWord string
-	WordMap    map[string]WordEntry
+	ActiveWord  string
+	WordMap     map[string]WordEntry
+	// Targets is the curated Contexto target list from targets.json.
+	// Nil means fall back to random selection from the full WordMap.
+	Targets     []string
 }
 
 type RelatedWord struct {

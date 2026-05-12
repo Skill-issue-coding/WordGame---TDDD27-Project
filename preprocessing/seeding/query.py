@@ -9,7 +9,6 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, List, Tuple
 from urllib.error import HTTPError, URLError
-
 from SPARQLWrapper import JSON, SPARQLWrapper
 
 # 1. Grab the master logger from main.py
@@ -113,7 +112,7 @@ class Query:
 
         # Offload the sorting to Python to prevent Wikidata 502/500 crashes
         if "sitelinks" in headers:
-            rows.sort(key=lambda x: int(x.get('sitelinks', 0)), reverse=True)
+            rows.sort(key=lambda x: int(x.get('sitelinks') or 0), reverse=True)
             # Keep top 500
             rows = rows[:500]
 

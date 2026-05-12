@@ -225,3 +225,5 @@ intermediate
 model/*.bin
 model/*npy
 old-model
+
+handover-files/*

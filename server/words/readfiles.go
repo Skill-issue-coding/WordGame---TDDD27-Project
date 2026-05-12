@@ -238,7 +238,7 @@ func readCSVFile(wordMap *map[string]WordEntry, filename string) {
 func discoverVectorFiles() []string {
 	entries, err := os.ReadDir(baseFileDirectory())
 	if err != nil {
-		log.Printf("Could not list vector files in %s: %v", BASE_FILE_DIRECTORY, err)
+		log.Printf("Could not list vector files in %s: %v", defaultBaseFileDirectory, err)
 		return nil
 	}
 
