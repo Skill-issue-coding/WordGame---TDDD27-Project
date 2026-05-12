@@ -1,126 +1,165 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"log"
-	"server/game"
-	"server/handlers"
-	"server/session"
+	"math"
+	"os"
+	"strings"
 
-	"github.com/gin-gonic/gin"
+	"server/words"
 )
 
+const (
+	colorReset  = "\033[0m"
+	colorRed    = "\033[31m"
+	colorYellow = "\033[33m"
+	colorGreen  = "\033[32m"
+	colorBold   = "\033[1m"
+	colorDim    = "\033[2m"
+)
+
+// rankOf returns how many vocabulary words are MORE similar to the active word
+// than the given guess is. Rank 1 = the target itself.
+func rankOf(dict *words.Dictionary, guessDistance float64) int {
+	activeKey := strings.ToLower(strings.TrimSpace(dict.ActiveWord))
+	target, ok := dict.WordMap[activeKey]
+	if !ok || len(target.WordVector) == 0 {
+		return -1
+	}
+	guessSim := 1.0 - guessDistance
+	rank := 1
+	for _, entry := range dict.WordMap {
+		if len(entry.WordVector) != len(target.WordVector) {
+			continue
+		}
+		var dot float64
+		for i, v := range target.WordVector {
+			dot += float64(v) * float64(entry.WordVector[i])
+		}
+		if dot > guessSim {
+			rank++
+		}
+	}
+	return rank
+}
+
+func simColor(sim float64) string {
+	switch {
+	case sim >= 0.80:
+		return colorGreen
+	case sim >= 0.60:
+		return colorYellow
+	default:
+		return colorRed
+	}
+}
+
+func simBar(sim float64) string {
+	const width = 20
+	filled := int(sim * width)
+	if filled > width {
+		filled = width
+	}
+	return strings.Repeat("█", filled) + strings.Repeat("░", width-filled)
+}
+
 func main() {
-	// handleServerStartup()
-
-	fmt.Printf("Creating a hub \n")
-	hub, err := session.NewGameHub()
+	fmt.Println("Laddar ordbok…")
+	dict, err := words.InitializeDictionary()
 	if err != nil {
-		log.Fatalf("Could not initialize game hub: %v", err)
+		log.Fatalf("Kunde inte ladda ordbok: %v", err)
 	}
 
-	go hub.Run()
+	total := len(dict.WordMap)
+	fmt.Printf("Laddade %d ord\n", total)
 
-	impostorPair, err := game.GenerateImpostorPair(&hub.Dictionary)
-	if err != nil {
-		log.Fatalf("Could not generate impostor pair: %v", err)
+	if err := dict.SetRandomContextoTarget(); err != nil {
+		log.Fatalf("Kunde inte välja målord: %v", err)
 	}
 
-	fmt.Printf("Normal word: %s \n", impostorPair.NormalWord.Word)
-	fmt.Printf("Type: %s \n\n", impostorPair.NormalWord.Type)
+	guesses := 0
 
-	fmt.Printf("Impostor word: %s \n", impostorPair.ImpostorWord.Word)
+	fmt.Printf("\n%s╔══════════════════════════╗%s\n", colorBold, colorReset)
+	fmt.Printf("%s║        C O N T E X T O   ║%s\n", colorBold, colorReset)
+	fmt.Printf("%s╚══════════════════════════╝%s\n\n", colorBold, colorReset)
+	fmt.Printf("Gissa det hemliga ordet! (%d ord i ordlistan)\n", total)
+	fmt.Printf("%sKommandon:%s new · reveal · exit\n\n", colorDim, colorReset)
 
-	// // Create a Gin router with default middleware (logger and recovery)
-	// r := gin.Default()
+	scanner := bufio.NewScanner(os.Stdin)
+	for {
+		fmt.Printf("Gissning #%d › ", guesses+1)
+		if !scanner.Scan() {
+			break
+		}
+		input := strings.TrimSpace(scanner.Text())
+		if input == "" {
+			continue
+		}
 
-	// // Define a simple GET endpoint
-	// r.GET("/ping", func(c *gin.Context) {
-	// 	// Return JSON response
-	// 	c.JSON(http.StatusOK, gin.H{
-	// 		"message": "pong",
-	// 	})
-	// })
+		switch strings.ToLower(input) {
+		case "exit", "quit":
+			fmt.Printf("\nSvaret var: %s%s%s\n", colorGreen+colorBold, dict.ActiveWord, colorReset)
+			return
 
-	// // Start server on port 8080 (default)
-	// // Server will listen on 0.0.0.0:8080 (localhost:8080 on Windows)
-	// r.Run()
+		case "reveal":
+			fmt.Printf("  → Svaret är: %s%s%s\n\n", colorGreen+colorBold, dict.ActiveWord, colorReset)
+			continue
+
+		case "new":
+			old := dict.ActiveWord
+			if err := dict.SetRandomContextoTarget(); err != nil {
+				fmt.Println("  Kunde inte välja nytt ord.")
+				continue
+			}
+			guesses = 0
+			fmt.Printf("  Förra ordet var: %s%s%s — nytt ord valt!\n\n", colorGreen+colorBold, old, colorReset)
+			continue
+		}
+
+		// Win check (case-insensitive)
+		if strings.EqualFold(input, dict.ActiveWord) {
+			guesses++
+			fmt.Printf("\n%s🎉  Rätt svar! Du hittade '%s' på %d gissning", colorGreen+colorBold, dict.ActiveWord, guesses)
+			if guesses != 1 {
+				fmt.Print("ar")
+			}
+			fmt.Printf("!%s\n\n", colorReset)
+			fmt.Print("Nytt ord? (j/n) › ")
+			if scanner.Scan() && strings.ToLower(strings.TrimSpace(scanner.Text())) == "j" {
+				dict.SetRandomContextoTarget()
+				guesses = 0
+				fmt.Printf("  Nytt ord valt!\n\n")
+			}
+			continue
+		}
+
+		if !dict.IsValid(input) {
+			fmt.Printf("  %s'%s' finns inte i ordlistan.%s\n", colorDim, input, colorReset)
+			continue
+		}
+
+		distance := dict.CalculateDistance(input)
+		if math.IsNaN(distance) {
+			fmt.Printf("  Kunde inte beräkna avstånd för '%s'.\n", input)
+			continue
+		}
+
+		guesses++
+		sim := 1.0 - distance
+		rank := rankOf(&dict, distance)
+		col := simColor(sim)
+
+		fmt.Printf("  %s%-22s%s  %s%s%s  sim %s%.4f%s  rank %s#%d / %d%s\n",
+			colorBold, input, colorReset,
+			col, simBar(sim), colorReset,
+			col, sim, colorReset,
+			col, rank, total, colorReset,
+		)
+	}
+
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Läsfel:", err)
+	}
 }
-
-func handleServerStartup() {
-	router := gin.Default()
-
-	gameHub, err := session.NewGameHub()
-	if err != nil {
-		log.Fatalf("Could not initialize game hub: %v", err)
-	}
-
-	api := router.Group("/api")
-	{
-		api.GET("/status", handlers.HandleStatus)
-	}
-
-	ws := router.Group("/ws")
-	{
-		ws.GET("/game", func(c *gin.Context) {
-			handlers.HandleWebSocket(c, gameHub)
-		})
-	}
-
-	log.Println("Server running on http://localhost:8080")
-	router.Run(":8080")
-
-	// terminalTesting(gameHub)
-}
-
-// func terminalTesting(gameHub *lobby.GameHub) {
-// 	scanner := bufio.NewScanner(os.Stdin)
-
-// 	fmt.Println("Game terminal started. Type a word and press Enter (type 'exit' to quit):")
-// 	fmt.Printf("Loaded %d words\n", len(gameHub.Dictionary.WordMap))
-// 	fmt.Printf("Active word for this round: %s\n", gameHub.Dictionary.ActiveWord)
-// 	fmt.Println("Type 'new' to start a new round with a random active word")
-
-// 	for {
-// 		fmt.Print("> ")
-
-// 		if !scanner.Scan() {
-// 			break
-// 		}
-
-// 		input := scanner.Text()
-
-// 		input = strings.TrimSpace(input)
-
-// 		if input == "exit" {
-// 			fmt.Println("Shutting down...")
-// 			break
-// 		}
-
-// 		if input == "new" {
-// 			if err := gameHub.SetRandomActiveWord(); err != nil {
-// 				log.Printf("Could not start new round: %v\n", err)
-// 				continue
-// 			}
-
-// 			fmt.Printf("New active word: %s\n", gameHub.Dictionary.ActiveWord)
-// 			continue
-// 		}
-
-// 		if wordEntry, exists := gameHub.GetWordEntry(input); exists {
-// 			log.Printf("Word exists: %s, Beginning of vector: %.6f \n", wordEntry.Word, wordEntry.WordVector[0])
-// 			distance := gameHub.Dictionary.CalculateDistance(input)
-// 			similarity := 1 - distance
-// 			log.Printf("Distance to active word '%s': %.6f\n", gameHub.Dictionary.ActiveWord, distance)
-// 			log.Printf("Similarity to active word '%s': %.6f\n", gameHub.Dictionary.ActiveWord, similarity)
-// 		} else {
-// 			log.Printf("Word not in dictionary: %s\n", input)
-// 		}
-
-// 		fmt.Printf("Backend processed word: '%s'\n", input)
-// 	}
-
-// 	if err := scanner.Err(); err != nil {
-// 		fmt.Println("Error reading input:", err)
-// 	}
-// }

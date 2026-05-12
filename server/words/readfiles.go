@@ -63,16 +63,16 @@ func normalizeWordKey(word string) string {
 	return strings.ToLower(strings.TrimSpace(word))
 }
 
-func StringToFloatSlice(vectorStr string) ([]float64, error) {
+func StringToFloatSlice(vectorStr string) ([]float32, error) {
 	strValues := strings.Fields(vectorStr)
-	vector := make([]float64, len(strValues))
+	vector := make([]float32, len(strValues))
 
 	for i, strVal := range strValues {
-		floatVal, err := strconv.ParseFloat(strVal, 64)
+		floatVal, err := strconv.ParseFloat(strVal, 32)
 		if err != nil {
 			return nil, fmt.Errorf("error parsing value '%s' at index %d: %w \n", strVal, i, err)
 		}
-		vector[i] = floatVal
+		vector[i] = float32(floatVal)
 	}
 
 	return vector, nil
@@ -109,7 +109,7 @@ func firstNonEmpty(record []string, columns map[string]int, keys ...string) stri
 	return ""
 }
 
-func parseVectorColumns(record []string, columns map[string]int) []float64 {
+func parseVectorColumns(record []string, columns map[string]int) []float32 {
 	indexed := make([]vectorColumn, 0)
 	for name, pos := range columns {
 		if !strings.HasPrefix(name, "v") {
@@ -130,16 +130,16 @@ func parseVectorColumns(record []string, columns map[string]int) []float64 {
 		return indexed[i].Index < indexed[j].Index
 	})
 
-	vector := make([]float64, len(indexed))
+	vector := make([]float32, len(indexed))
 	for i, col := range indexed {
 		if col.Pos >= len(record) {
 			return nil
 		}
-		parsed, err := strconv.ParseFloat(strings.TrimSpace(record[col.Pos]), 64)
+		parsed, err := strconv.ParseFloat(strings.TrimSpace(record[col.Pos]), 32)
 		if err != nil {
 			return nil
 		}
-		vector[i] = parsed
+		vector[i] = float32(parsed)
 	}
 
 	return vector

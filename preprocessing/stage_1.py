@@ -2,6 +2,7 @@ import logging
 from pathlib import Path
 from shared import BASE_DIR, setup_dirs
 from seeding import query_runner
+from seeding import clean_seeding
 
 def _setup_logger() -> logging.Logger:
     log_path = Path(__file__).resolve().parent / "pipeline.log"
@@ -30,6 +31,11 @@ def main():
     log.info("=" * 60)
     
     query_runner.run_all_and_save(queries=query_runner.QUERIES, output_dir=seeding_output_dir)
+
+    print("Rensar seeding-data (löser QID-etiketter, tar bort ogiltiga poster)…")
+    log.info("Stage 1: running clean_seeding")
+    clean_seeding.process_seeding()
+    clean_seeding.process_maktbarometern()
 
     print("stage 1 complete")
     log.info("Stage 1 complete.")

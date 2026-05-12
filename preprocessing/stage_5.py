@@ -25,13 +25,23 @@ import numpy as np
 import pandas as pd
 import torch
 
-BASE_DIR   = Path(__file__).resolve().parent
-STAGE3_DIR = BASE_DIR / "intermediate" / "stage3_attrs"
-STAGE4_CSV = BASE_DIR / "intermediate" / "stage4_general" / "general_words.csv"
-OUTPUT_DIR = BASE_DIR / "intermediate" / "stage5_encoded"
+try:
+    from shared import CATEGORY_MAPPING, _is_valid_label
+except ImportError:
+    CATEGORY_MAPPING: dict = {}
+    def _is_valid_label(value: str) -> bool:  # type: ignore[misc]
+        import re
+        value = (value or "").strip()
+        return bool(value) and not value.startswith("http") and not re.match(r"^Q\d+$", value) and any(c.isalpha() for c in value)
+
+BASE_DIR       = Path(__file__).resolve().parent
+STAGE3_DIR     = BASE_DIR / "intermediate" / "stage3_attrs"
+STAGE4_CSV     = BASE_DIR / "intermediate" / "stage4_general" / "general_words.csv"
+OUTPUT_DIR     = BASE_DIR / "intermediate" / "stage5_encoded"
+SERVER_DIR     = BASE_DIR.parent / "server" / "wordfiles"
 
 MODEL_NAME     = "intfloat/multilingual-e5-large"
-BATCH_SIZE     = 512
+BATCH_SIZE     = 128
 SUMMARY_MAX_CHARS = 1500
 
 def _setup_logger() -> logging.Logger:
@@ -67,16 +77,18 @@ def word_passage(word: str) -> str:
 
 # ── Loaders ───────────────────────────────────────────────────────────────────
 
-def load_entities() -> dict[str, tuple[str, str]]:
-    """Returns {lowercase_key: (canonical_name, passage_text)}."""
-    records: dict[str, tuple[str, str]] = {}
+def load_entities() -> tuple[dict[str, tuple[str, str]], dict[str, str]]:
+    """Returns ({key: (name, passage)}, {key: category})."""
+    records:    dict[str, tuple[str, str]] = {}
+    categories: dict[str, str]             = {}
 
     if not STAGE3_DIR.exists():
         print(f"Varning: {STAGE3_DIR} saknas — inga entiteter laddas.")
-        return records
+        return records, categories
 
     for csv_path in sorted(STAGE3_DIR.glob("*.csv")):
-        df = pd.read_csv(csv_path)
+        cat = CATEGORY_MAPPING.get(csv_path.stem, ("general", ""))[0]
+        df  = pd.read_csv(csv_path)
 
         label_col = next((c for c in df.columns if c.endswith("Label")), None)
         if label_col is None:
@@ -87,16 +99,17 @@ def load_entities() -> dict[str, tuple[str, str]]:
 
         for _, row in df.iterrows():
             name = str(row.get(label_col, "")).strip()
-            if not name:
+            if not name or not _is_valid_label(name):
                 continue
             key = name.lower()
             if key in records:
                 continue  # first CSV wins (sorted → deterministic)
             summary = str(row.get("wiki_summary", ""))
             attrs   = str(row.get("wiki_attributes", ""))
-            records[key] = (name, entity_passage(name, summary, attrs))
+            records[key]    = (name, entity_passage(name, summary, attrs))
+            categories[key] = cat
 
-    return records
+    return records, categories
 
 
 def load_general_words(entity_keys: set[str]) -> dict[str, tuple[str, str]]:
@@ -131,7 +144,7 @@ def main():
     log.info(f"Device: {device}")
 
     # 1. Collect items
-    entity_records = load_entities()
+    entity_records, entity_cats = load_entities()
     print(f"Entiteter (stage 3): {len(entity_records):,}")
     log.info(f"Stage 5: entities {len(entity_records)}")
 
@@ -140,13 +153,18 @@ def main():
     log.info(f"Stage 5: general words {len(word_records)}")
 
     # Entities first so their indices stay grouped, then general words
-    all_items = list(entity_records.values()) + list(word_records.values())
-    if not all_items:
+    entity_items = list(entity_records.items())   # [(key, (name, passage)), ...]
+    word_items   = list(word_records.items())
+    if not entity_items and not word_items:
         print("Inga poster att koda — avbryter.")
         sys.exit(1)
 
-    vocab    = [name    for name, _       in all_items]
-    passages = [passage for _,    passage in all_items]
+    vocab    = [name    for _, (name, _)       in entity_items] + \
+               [name    for _, (name, _)       in word_items]
+    passages = [passage for _, (_,    passage) in entity_items] + \
+               [passage for _, (_,    passage) in word_items]
+    sources  = [entity_cats.get(key, "general") for key, _ in entity_items] + \
+               ["general" for _ in word_items]
     print(f"Totalt att koda: {len(passages):,}")
     log.info(f"Stage 5: total passages {len(passages)}")
 
@@ -175,19 +193,31 @@ def main():
     embeddings = embeddings.astype(np.float32)
 
     # 4. Save
-    emb_path   = OUTPUT_DIR / "embeddings.npy"
-    vocab_path = OUTPUT_DIR / "vocab.json"
+    emb_path     = OUTPUT_DIR / "embeddings.npy"
+    vocab_path   = OUTPUT_DIR / "vocab.json"
+    sources_path = OUTPUT_DIR / "sources.json"
 
     np.save(str(emb_path), embeddings)
     with vocab_path.open("w", encoding="utf-8") as f:
         json.dump(vocab, f, ensure_ascii=False)
+    with sources_path.open("w", encoding="utf-8") as f:
+        json.dump(sources, f, ensure_ascii=False)
 
     log.info(f"Stage 5: wrote {emb_path}")
     log.info(f"Stage 5: wrote {vocab_path}")
+    log.info(f"Stage 5: wrote {sources_path}")
+
+    SERVER_DIR.mkdir(parents=True, exist_ok=True)
+    server_sources_path = SERVER_DIR / "sources.json"
+    with server_sources_path.open("w", encoding="utf-8") as f:
+        json.dump(sources, f, ensure_ascii=False)
+    log.info(f"Stage 5: wrote {server_sources_path}")
 
     print(f"\nKlar! {len(vocab):,} poster kodade.")
     print(f"  embeddings : {emb_path}  (shape {embeddings.shape})")
     print(f"  vocab      : {vocab_path}")
+    print(f"  sources    : {sources_path}")
+    print(f"  sources    : {server_sources_path}  (server)")
 
 
 if __name__ == "__main__":

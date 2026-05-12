@@ -26,12 +26,14 @@ BASE_DIR   = Path(__file__).resolve().parent
 INPUT_DIR  = BASE_DIR / "intermediate" / "stage5_encoded"
 OUTPUT_DIR = BASE_DIR.parent / "server" / "wordfiles"
 
-EMB_FILE   = INPUT_DIR  / "embeddings.npy"
-VOCAB_FILE = INPUT_DIR  / "vocab.json"
+EMB_FILE      = INPUT_DIR  / "embeddings.npy"
+VOCAB_FILE    = INPUT_DIR  / "vocab.json"
+SOURCES_FILE  = INPUT_DIR  / "sources.json"
 
-OUT_BIN    = OUTPUT_DIR / "vocab.bin"
-OUT_VOCAB  = OUTPUT_DIR / "vocab.json"
-OUT_META   = OUTPUT_DIR / "meta.json"
+OUT_BIN     = OUTPUT_DIR / "vocab.bin"
+OUT_VOCAB   = OUTPUT_DIR / "vocab.json"
+OUT_META    = OUTPUT_DIR / "meta.json"
+OUT_SOURCES = OUTPUT_DIR / "sources.json"
 
 def _setup_logger() -> logging.Logger:
     log_path = Path(__file__).resolve().parent / "pipeline.log"
@@ -101,6 +103,15 @@ def main():
         json.dump(meta, f)
     print(f"Skriver {OUT_META}: {meta}")
     log.info(f"Stage 6: wrote {OUT_META} {meta}")
+
+    # ── Write sources.json (optional — skip if not produced by stage 5) ───────
+    if SOURCES_FILE.exists():
+        with SOURCES_FILE.open("r", encoding="utf-8") as f:
+            sources = json.load(f)
+        with OUT_SOURCES.open("w", encoding="utf-8") as f:
+            json.dump(sources, f, ensure_ascii=False)
+        print(f"Skriver {OUT_SOURCES}…")
+        log.info(f"Stage 6: wrote {OUT_SOURCES}")
 
     # ── Sanity check: round-trip one vector ───────────────────────────────────
     raw = OUT_BIN.read_bytes()

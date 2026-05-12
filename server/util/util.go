@@ -20,19 +20,18 @@ func GenerateGameCode() string {
 	return fmt.Sprintf("%s-%s", segment(), segment())
 }
 
-func CosineDistance(vecA []float64, vecB []float64) float64 {
+func CosineDistance(vecA []float32, vecB []float32) float64 {
 	if len(vecA) == 0 || len(vecB) == 0 || len(vecA) != len(vecB) {
 		return math.NaN()
 	}
 
-	var dot float64
-	var normA float64
-	var normB float64
+	var dot, normA, normB float64
 
 	for i := range vecA {
-		dot += vecA[i] * vecB[i]
-		normA += vecA[i] * vecA[i]
-		normB += vecB[i] * vecB[i]
+		a, b := float64(vecA[i]), float64(vecB[i])
+		dot += a * b
+		normA += a * a
+		normB += b * b
 	}
 
 	if normA == 0 || normB == 0 {

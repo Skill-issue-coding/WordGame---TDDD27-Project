@@ -62,10 +62,31 @@ func (dictionary *Dictionary) IsValid(word string) bool {
 // SetRandomContextoTarget picks a random word from the curated target list.
 // Falls back to SetRandomActiveWord if no target list is loaded.
 func (dictionary *Dictionary) SetRandomContextoTarget() error {
-	if len(dictionary.Targets) > 0 {
-		word := dictionary.Targets[rand.IntN(len(dictionary.Targets))]
-		if _, ok := dictionary.lookup(word); ok {
-			dictionary.ActiveWord = word
+	return dictionary.setContextoTarget(dictionary.Targets)
+}
+
+// SetRandomContextoTargetByType picks a random target whose type matches
+// category (case-insensitive). Falls back to SetRandomContextoTarget if no
+// matching targets are found.
+func (dictionary *Dictionary) SetRandomContextoTargetByType(category string) error {
+	cat := strings.ToLower(strings.TrimSpace(category))
+	filtered := make([]Target, 0)
+	for _, t := range dictionary.Targets {
+		if strings.ToLower(strings.TrimSpace(t.Type)) == cat {
+			filtered = append(filtered, t)
+		}
+	}
+	if len(filtered) == 0 {
+		return dictionary.SetRandomContextoTarget()
+	}
+	return dictionary.setContextoTarget(filtered)
+}
+
+func (dictionary *Dictionary) setContextoTarget(pool []Target) error {
+	if len(pool) > 0 {
+		t := pool[rand.IntN(len(pool))]
+		if _, ok := dictionary.lookup(t.Word); ok {
+			dictionary.ActiveWord = t.Word
 			return nil
 		}
 	}

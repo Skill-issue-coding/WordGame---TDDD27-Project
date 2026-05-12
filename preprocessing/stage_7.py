@@ -25,6 +25,15 @@ from pathlib import Path
 
 import pandas as pd
 
+try:
+    from shared import CATEGORY_MAPPING, _is_valid_label
+except ImportError:
+    CATEGORY_MAPPING: dict = {}
+    def _is_valid_label(value: str) -> bool:  # type: ignore[misc]
+        import re
+        value = (value or "").strip()
+        return bool(value) and not value.startswith("http") and not re.match(r"^Q\d+$", value) and any(c.isalpha() for c in value)
+
 BASE_DIR   = Path(__file__).resolve().parent
 STAGE3_DIR = BASE_DIR / "intermediate" / "stage3_attrs"
 STAGE4_CSV = BASE_DIR / "intermediate" / "stage4_general" / "general_words.csv"
@@ -69,7 +78,8 @@ def load_encoded_vocab() -> set[str]:
         return {w.lower() for w in json.load(f)}
 
 
-def collect_general_targets(encoded: set[str]) -> list[str]:
+def collect_general_targets(encoded: set[str]) -> list[tuple[str, str]]:
+    """Returns [(word, type), …] for general vocabulary targets."""
     if not STAGE4_CSV.exists():
         print(f"Varning: {STAGE4_CSV} saknas — inga generella målord.")
         return []
@@ -89,16 +99,18 @@ def collect_general_targets(encoded: set[str]) -> list[str]:
     if encoded:
         words = [w for w in words if w.lower() in encoded]
 
-    return words
+    return [(w, "general") for w in words]
 
 
-def collect_entity_targets(encoded: set[str]) -> list[str]:
+def collect_entity_targets(encoded: set[str]) -> list[tuple[str, str]]:
+    """Returns [(name, type), …] for entity targets."""
     if not STAGE3_DIR.exists():
         return []
 
     entities = []
     for csv_path in sorted(STAGE3_DIR.glob("*.csv")):
-        df = pd.read_csv(csv_path)
+        cat = CATEGORY_MAPPING.get(csv_path.stem, ("general", ""))[0]
+        df  = pd.read_csv(csv_path)
 
         label_col = next((c for c in df.columns if c.endswith("Label")), None)
         if label_col is None:
@@ -108,9 +120,8 @@ def collect_entity_targets(encoded: set[str]) -> list[str]:
 
         for name in df[label_col].dropna().astype(str):
             name = name.strip()
-            if not name or len(name) < MIN_WORD_LEN or len(name) > MAX_WORD_LEN:
+            if not name or not _is_valid_label(name) or len(name) < MIN_WORD_LEN or len(name) > MAX_WORD_LEN:
                 continue
-            # Only include if the entity actually has wiki context (better targets)
             row = df.loc[df[label_col] == name].iloc[0]
             has_context = bool(str(row.get("wiki_summary", "")).strip()) or bool(
                 str(row.get("wiki_attributes", "")).strip()
@@ -119,7 +130,7 @@ def collect_entity_targets(encoded: set[str]) -> list[str]:
                 continue
             if encoded and name.lower() not in encoded:
                 continue
-            entities.append(name)
+            entities.append((name, cat))
 
     return entities
 
@@ -139,25 +150,29 @@ def main():
 
     # Deduplicate, entities take priority (they have richer context)
     seen: set[str] = set()
-    targets: list[str] = []
-    for word in entities + general:
+    targets: list[dict] = []
+    for word, word_type in entities + general:
         key = word.lower()
         if key not in seen:
             seen.add(key)
-            targets.append(word)
+            targets.append({"word": word, "type": word_type})
 
     if not targets:
         print("Inga målord hittades — kontrollera att stage 3 och 4 körts.")
         sys.exit(1)
 
-    targets.sort(key=str.lower)
+    targets.sort(key=lambda t: t["word"].lower())
 
     with OUT_FILE.open("w", encoding="utf-8") as f:
         json.dump(targets, f, ensure_ascii=False, indent=2)
     log.info(f"Stage 7: wrote {OUT_FILE} ({len(targets)})")
 
+    cats = {}
+    for t in targets:
+        cats[t["type"]] = cats.get(t["type"], 0) + 1
+    breakdown = "  ".join(f"{c}: {n:,}" for c, n in sorted(cats.items()))
     print(f"Klar! {len(targets):,} målord sparade till {OUT_FILE}")
-    print(f"  varav {len(entities):,} entiteter och {len(general):,} generella ord")
+    print(f"  {breakdown}")
 
 
 if __name__ == "__main__":

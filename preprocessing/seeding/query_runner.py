@@ -59,8 +59,8 @@ def run_all_and_save(queries: Iterable[Query], output_dir: Path) -> Dict[str, Li
             # Wait 10 seconds between queries to prevent triggering the 429 limits
             # Don't sleep after the very last query
             if i < len(list(queries)) - 1: 
-                log.info(f"Cooling down for 10 seconds before next query...")
-                time.sleep(10)
+                log.info(f"Cooling down for 65 seconds before next query...")
+                time.sleep(65)
             
         except Exception as exc:
             # Terminal UI completes the line

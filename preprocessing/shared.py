@@ -2,12 +2,9 @@ import csv
 import logging
 import re
 import sys
-from collections import defaultdict
 from pathlib import Path
 from typing import Dict, List, Optional
 from dotenv import load_dotenv
-from korp import clean_korp
-from seeding import clean_seeding
 
 """
     MENTAL NOTE:
@@ -42,7 +39,7 @@ NEIGHBOURS_PER_SEED = 70
 TOP_N_PER_SEED      = 50
 MIN_WORD_LEN        = 3
 
-DEFAULT_KORP_FREQ = 75 # High threshold for general words (verbs, adjectives, standard nouns)
+DEFAULT_KORP_FREQ = 300 # Minimum Korp frequency — keeps ~50K words vs ~300K at 30
 CATEGORY_KORP_FREQ = {
     "character": 5,     # Keep low for specific names
     "game": 5,          
@@ -64,8 +61,8 @@ CATEGORY_MAPPING = {
     "swedish_geography":   ("geography",  "geography_vectors.csv"),
     "swedish_tv_and_film": ("media",      "media_vectors.csv"),
     "video_games":         ("game",       "games_vectors.csv"),
-    "swedish_culture":     ("general",    "culture_vectors.csv"), 
-    "maktbarometern":      ("celebrity",  "celebrities_vectors.csv"),
+    "swedish_culture":     ("culture",    "culture_vectors.csv"),
+    "maktbarometern_cleaned": ("celebrity",  "celebrities_vectors.csv"),
 }
 
 # ── Logging Setup (Terminal clean, File detailed) ─────────────────────────────
@@ -143,6 +140,7 @@ def read_korp() -> List[Dict[str, str]]:
     """
     if not CLEANED_KORP_DIR.exists():
         print("Had to clean up the korp files")
+        from korp import clean_korp
         clean_korp.main()
 
     combined_path = CLEANED_KORP_DIR / "korp_combined_cleaned.csv"
@@ -242,6 +240,7 @@ def load_seeding() -> List[Dict[str, str]]:
     """Loads cleaned seeding CSV rows into a single list of dicts."""
     if not SEEDING_CLEANED_DIR.exists():
         print("Had to clean up the seeding files")
+        from seeding import clean_seeding
         clean_seeding.process_seeding()
 
     rows: List[Dict[str, str]] = []

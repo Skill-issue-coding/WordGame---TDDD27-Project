@@ -84,6 +84,12 @@ func ReadBinaryFiles() map[string]WordEntry {
 		return nil
 	}
 
+	// ── Load sources.json for category metadata (optional) ───────────────────
+	var sources []string
+	if data, err := os.ReadFile(filepath.Join(dir, "sources.json")); err == nil {
+		_ = json.Unmarshal(data, &sources)
+	}
+
 	// ── Build WordMap ─────────────────────────────────────────────────────────
 	wordMap := make(map[string]WordEntry, meta.N)
 	for i, word := range vocab {
@@ -92,21 +98,24 @@ func ReadBinaryFiles() map[string]WordEntry {
 			continue
 		}
 
-		// Convert float32 slice to float64 (compatible with existing CosineDistance)
+		wordType := "general"
+		if i < len(sources) && sources[i] != "" {
+			wordType = sources[i]
+		}
+
+		// Slice directly into the raw backing array — no per-word allocation.
+		// Sanitize any NaN/Inf in-place before storing.
 		row := raw[i*meta.Dims : (i+1)*meta.Dims]
-		vec := make([]float64, meta.Dims)
 		for j, v := range row {
 			if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
-				vec[j] = 0
-			} else {
-				vec[j] = float64(v)
+				row[j] = 0
 			}
 		}
 
 		wordMap[key] = WordEntry{
 			Word:       word,
-			Type:       inferType(key, wordMap),
-			WordVector: vec,
+			Type:       wordType,
+			WordVector: row,
 		}
 	}
 
@@ -125,18 +134,33 @@ func inferType(_ string, _ map[string]WordEntry) string {
 // LoadTargets reads targets.json — the curated Contexto target word list
 // produced by stage 7. Returns nil if the file is absent (callers fall back
 // to SetRandomActiveWord over the full dictionary).
-func LoadTargets() []string {
+// Accepts both the new format ([{"word":"…","type":"…"}]) and the legacy
+// format (["word",…]) — legacy entries get type "general".
+func LoadTargets() []Target {
 	p := filepath.Join(baseFileDirectory(), "targets.json")
 	data, err := os.ReadFile(p)
 	if err != nil {
 		return nil
 	}
-	var targets []string
-	if err := json.Unmarshal(data, &targets); err != nil {
+
+	// Try new format first.
+	var targets []Target
+	if err := json.Unmarshal(data, &targets); err == nil && len(targets) > 0 {
+		log.Printf("words: loaded %d Contexto targets", len(targets))
+		return targets
+	}
+
+	// Fall back to legacy flat string list.
+	var legacy []string
+	if err := json.Unmarshal(data, &legacy); err != nil {
 		log.Printf("words: could not parse targets.json: %v", err)
 		return nil
 	}
-	log.Printf("words: loaded %d Contexto targets", len(targets))
+	targets = make([]Target, len(legacy))
+	for i, w := range legacy {
+		targets[i] = Target{Word: w, Type: "general"}
+	}
+	log.Printf("words: loaded %d Contexto targets (legacy format)", len(targets))
 	return targets
 }
 
