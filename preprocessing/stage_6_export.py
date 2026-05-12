@@ -16,7 +16,6 @@ vectors, cosine similarity == dot product — no sqrt needed at runtime.
 """
 
 import json
-import struct
 import sys
 import logging
 from pathlib import Path
