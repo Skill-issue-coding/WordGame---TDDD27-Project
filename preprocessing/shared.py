@@ -4,8 +4,9 @@ import re
 import sys
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, List, Optional
 from dotenv import load_dotenv
+from gensim.models import FastText
 
 """
     MENTAL NOTE:
@@ -26,7 +27,7 @@ load_dotenv(dotenv_path=BASE_DIR / ".env.local")
 
 # ── Configuration ─────────────────────────────────────────────────────────────
 FASTTEXT_MODEL_PATH = BASE_DIR / "model" / "kubord-fasttext-afb-2010-2024-token.bin"
-KORP_DIR            = BASE_DIR / "korp"
+KORP_DIR            = BASE_DIR / "korp_cleaned"
 OUTPUT_DIR          = BASE_DIR.parent / "server" / "wordfiles"
 INTERMEDIATE_DIR    = BASE_DIR / "intermediate"
 SPACY_MODEL         = "sv_core_news_sm"
@@ -122,7 +123,6 @@ def _extract_label(row: Dict[str, str]) -> Optional[str]:
     return None
 
 def load_fasttext():
-    from gensim.models import FastText
     if not FASTTEXT_MODEL_PATH.exists():
         logging.error(f"Språkbanken model not found: {FASTTEXT_MODEL_PATH}")
         sys.exit(1)
@@ -171,6 +171,47 @@ def load_korp_freq() -> Optional[Dict[str, int]]:
             pickle.dump(result, f)
             
     return result
+
+def load_korp_csvs() -> List[Dict[str, str]]:
+    """Loads all Korp CSV rows into a single list of dicts.
+
+    Normalizes headers by stripping BOMs and whitespace, and skips files
+    that don't have headers or can't be read. Only rows with a word
+    longer than 3 characters and containing only A-Ö are included.
+    """
+    if not KORP_DIR.exists():
+        return []
+
+    rows: List[Dict[str, str]] = []
+    for csv_path in sorted(KORP_DIR.glob("*.csv")):
+        try:
+            with csv_path.open(encoding="utf-8", newline="") as f:
+                reader = csv.DictReader(f)
+                headers = [h.lstrip("\ufeff").strip() for h in reader.fieldnames or []]
+                if not headers:
+                    continue
+                f.seek(0)
+                reader = csv.DictReader(f, fieldnames=headers)
+                next(reader, None)
+                for row in reader:
+                    word = row.get("word") or row.get("Word") or row.get("token")
+                    if not word and row:
+                        word = list(row.values())[0]
+
+                    if not word:
+                        continue
+
+                    word = str(word).strip()
+                    if len(word) <= 3:
+                        continue
+                    if not re.fullmatch(r"[A-Öa-ö]+", word):
+                        continue
+
+                    rows.append(row)
+        except Exception:
+            continue
+
+    return rows
 
 def load_kelly() -> set:
     """Parses kelly.xml to build a strict Swedish dictionary lookup, with caching."""

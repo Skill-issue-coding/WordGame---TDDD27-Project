@@ -1,58 +1,116 @@
+import os
+import glob
 import time
+import pandas as pd
 import numpy as np
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Försök importera din Kelly-loader, annars använd en tom lista som grund
 try:
-    from shared import load_kelly
-    HAS_KELLY = True
-except ImportError:
-    HAS_KELLY = False
-    print("Varning: Kunde inte importera 'load_kelly' från 'shared.py'. Använder bara test-ord.")
+    from shared import load_kelly, load_korp_csvs, load_custom_stopwords
+    HAS_SHARED = True
+except ImportError as e:
+    HAS_SHARED = False
+    print(f"Kunde inte importera moduler från 'shared.py': {e}. Sökrymden kommer bli begränsad.")
+
+def _normalize_word(value: str) -> str:
+    return value.strip().lower()
 
 def get_vocabulary():
     vocab = set()
     
-    # 1. Ladda din officiella ordbok om den finns
-    if HAS_KELLY:
-        print("Laddar den officiella svenska ordboken (Kelly)...")
-        kelly_words = load_kelly()
+    if HAS_SHARED:
+        # 1. Load Kelly (Official Dictionary)
+        print("Laddar Kelly-listan via shared.py...")
+        kelly_words = {_normalize_word(w) for w in load_kelly() if isinstance(w, str) and w.strip()}
         vocab.update(kelly_words)
+        print(f" -> Lade till {len(kelly_words)} ord från Kelly.")
+
+        # 2. Load Korp (Frequency data)
+        print("Laddar Korp-data via shared.py...")
+        korp_rows = load_korp_csvs()
+        korp_words = set()
+        for row in korp_rows:
+            # Try common column names for the word, fallback to the first column
+            word = row.get('word') or row.get('Word') or row.get('token')
+            if not word and row:
+                word = list(row.values())[0]
+            
+            if word:
+                korp_words.add(_normalize_word(str(word)))
+        vocab.update(korp_words)
+        print(f" -> Lade till {len(korp_words)} unika ord från {len(korp_rows)} Korp-rader.")
+
+    # 3. Load Seeding Outputs (Celebrities, Companies, etc.)
+    # We still use pandas here since your seeding outputs might have different column structures
+    seed_files = glob.glob(os.path.join("seeding", "output", "*.csv"))
+    if seed_files:
+        print(f"Laddar entiteter från {len(seed_files)} seeding-filer...")
+        seed_words = set()
+        for file in seed_files:
+            try:
+                df = pd.read_csv(file)
+                # Look for 'itemLabel' (SPARQL default) or 'word'
+                col_name = 'itemLabel' if 'itemLabel' in df.columns else 'word'
+                if col_name in df.columns:
+                    seed_words.update(
+                        _normalize_word(w)
+                        for w in df[col_name].dropna().astype(str).tolist()
+                        if w.strip()
+                    )
+            except Exception as e:
+                print(f"Kunde inte ladda {file}: {e}")
+        vocab.update(seed_words)
+        print(f" -> Lade till {len(seed_words)} entiteter från seeding.")
+    else:
+        print("Inga seeding-filer hittades i 'seeding/output/'.")
+
+    # 4. Filter out custom stopwords
+    if HAS_SHARED:
+        print("Tillämpar custom stopwords...")
+        stopwords = load_custom_stopwords()
+        if stopwords:
+            original_len = len(vocab)
+            # Subtract the stopwords set from the vocab set (ignoring case)
+            vocab = {w for w in vocab if w not in stopwords}
+            print(f" -> Tog bort {original_len - len(vocab)} ord som fanns i stopwords.")
+
+    # Final cleanup: filter out empty strings and single characters
+    clean_vocab = [w for w in vocab if isinstance(w, str) and len(w) > 1]
     
-    # 2. Lägg till moderna/popkulturella ord som ofta saknas i gamla ordböcker
-    # Detta är avgörande för att popkultur/entiteter ska kunna kopplas till något vettigt!
-    moderna_ord = [
-        "youtube", "spel", "minecraft", "influencer", "internet", "dator", 
-        "streamer", "twitch", "esport", "fotboll", "sport", "mål", "boll", 
-        "politik", "riksdag", "sverige", "regering", "klimat", "miljö",
-        "musik", "konsert", "artist", "sång", "scen", "film", "bio", "skådespelare"
-    ]
-    vocab.update(moderna_ord)
-    
-    return list(vocab)
+    return list(set(clean_vocab))
 
 def main():
     print("=" * 60)
-    print("Laddar KBLab/sentence-bert-swedish-cased i RAM...")
+    print("Laddar intfloat/multilingual-e5-large i RAM...")
+    print("Observera: Detta är en stor modell (~2.2 GB).")
     print("=" * 60)
-    model = SentenceTransformer('KBLab/sentence-bert-swedish-cased')
     
-    print("Bygger sökrymd...")
+    model = SentenceTransformer('intfloat/multilingual-e5-large')
+    
+    print("\nBygger den officiella sökrymden...")
     vocabulary = get_vocabulary()
     
-    print(f"Kodar {len(vocabulary)} ord till vektorer... (Detta kan ta lite tid beroende på listans storlek)")
+    if not vocabulary:
+        print("Fel: Sökrymden är tom. Avbryter.")
+        return
+
+    # Prefixing for E5 (symmetric search)
+    prefixed_vocabulary = [f"query: {word}" for word in vocabulary]
+    
+    print(f"\nKodar {len(vocabulary)} unika ord/entiteter till vektorer...")
     start_encode = time.time()
     
-    # SBERT kodar hela listan effektivt. 
-    # Om din Kelly-lista är enorm (100k+ ord) kan du behöva sätta batch_size=256 och show_progress_bar=True
-    vocab_vectors = model.encode(vocabulary, show_progress_bar=True)
+    vocab_vectors = model.encode(
+        prefixed_vocabulary, 
+        show_progress_bar=True, 
+        normalize_embeddings=True
+    )
     
     print(f"Sökrymd vektoriserad på {time.time() - start_encode:.1f} sekunder.")
-    print(f"Redo! Söker bland {len(vocabulary)} ord.")
     print("=" * 60)
 
-    TOP_N = 15
+    TOP_N = 50
 
     while True:
         try:
@@ -65,15 +123,17 @@ def main():
 
             start_time = time.time()
             
-            # 1. Skapa vektor för inputen
-            target_vector = model.encode([user_input])
+            # Encode user input with the required E5 prefix
+            target_vector = model.encode(
+                [f"query: {user_input}"], 
+                normalize_embeddings=True
+            )
             
-            # 2. Jämför mot hela sökrymden
             similarities = cosine_similarity(target_vector, vocab_vectors)[0]
             closest_indices = np.argsort(similarities)[::-1]
 
             print(f"\nBeräkning klar på {time.time() - start_time:.3f} sekunder.")
-            print(f"{'Likhet':<10} | Ord i sökrymden")
+            print(f"{'Likhet':<10} | Ord/Entitet")
             print("-" * 40)
 
             count = 0
@@ -84,7 +144,7 @@ def main():
                 word = vocabulary[idx]
                 sim = similarities[idx]
                 
-                # Hoppa över ordet om det är exakt det användaren skrev
+                # Skip the exact match
                 if word.lower() == user_input.lower():
                     continue
                     
