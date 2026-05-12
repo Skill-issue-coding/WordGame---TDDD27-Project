@@ -42,7 +42,7 @@ NEIGHBOURS_PER_SEED = 70
 TOP_N_PER_SEED      = 50
 MIN_WORD_LEN        = 3
 
-DEFAULT_KORP_FREQ = 300 # High threshold for general words (verbs, adjectives, standard nouns)
+DEFAULT_KORP_FREQ = 75 # High threshold for general words (verbs, adjectives, standard nouns)
 CATEGORY_KORP_FREQ = {
     "character": 5,     # Keep low for specific names
     "game": 5,          

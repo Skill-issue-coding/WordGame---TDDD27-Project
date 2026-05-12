@@ -52,13 +52,13 @@ python -m korp.clean_korp
 python -m seeding.clean_seeding   # also handles Maktbarometern
 
 # Main pipeline
-python stage_1_seeds.py      # SPARQL → seeding/output/
-python stage_2_wiki.py       # Wikipedia summaries → intermediate/stage2_wiki/
-python stage_3_attrs.py      # Wikidata attributes → intermediate/stage3_attrs/
-python stage_4_general.py    # Korp + Kelly + spaCy → intermediate/stage4_general/
-python stage_5_encode.py     # E5 encoding → intermediate/stage5_encoded/
-python stage_6_export.py     # Binary export → server/wordfiles/
-python stage_7_targets.py    # Curated targets → server/wordfiles/targets.json
+python stage_1.py   # SPARQL → seeding/output/
+python stage_2.py   # Wikipedia summaries → intermediate/stage2_wiki/
+python stage_3.py   # Wikidata attributes → intermediate/stage3_attrs/
+python stage_4.py   # Korp + Kelly + spaCy → intermediate/stage4_general/
+python stage_5.py   # E5 encoding → intermediate/stage5_encoded/
+python stage_6.py   # Binary export → server/wordfiles/
+python stage_7.py   # Curated targets → server/wordfiles/targets.json
 ```
 
 ### Logging
@@ -85,31 +85,31 @@ flowchart TD
     end
 
     subgraph STAGE1 [Stage 1 — SPARQL Seeding]
-        S1["stage_1_seeds.py\n→ seeding/output/*.csv"]
+        S1["stage_1.py\n→ seeding/output/*.csv"]
     end
 
     subgraph STAGE2 [Stage 2 — Wikipedia Context]
-        S2["stage_2_wiki.py\nFetches sv.wikipedia intro summaries\n→ intermediate/stage2_wiki/*.csv"]
+        S2["stage_2.py\nFetches sv.wikipedia intro summaries\n→ intermediate/stage2_wiki/*.csv"]
     end
 
     subgraph STAGE3 [Stage 3 — Wikidata Attributes]
-        S3["stage_3_attrs.py\nFetches P31/P106/P136… claims\nTranslates to Swedish strings\n→ intermediate/stage3_attrs/*.csv"]
+        S3["stage_3.py\nFetches P31/P106/P136… claims\nTranslates to Swedish strings\n→ intermediate/stage3_attrs/*.csv"]
     end
 
     subgraph STAGE4 [Stage 4 — General Vocabulary]
-        S4["stage_4_general.py\nspaCy POS filter (NOUN/VERB/ADJ/PROPN)\nKorp frequency threshold\nKelly list validation\n→ intermediate/stage4_general/general_words.csv"]
+        S4["stage_4.py\nspaCy POS filter (NOUN/VERB/ADJ/PROPN)\nKorp frequency threshold\nKelly list validation\n→ intermediate/stage4_general/general_words.csv"]
     end
 
     subgraph STAGE5 [Stage 5 — E5 Encoding]
-        S5["stage_5_encode.py\nBuilds passage: prefixed texts\nEncodes with multilingual-e5-large\nBatch size 512, ROCm/CUDA\n→ intermediate/stage5_encoded/\n   embeddings.npy  (N × 1024 float32)\n   vocab.json      (N word strings)"]
+        S5["stage_5.py\nBuilds passage: prefixed texts\nEncodes with multilingual-e5-large\nBatch size 512, ROCm/CUDA\n→ intermediate/stage5_encoded/\n   embeddings.npy  (N × 1024 float32)\n   vocab.json      (N word strings)"]
     end
 
     subgraph STAGE6 [Stage 6 — Binary Export]
-        S6["stage_6_export.py\n→ server/wordfiles/\n   vocab.bin   (raw float32, little-endian)\n   vocab.json  (word list)\n   meta.json   ({n, dims})"]
+        S6["stage_6.py\n→ server/wordfiles/\n   vocab.bin   (raw float32, little-endian)\n   vocab.json  (word list)\n   meta.json   ({n, dims})"]
     end
 
     subgraph STAGE7 [Stage 7 — Contexto Targets]
-        S7["stage_7_targets.py\nFilters to game-worthy nouns + entities\n→ server/wordfiles/targets.json"]
+        S7["stage_7.py\nFilters to game-worthy nouns + entities\n→ server/wordfiles/targets.json"]
     end
 
     KORP --> CK
@@ -179,7 +179,7 @@ Reads raw Korp CSV files from `korp/`, filters to valid Swedish words (regex, mi
 
 ---
 
-### Stage 1 — SPARQL Seeding [`stage_1_seeds.py`](stage_1_seeds.py)
+### Stage 1 — SPARQL Seeding [`stage_1.py`](stage_1.py)
 
 Queries Wikidata via SPARQL to fetch named entities grouped by category (Swedish celebrities, companies, video games, food, geography, TV/film, culture). Uses query definitions from [`seeding/queries/`](seeding/queries).
 
@@ -187,7 +187,7 @@ Queries Wikidata via SPARQL to fetch named entities grouped by category (Swedish
 
 ---
 
-### Stage 2 — Wikipedia Context [`stage_2_wiki.py`](stage_2_wiki.py)
+### Stage 2 — Wikipedia Context [`stage_2.py`](stage_2.py)
 
 For each entity in the cleaned seeding CSVs, fetches the introductory paragraph from **Swedish Wikipedia** (`sv.wikipedia.org`). This gives the E5 model rich contextual prose — "Minecraft är ett sandlådespel…" is far more informative than the bare word "Minecraft".
 
@@ -198,7 +198,7 @@ Includes resume support: already-processed files are skipped, so the stage can s
 
 ---
 
-### Stage 3 — Wikidata Attributes [`stage_3_attrs.py`](stage_3_attrs.py)
+### Stage 3 — Wikidata Attributes [`stage_3.py`](stage_3.py)
 
 Fetches structured Wikidata P-claims for each entity and translates them into readable Swedish attribute strings. This supplements sparse Wikipedia summaries with categorical facts.
 
@@ -220,7 +220,7 @@ Files without Wikidata Q-ID columns (e.g. Maktbarometern) pass through unchanged
 
 ---
 
-### Stage 4 — General Vocabulary [`stage_4_general.py`](stage_4_general.py)
+### Stage 4 — General Vocabulary [`stage_4.py`](stage_4.py)
 
 Builds the base Swedish dictionary from Korp frequency data. This covers everyday words (nouns, verbs, adjectives) that are not named entities.
 
@@ -237,7 +237,7 @@ Pipeline:
 
 ---
 
-### Stage 5 — E5 Encoding [`stage_5_encode.py`](stage_5_encode.py)
+### Stage 5 — E5 Encoding [`stage_5.py`](stage_5.py)
 
 The core stage. Merges entity and word data, constructs `passage:`-prefixed text inputs, and encodes everything with `intfloat/multilingual-e5-large`.
 
@@ -263,7 +263,7 @@ Configuration:
 
 ---
 
-### Stage 6 — Binary Export [`stage_6_export.py`](stage_6_export.py)
+### Stage 6 — Binary Export [`stage_6.py`](stage_6.py)
 
 Converts the numpy embeddings into a compact binary format that the Go backend can load instantly via `encoding/binary`. Avoids parsing gigabytes of CSV floats at server startup.
 
@@ -282,7 +282,7 @@ A round-trip sanity check is run before exit: the first vector is re-read from d
 
 ---
 
-### Stage 7 — Contexto Target List [`stage_7_targets.py`](stage_7_targets.py)
+### Stage 7 — Contexto Target List [`stage_7.py`](stage_7.py)
 
 Not all words make good Contexto targets — function words, rare technical terms, and ambiguous short words all make for a bad game experience. This stage filters the full vocabulary down to a curated list of concrete, recognisable Swedish words.
 

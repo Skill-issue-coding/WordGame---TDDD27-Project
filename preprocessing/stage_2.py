@@ -6,6 +6,7 @@ import requests
 import time
 from pathlib import Path
 from dotenv import load_dotenv
+import sys
 
 # === Configuration ===
 # Look for the cleaned seeding files first, fallback to the raw output
@@ -18,7 +19,8 @@ BASE_DIR = Path(__file__).resolve().parent
 load_dotenv(dotenv_path=BASE_DIR / ".env.local")
 MAIL = os.getenv("MAIL", "")
 if not MAIL:
-    raise ValueError("Environment variable 'MAIL' must be set for the Wikipedia User-Agent policy.")
+    print("Error: Environment variable 'MAIL' must be set for the Wikidata User-Agent policy.")
+    sys.exit(1)
 
 def _setup_logger() -> logging.Logger:
     log_path = Path(__file__).resolve().parent / "pipeline.log"
