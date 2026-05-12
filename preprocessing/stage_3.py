@@ -1,90 +1,123 @@
-import pickle
 import logging
+import pickle
 import re
+
 from shared import (
-    INTERMEDIATE_DIR, MIN_WORD_LEN, DEFAULT_KORP_FREQ, 
-    CATEGORY_KORP_FREQ, ALLOWED_POS, load_spacy, load_korp_freq, load_kelly
+    ALLOWED_POS,
+    INTERMEDIATE_DIR,
+    MIN_WORD_LEN,
+    load_custom_stopwords,
+    load_kelly,
+    load_spacy,
 )
 
-# Regex to find any standard Swedish vowel (including é for words like pokémon/créme)
-VOWEL_REGEX = re.compile(r'[aeiouyåäöé]', re.IGNORECASE)
+VOWEL_REGEX = re.compile(r"[aeiouyåäöé]", re.IGNORECASE)
+ENTITY_CATEGORIES = {"celebrity", "company", "character", "game", "media", "geography"}
+ENTITY_ALLOWED_POS = {"PROPN"}
+ENTITY_SPECIAL_CHARS = {" ", "-", "'", ".", ":", "&"}
+
+
+def _unpack_entry(entry):
+    if len(entry) >= 8:
+        word, cat, sim, vec, popularity, sitelinks, score, is_seed = entry[:8]
+        return word, cat, sim, vec, float(popularity), float(sitelinks), float(score), bool(is_seed)
+
+    word, cat, sim, vec = entry
+    return word, cat, sim, vec, 0.0, 0.0, 0.0, False
+
+
+def _is_valid_surface(word: str, category: str, is_seed: bool) -> bool:
+    if len(word) < MIN_WORD_LEN:
+        return False
+
+    if word.startswith("-") or word.endswith("-") or "--" in word:
+        return False
+
+    if category in ENTITY_CATEGORIES or is_seed:
+        compact = "".join(ch for ch in word if ch not in ENTITY_SPECIAL_CHARS)
+        if not compact:
+            return False
+        if not any(ch.isalpha() for ch in compact):
+            return False
+        return all(ch.isalnum() or ch in ENTITY_SPECIAL_CHARS for ch in word)
+
+    plain = word.replace("-", "")
+    if not plain.isalpha():
+        return False
+    if not VOWEL_REGEX.search(word):
+        return False
+    return True
+
 
 def main():
     print("starting stage 3")
     logging.info("=" * 60)
     logging.info("Stage 3: Validation, Formatting & Kelly Filter")
-    
+
     with open(INTERMEDIATE_DIR / "stage2_candidates.pkl", "rb") as f:
         candidates = pickle.load(f)
 
     nlp = load_spacy()
-    # korp_freq = load_korp_freq()
-    kelly_words = load_kelly()  # Load the Kelly dictionary
+    kelly_words = load_kelly()
+    custom_stopwords = load_custom_stopwords()
     filtered = {}
 
     for output_csv, entries in candidates.items():
         pre_filtered = []
-        for e in entries:
-            word, cat, sim, vec = e
-            
-            # 1. Length and Alpha check (allowing internal hyphens)
-            if len(word) < MIN_WORD_LEN or not word.replace("-", "").isalpha():
-                continue
-                
-            # 2. Formatting check: No dangling hyphens, max 1 hyphen total
-            if word.startswith("-") or word.endswith("-") or word.count("-") > 1:
-                continue
-                
-            # 3. Gibberish check: Must contain at least one vowel
-            if not VOWEL_REGEX.search(word):
-                continue
-                
-            # # 4. Dynamic Korp Frequency Check
-            # req_freq = CATEGORY_KORP_FREQ.get(cat, DEFAULT_KORP_FREQ)
-            # if korp_freq is None or korp_freq.get(word, 0) < req_freq:
-            #     continue
+        for raw_entry in entries:
+            word, cat, sim, vec, popularity, sitelinks, score, is_seed = _unpack_entry(raw_entry)
+            if _is_valid_surface(word, cat, is_seed):
+                pre_filtered.append((word, cat, sim, vec, popularity, sitelinks, score, is_seed))
 
-            pre_filtered.append(e)
-            
         if not pre_filtered:
             filtered[output_csv] = []
             continue
 
-        # # Sort by Korp frequency BEFORE deduplication to favor common lemmas
-        # if korp_freq:
-        #     pre_filtered.sort(key=lambda x: korp_freq.get(x[0], 0), reverse=True)
-
-        words = [e[0] for e in pre_filtered]
+        words = [entry[0] for entry in pre_filtered]
         docs = nlp.pipe(words, batch_size=1000)
-        
-        seen_lemmas = set()
-        valid_entries = []
-        
-        for doc, entry in zip(docs, pre_filtered):
-            if doc and not doc[0].is_stop and doc[0].pos_ in ALLOWED_POS:
-                word_text = doc[0].text.lower()
-                pos = doc[0].pos_
-                
-                # 5. Strict Spellcheck / English Filter
-                # If it's a standard word (NOUN, VERB, ADJ), it MUST be in the Kelly dictionary.
-                # (We skip this check for PROPN so that names and brands are still allowed)
-                if pos in {"NOUN", "VERB", "ADJ"}:
-                    if word_text not in kelly_words:
-                        continue 
 
-                # 6. Deduplicate by Lemma
-                lemma = doc[0].lemma_.lower()
-                if lemma not in seen_lemmas:
-                    seen_lemmas.add(lemma)
-                    valid_entries.append(entry)
-                
+        seen_keys = set()
+        valid_entries = []
+
+        for doc, entry in zip(docs, pre_filtered):
+            word, cat, sim, vec, popularity, sitelinks, score, is_seed = entry
+            token = next((t for t in doc if not t.is_space), None)
+            if token is None:
+                continue
+
+            word_text = word.lower()
+            lemma = token.lemma_.lower()
+            pos = token.pos_
+            is_entity = cat in ENTITY_CATEGORIES
+
+            if not is_seed:
+                if token.text.lower() in custom_stopwords or lemma in custom_stopwords:
+                    continue
+
+                if is_entity:
+                    if pos not in ENTITY_ALLOWED_POS:
+                        continue
+                else:
+                    if token.is_stop or pos not in ALLOWED_POS:
+                        continue
+                    if pos in {"NOUN", "VERB", "ADJ"} and token.text.lower() not in kelly_words:
+                        continue
+
+            dedupe_key = word_text if (is_entity or is_seed) else lemma
+            if dedupe_key in seen_keys:
+                continue
+
+            seen_keys.add(dedupe_key)
+            valid_entries.append((word_text, cat, sim, vec, popularity, sitelinks, score, is_seed))
+
         filtered[output_csv] = valid_entries
 
     with open(INTERMEDIATE_DIR / "stage3_validated.pkl", "wb") as f:
         pickle.dump(filtered, f)
-        
-    print("stage 3 complete")
+
+    print("Stage 3 complete!")
     logging.info("Stage 3 complete.")
+
 
 if __name__ == "__main__":
     main()

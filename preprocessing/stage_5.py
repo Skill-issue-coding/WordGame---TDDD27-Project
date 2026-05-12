@@ -15,7 +15,7 @@ def main():
         reduced = pickle.load(f)
 
     dim_headers = [f"v{i}" for i in range(PCA_DIMS)]
-    fieldnames = ["word", "category"] + dim_headers
+    fieldnames = ["word", "category", "popularity", "sitelinks", "score", "is_seed"] + dim_headers
 
     for output_csv, entries in reduced.items():
         if not entries: continue
@@ -23,8 +23,21 @@ def main():
         with path.open("w", encoding="utf-8", newline="") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            for word, category, vec in entries:
-                row = {"word": word, "category": category}
+            for entry in entries:
+                if len(entry) >= 7:
+                    word, category, vec, popularity, sitelinks, score, is_seed = entry[:7]
+                else:
+                    word, category, vec = entry[:3]
+                    popularity, sitelinks, score, is_seed = 0.0, 0.0, 0.0, False
+
+                row = {
+                    "word": word,
+                    "category": category,
+                    "popularity": f"{float(popularity):.6f}",
+                    "sitelinks": f"{float(sitelinks):.6f}",
+                    "score": f"{float(score):.6f}",
+                    "is_seed": str(bool(is_seed)).lower(),
+                }
                 for i in range(PCA_DIMS):
                     row[f"v{i}"] = f"{float(vec[i]):.6f}" if i < len(vec) else "0.000000"
                 writer.writerow(row)

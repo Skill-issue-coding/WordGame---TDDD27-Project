@@ -30,6 +30,7 @@ KORP_DIR            = BASE_DIR / "korp"
 OUTPUT_DIR          = BASE_DIR.parent / "server" / "wordfiles"
 INTERMEDIATE_DIR    = BASE_DIR / "intermediate"
 SPACY_MODEL         = "sv_core_news_sm"
+STOPWORDS_DIR       = BASE_DIR / "stopwords"
 
 PCA_DIMS            = 100
 NEIGHBOURS_PER_SEED = 70
@@ -80,13 +81,44 @@ def setup_dirs():
     INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
+def _is_valid_label(value: str) -> bool:
+    value = (value or "").strip()
+    if not value:
+        return False
+    if value.startswith("http"):
+        return False
+    if re.match(r"^Q\d+$", value):
+        return False
+    if re.fullmatch(r"\d+(\.\d+)?", value):
+        return False
+    return any(ch.isalpha() for ch in value)
+
+
 def _extract_label(row: Dict[str, str]) -> Optional[str]:
-    for key in ("personLabel", "artistLabel", "companyLabel", "brandLabel", "characterLabel", "foodLabel", "placeLabel", "workLabel", "gameLabel"):
-        val = row.get(key, "").strip()
-        if val and not re.match(r"^Q\d+$", val): return val
-    for val in row.values():
-        val = val.strip()
-        if val and not val.startswith("http") and not re.match(r"^Q\d+$", val): return val
+    preferred_keys = (
+        "personLabel",
+        "artistLabel",
+        "companyLabel",
+        "brandLabel",
+        "characterLabel",
+        "foodLabel",
+        "placeLabel",
+        "workLabel",
+        "gameLabel",
+        "wordLabel",
+    )
+
+    for key in preferred_keys:
+        val = row.get(key, "")
+        if _is_valid_label(val):
+            return val.strip()
+
+    for key, val in row.items():
+        if key.lower() in {"sitelinks", "score", "rank"}:
+            continue
+        if _is_valid_label(val):
+            return val.strip()
+
     return None
 
 def load_fasttext():
@@ -177,3 +209,36 @@ def load_kelly() -> set:
         logging.error(f"Failed to parse kelly.xml: {e}")
 
     return words
+
+def load_custom_stopwords() -> set:
+    """Dynamically loads and combines all stopword CSVs from the stopwords directory."""
+    cache_path = INTERMEDIATE_DIR / "stopwords_cache.pkl"
+    
+    if cache_path.exists():
+        import pickle
+        with open(cache_path, "rb") as f:
+            return pickle.load(f)
+
+    import logging
+    stopwords = set()
+    
+    if not STOPWORDS_DIR.exists():
+        logging.warning(f"Stopwords directory not found at {STOPWORDS_DIR}! Custom stopwords disabled.")
+        return stopwords
+
+    # Find all CSV files in the folder
+    for csv_path in STOPWORDS_DIR.glob("*.csv"):
+        with open(csv_path, "r", encoding="utf-8") as f:
+            # Assuming the CSVs are a simple list of words, 1 per line/row
+            reader = csv.reader(f)
+            for row in reader:
+                if row and row[0].strip():
+                    stopwords.add(row[0].strip().lower())
+                    
+    if stopwords:
+        INTERMEDIATE_DIR.mkdir(parents=True, exist_ok=True)
+        import pickle
+        with open(cache_path, "wb") as f:
+            pickle.dump(stopwords, f)
+            
+    return stopwords

@@ -16,7 +16,7 @@ SELECT DISTINCT ?game ?gameLabel ?sitelinks WHERE {
   FILTER(?sitelinks > 10)
 
   SERVICE wikibase:label {
-    bd:serviceParam wikibase:language "sv".
+    bd:serviceParam wikibase:language "sv,en".
   }
 }
 # ORDER BY DESC(?sitelinks)

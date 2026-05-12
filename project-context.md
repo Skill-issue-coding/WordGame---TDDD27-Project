@@ -15,7 +15,7 @@ The game features a standard multiplayer lobby system where players can create r
 
 Below is the current tech stack
 
-### 1) Preprocessing (Python)
+### 1. Preprocessing (Python)
 
 Main script: `preprocessing/main.py`
 

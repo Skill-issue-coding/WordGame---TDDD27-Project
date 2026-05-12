@@ -125,7 +125,9 @@ Queries Wikidata to fetch seed entities (celebrities, companies, video games, et
 
 ### Stage 2: Vector Lookup [`stage_2.py`](stage_2.py)
 
-Reads the Stage 1 CSVs and finds the nearest fastText vector neighbours for each seed entity. Multi-word seeds are average-pooled before lookup. _This stage takes a long time cause of the mathematical calculations_
+Reads the Stage 1 CSVs and finds the nearest fastText vector neighbours for each seed entity. Multi-word seeds are average-pooled before lookup, and seed entities are explicitly retained so important entries are not lost. _This stage takes a long time cause of the mathematical calculations_
+
+Popularity metadata (`sitelinks`, Maktbarometern `score` and `rank`) is carried into Stage 2 candidates to support server-side weighted selection.
 
 - **Reads:** [`seeding/output/*.csv`](seeding/output)
 
@@ -133,7 +135,7 @@ Reads the Stage 1 CSVs and finds the nearest fastText vector neighbours for each
 
 ### Stage 3: Validity Filter [`stage_3.py`](stage_3.py)
 
-Filters the candidate words generated in Stage 2 to ensure they are valid game words. Drops words based on length, spaCy Part-of-Speech tagging (must be `NOUN` or `PROPN`), stopwords, and minimum Korp corpus frequency.
+Filters the candidate words generated in Stage 2 to ensure they are valid game words. Filtering is category-aware: entity-heavy categories keep seed entities while non-seed candidates are constrained by spaCy POS and stopword checks, and non-entity words still use stricter linguistic filtering.
 
 - **Reads:** `intermediate/stage2_candidates.pkl`
 
@@ -153,4 +155,6 @@ Formats the final validated, dimensionality-reduced data and writes it to the se
 
 - **Reads:** `intermediate/stage4_reduced.pkl`
 
-- Outputs: Final `*_vectors.csv` files saved to [`server/wordfiles/`](../server/wordfiles).
+- Outputs: Final `*_vectors.csv` files saved to [`server/wordfiles/`](../server/wordfiles) with schema:
+
+  `word,category,popularity,sitelinks,score,is_seed,v0..v99`

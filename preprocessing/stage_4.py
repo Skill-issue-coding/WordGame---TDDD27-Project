@@ -43,9 +43,16 @@ def main():
     with open(INTERMEDIATE_DIR / "stage3_validated.pkl", "rb") as f:
         validated = pickle.load(f)
 
+    def unpack(entry):
+        if len(entry) >= 8:
+            word, cat, _sim, vec, popularity, sitelinks, score, is_seed = entry[:8]
+            return word, cat, vec, float(popularity), float(sitelinks), float(score), bool(is_seed)
+        word, cat, _sim, vec = entry
+        return word, cat, vec, 0.0, 0.0, 0.0, False
+
     all_vectors = []
     for entries in validated.values():
-        all_vectors.extend([vec for _, _, _, vec in entries])
+        all_vectors.extend([unpack(entry)[2] for entry in entries])
     
     matrix = np.array(all_vectors, dtype=np.float32)
     
@@ -60,7 +67,8 @@ def main():
             reduced[output_csv] = []
             continue
 
-        cat_matrix = np.array([vec for _, _, _, vec in entries], dtype=np.float32)
+        unpacked_entries = [unpack(entry) for entry in entries]
+        cat_matrix = np.array([entry[2] for entry in unpacked_entries], dtype=np.float32)
         # Transform using the global PCA
         reduced_matrix = pca.transform(cat_matrix)
 
@@ -69,8 +77,18 @@ def main():
             reduced_matrix = np.concatenate([reduced_matrix, pad], axis=1)
 
         reduced[output_csv] = [
-            (word, cat, reduced_matrix[i])
-            for i, (word, cat, _sim, _vec) in enumerate(entries)
+            (
+                word,
+                cat,
+                reduced_matrix[i],
+                popularity,
+                sitelinks,
+                score,
+                is_seed,
+            )
+            for i, (word, cat, _vec, popularity, sitelinks, score, is_seed) in enumerate(
+                unpacked_entries
+            )
         ]
 
     with open(INTERMEDIATE_DIR / "stage4_reduced.pkl", "wb") as f:

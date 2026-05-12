@@ -1,7 +1,9 @@
 package main
 
 import (
+	"fmt"
 	"log"
+	"server/game"
 	"server/handlers"
 	"server/session"
 
@@ -9,7 +11,26 @@ import (
 )
 
 func main() {
-	handleServerStartup()
+	// handleServerStartup()
+
+	fmt.Printf("Creating a hub \n")
+	hub, err := session.NewGameHub()
+	if err != nil {
+		log.Fatalf("Could not initialize game hub: %v", err)
+	}
+
+	go hub.Run()
+
+	impostorPair, err := game.GenerateImpostorPair(&hub.Dictionary)
+	if err != nil {
+		log.Fatalf("Could not generate impostor pair: %v", err)
+	}
+
+	fmt.Printf("Normal word: %s \n", impostorPair.NormalWord.Word)
+	fmt.Printf("Type: %s \n\n", impostorPair.NormalWord.Type)
+
+	fmt.Printf("Impostor word: %s \n", impostorPair.ImpostorWord.Word)
+
 	// // Create a Gin router with default middleware (logger and recovery)
 	// r := gin.Default()
 
