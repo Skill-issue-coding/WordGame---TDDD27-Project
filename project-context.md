@@ -17,36 +17,35 @@ Below is the current tech stack
 
 ### 1. Preprocessing (Python)
 
-Main script: `preprocessing/main.py`
+Main entry points: staged scripts `preprocessing/stage_1.py` ... `preprocessing/stage_7.py`
 
 Pipeline behavior:
 
-- Loads `cc.sv.300.bin` fastText model.
-- Reduces vectors to 100 dimensions.
-- Uses spaCy `sv_core_news_sm` for POS filtering.
-- Builds output CSVs into `server/wordfiles/`.
+- Uses `intfloat/multilingual-e5-large` (1024-dim) instead of fastText.
+- Enriches entities with Swedish Wikipedia summaries and Wikidata attributes before encoding.
+- Builds a general Swedish vocabulary from Korp frequency data + Kelly dictionary + spaCy POS filtering.
+- Writes compact binary embeddings for fast Go startup (no CSV float parsing).
+- Produces a curated target list for Contexto-style modes.
 
-Generated files expected by backend loader:
+Generated files consumed by the Go backend:
 
-- `celebrities_vectors.csv`
-- `companies_vectors.csv`
-- `kelly_vectors.csv`
-- `korp_vectors.csv`
-- `maktbarometern_vectors.csv`
+- `server/wordfiles/vocab.bin` (float32, little-endian)
+- `server/wordfiles/vocab.json` (word list)
+- `server/wordfiles/meta.json` ({n, dims})
+- `server/wordfiles/targets.json` (Contexto target words)
 
-Data sources currently used by script logic:
+Data sources currently used by the pipeline:
 
 - Kelly XML word list
-- Company datasets
-- Celebrity dataset
-- Maktbarometern datasets
-- Korp statistics + stopword filtering
+- Korp frequency CSVs + stopword filtering
+- Wikidata SPARQL entity seeds
+- Swedish Wikipedia summaries
+- Maktbarometern influencer lists (cleaned)
 
 Important note:
 
-Related utility:
-
-- `preprocessing/colly-crawler/` contains a Go-based scraper/formatter workflow for Maktbarometern data cleanup.
+- State is passed between stages via `preprocessing/intermediate/` (git-ignored).
+- Related utility: `preprocessing/colly-crawler/` contains a Go-based scraper/formatter workflow for Maktbarometern data cleanup.
 
 ### 2. Server (Go)
 
