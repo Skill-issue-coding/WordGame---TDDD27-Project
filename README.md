@@ -12,10 +12,6 @@ The preprocessing pipeline lives in [preprocessing/README.md](preprocessing/READ
 
 - **Kelly word list:** `preprocessing/kelly.xml` from Sprakbanken.
 
-- **Popular companies:** Source data in `preprocessing/` from companiesmarketcap.com and Kaggle.
-
-- **Celebrities:** Source data in `preprocessing/` from Kaggle.
-
 ## Stack
 
 - Preprocessing: Python pipeline (see [preprocessing/README.md](preprocessing/README.md))
