@@ -12,7 +12,7 @@ CURRENT_DIR = Path(__file__).resolve().parent
 # === Configuration Paths ===
 MAKTBAROMETERN_DIR = CURRENT_DIR / "maktbarometern" / "csv"
 SEEDING_OUTPUT_DIR = CURRENT_DIR / "output"
-CLEANED_DIR = CURRENT_DIR.parent / "seeding_cleaned"
+CLEANED_DIR = CURRENT_DIR.parent / "intermediate" / "seeding_cleaned"
 
 def clean_text(text):
     """Normalizes Unicode and removes emojis/special characters."""
@@ -65,6 +65,7 @@ def fetch_labels_from_wikidata(qids):
 
 def process_maktbarometern():
     print("--- Processing Maktbarometern ---")
+    os.makedirs(CLEANED_DIR, exist_ok=True)
     files = glob.glob(os.path.join(MAKTBAROMETERN_DIR, "*.csv"))
     if not files:
         print(f"No files found in {MAKTBAROMETERN_DIR}")

@@ -15,7 +15,7 @@ try:
 except ImportError as e:
     HAS_SHARED = False
     print(f"Varning: Kunde inte importera från 'shared.py': {e}")
-    CLEANED_KORP_DIR = os.path.join(parent_dir, "korp_cleaned")
+    CLEANED_KORP_DIR = os.path.join(parent_dir, "intermediate", "korp_cleaned")
 
 # === Configuration ===
 KORP_DIR = "korp"
@@ -117,7 +117,7 @@ def main():
     
     total_cleaned = len(final_df)
 
-    output_path = os.path.join(OUTPUT_DIR, "korp_combined_cleaned.csv")
+    output_path = os.path.join(CLEANED_KORP_DIR, "korp_combined_cleaned.csv")
     final_df.to_csv(output_path, index=False)
 
     print("="*40)

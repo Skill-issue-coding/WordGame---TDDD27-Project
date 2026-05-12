@@ -3,11 +3,40 @@ import glob
 import pandas as pd
 import requests
 import time
+from pathlib import Path
+from dotenv import load_dotenv
 
 # === Configuration ===
 # Look for the cleaned seeding files first, fallback to the raw output
-INPUT_DIRS = ["seeding_cleaned", "seeding/output_cleaned", "seeding/output"]
+INPUT_DIRS = ["intermediate/seeding_cleaned", "seeding/output_cleaned", "seeding/output"]
 OUTPUT_DIR = "intermediate/stage2_wiki"
+MAX_REQUESTS_PER_MIN = 200
+MIN_INTERVAL_SECONDS = 60.0 / MAX_REQUESTS_PER_MIN
+
+BASE_DIR = Path(__file__).resolve().parent
+load_dotenv(dotenv_path=BASE_DIR / ".env.local")
+MAIL = os.getenv("MAIL", "")
+if not MAIL:
+    raise ValueError("Environment variable 'MAIL' must be set for the Wikipedia User-Agent policy.")
+
+class RateLimiter:
+    def __init__(self, min_interval_seconds: float) -> None:
+        self.min_interval_seconds = min_interval_seconds
+        self._last_request_at = 0.0
+
+    def wait(self) -> None:
+        now = time.monotonic()
+        elapsed = now - self._last_request_at
+        remaining = self.min_interval_seconds - elapsed
+        if remaining > 0:
+            time.sleep(remaining)
+        self._last_request_at = time.monotonic()
+
+def _retry_after_seconds(resp: requests.Response) -> float:
+    retry_after = resp.headers.get("Retry-After")
+    if retry_after and retry_after.isdigit():
+        return float(retry_after)
+    return 5.0
 
 def get_input_dir():
     for d in INPUT_DIRS:
@@ -21,13 +50,16 @@ def fetch_wikipedia_summaries(entities):
     Uses a Session for connection pooling (much faster).
     """
     session = requests.Session()
-    session.headers.update({"User-Agent": "WordGameBot/1.0 (WordGame TDDD27)"})
+    contact = f"mailto:{MAIL}" if MAIL else "no-contact"
+    session.headers.update({"User-Agent": f"WordGameBot/1.0 ({contact})"})
     
     url = "https://sv.wikipedia.org/w/api.php"
     summaries = {}
     
     print(f"Börjar hämta {len(entities)} sammanfattningar från sv.wikipedia.org...")
     
+    limiter = RateLimiter(MIN_INTERVAL_SECONDS)
+
     for i, entity in enumerate(entities):
         if not isinstance(entity, str) or not entity.strip():
             continue
@@ -43,8 +75,31 @@ def fetch_wikipedia_summaries(entities):
         }
         
         try:
-            resp = session.get(url, params=params, timeout=5).json()
-            pages = resp.get("query", {}).get("pages", {})
+            limiter.wait()
+            resp = session.get(url, params=params, timeout=5)
+
+            if resp.status_code in {429, 503}:
+                wait_seconds = _retry_after_seconds(resp)
+                print(
+                    f"Rate limited for '{entity}' (status {resp.status_code}). "
+                    f"Sleeping {wait_seconds:.1f}s before retry."
+                )
+                time.sleep(wait_seconds)
+                limiter.wait()
+                resp = session.get(url, params=params, timeout=5)
+
+            try:
+                data = resp.json()
+            except ValueError:
+                snippet = (resp.text or "").strip().replace("\n", " ")[:200]
+                print(
+                    f"Fel vid hämtning av '{entity}': Invalid JSON "
+                    f"(status {resp.status_code}). Body: {snippet}"
+                )
+                summaries[entity] = ""
+                continue
+
+            pages = data.get("query", {}).get("pages", {})
             
             # The API returns a dict with the Page ID as the key. 
             # If the page doesn't exist, the key is "-1".

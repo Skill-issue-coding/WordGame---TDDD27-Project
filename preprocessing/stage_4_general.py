@@ -41,7 +41,7 @@ def main():
             df = korp_data # Assume it's already a DataFrame
     else:
         # Fallback to reading the combined CSV directly
-        df = pd.read_csv("korp_cleaned/korp_combined_cleaned.csv")
+        df = pd.read_csv("intermediate/korp_cleaned/korp_combined_cleaned.csv")
     
     original_len = len(df)
     print(f" -> Hittade {original_len:,} ord i Korp.")

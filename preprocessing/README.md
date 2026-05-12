@@ -80,8 +80,8 @@ flowchart TD
     end
 
     subgraph CLEAN [Data Cleaning]
-        CK["korp/clean_korp.py\n→ korp_cleaned/korp_combined_cleaned.csv"]
-        CS["seeding/clean_seeding.py\n→ seeding_cleaned/*.csv"]
+        CK["korp/clean_korp.py\n→ intermediate/korp_cleaned/korp_combined_cleaned.csv"]
+        CS["seeding/clean_seeding.py\n→ intermediate/seeding_cleaned/*.csv"]
     end
 
     subgraph STAGE1 [Stage 1 — SPARQL Seeding]
@@ -148,8 +148,8 @@ All stages import constants and loaders from here. Key exports:
 | ------------------------- | -------------------------------------------------- |
 | `BASE_DIR`                | Absolute path to this directory                    |
 | `INTERMEDIATE_DIR`        | `intermediate/` — stage-to-stage scratch space     |
-| `SEEDING_CLEANED_DIR`     | `seeding_cleaned/` — cleaned entity CSVs           |
-| `CLEANED_KORP_DIR`        | `korp_cleaned/` — merged Korp frequency file       |
+| `SEEDING_CLEANED_DIR`     | `intermediate/seeding_cleaned/` — cleaned CSVs     |
+| `CLEANED_KORP_DIR`        | `intermediate/korp_cleaned/` — merged Korp file    |
 | `OUTPUT_DIR`              | `server/wordfiles/` — final output for Go          |
 | `DEFAULT_KORP_FREQ`       | Minimum Korp frequency for general words (300)     |
 | `ALLOWED_POS`             | `{NOUN, PROPN, VERB, ADJ}`                         |
@@ -169,13 +169,13 @@ These run automatically on first pipeline execution, or manually if source data 
 
 **`korp/clean_korp.py`**
 
-Reads raw Korp CSV files from `korp/`, filters to valid Swedish words (regex, minimum frequency, length checks), merges all files, and writes `korp_cleaned/korp_combined_cleaned.csv` with schema `word, Totalt`.
+Reads raw Korp CSV files from `korp/`, filters to valid Swedish words (regex, minimum frequency, length checks), merges all files, and writes `intermediate/korp_cleaned/korp_combined_cleaned.csv` with schema `word, Totalt`.
 
 **`seeding/clean_seeding.py`**
 
 - Processes Maktbarometern influencer CSVs from `seeding/maktbarometern/csv/` — normalises Unicode (NFKC), strips emojis and full-width characters, deduplicates by name, sorts by score.
 - Processes SPARQL output CSVs from `seeding/output/` — resolves raw Wikidata Q-IDs to Swedish labels via the Wikidata API, cleans text, drops duplicates.
-- Outputs all cleaned files to `seeding_cleaned/`.
+- Outputs all cleaned files to `intermediate/seeding_cleaned/`.
 
 ---
 
@@ -193,7 +193,7 @@ For each entity in the cleaned seeding CSVs, fetches the introductory paragraph 
 
 Includes resume support: already-processed files are skipped, so the stage can safely be interrupted and restarted.
 
-- **Reads:** `seeding_cleaned/*.csv`
+- **Reads:** `intermediate/seeding_cleaned/*.csv`
 - **Output:** `intermediate/stage2_wiki/*.csv` — same schema plus a `wiki_summary` column
 
 ---
