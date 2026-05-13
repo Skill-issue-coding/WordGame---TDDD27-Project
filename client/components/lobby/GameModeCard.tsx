@@ -31,10 +31,7 @@ const GameModeCard = ({ title, description, icon, players, color }: GameModeCard
   return (
     <button
       // onClick={onClick}
-      className={cn(
-        "p-4 bg-game-surface border-border rounded-xl border-2 text-left transition-all duration-300 hover:scale-[1.02] cursor-pointer group w-full flex items-center",
-        colorMap[color],
-      )}>
+      className={cn("p-4 bg-game-surface border-border rounded-xl border-2 text-left transition-all duration-300 hover:scale-[1.02] cursor-pointer group w-full flex items-center", colorMap[color])}>
       <div className="flex items-start w-full gap-4">
         <div className="flex items-center justify-between flex-1 gap-4">
           <div className="flex flex-1 gap-2">

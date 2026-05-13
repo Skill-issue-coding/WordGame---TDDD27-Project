@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Figtree, Inter, Space_Grotesk, Fredoka, Nunito } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { GameContextProvider } from "@/hooks/gamecontext";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import UserProfileButton from "@/components/user/UserProfileButton";
 import { ThemeProvider } from "next-themes";
 import LobbyChat from "@/components/lobby/LobbyChat";
 import ThemedToaster from "@/components/themed-toaster";
 import { Suspense } from "react";
+import { WebSocketProvider } from "@/hooks/websocketcontext";
+import { UserProvider } from "@/hooks/usercontext";
+import { LobbyContextProvider } from "@/hooks/lobbycontext";
 
 const fredoka = Fredoka({
   subsets: ["latin"],
@@ -63,15 +65,19 @@ export default function RootLayout({
       className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable, geistHeading.variable, inter.variable, spaceGrotesk.variable, fredoka.variable, nunito.variable)}>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
-          <GameContextProvider>
-            <TooltipProvider>
-              {children}
-              <Suspense fallback={null}>
-                <LobbyChat />
-              </Suspense>
-              <UserProfileButton />
-            </TooltipProvider>
-          </GameContextProvider>
+          <WebSocketProvider>
+            <UserProvider>
+              <LobbyContextProvider>
+                <TooltipProvider>
+                  {children}
+                  <Suspense fallback={null}>
+                    <LobbyChat />
+                  </Suspense>
+                  <UserProfileButton />
+                </TooltipProvider>
+              </LobbyContextProvider>
+            </UserProvider>
+          </WebSocketProvider>
           <ThemedToaster />
         </ThemeProvider>
       </body>

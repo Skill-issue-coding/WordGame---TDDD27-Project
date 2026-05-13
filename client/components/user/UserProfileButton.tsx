@@ -5,18 +5,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sun, Check, Moon } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { BACKGROUND_COLOR_PALETTE, cn } from "@/lib/utils";
 import { useEffect } from "react";
 import { useTheme } from "next-themes";
-import { useGameContext } from "@/hooks/gamecontext";
 import { motion } from "framer-motion";
+import { useUserContext } from "@/hooks/usercontext";
+import { popIn } from "@/lib/animation-util";
 
 export default function UserProfileButton() {
-  const { user, updateUser, palette } = useGameContext();
+  const { user, updateUser } = useUserContext();
   const [mounted, setMounted] = useState(false);
   const [open, setOpen] = useState(false);
   const [draftName, setDraftName] = useState("");
-  const [draftColor, setDraftColor] = useState(palette[0]);
+  const [draftColor, setDraftColor] = useState(BACKGROUND_COLOR_PALETTE[0]);
   const { resolvedTheme, setTheme } = useTheme();
 
   const handleOpen = (v: boolean) => {
@@ -44,11 +45,11 @@ export default function UserProfileButton() {
   const toggleTheme = () => setTheme(resolvedTheme === "dark" ? "light" : "dark");
 
   const displayName = user?.username ?? "?";
-  const displayColor = user?.background ?? palette[0];
+  const displayColor = user?.background ?? BACKGROUND_COLOR_PALETTE[0];
 
   return (
     <>
-      <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 1200, damping: 40, delay: 0.25 }}>
+      <motion.div {...popIn(0.1)}>
         <button
           onClick={() => user && handleOpen(true)}
           aria-label="Edit profile"
@@ -88,7 +89,7 @@ export default function UserProfileButton() {
             <div className="w-full">
               <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Avatar Färg</label>
               <div className="grid grid-cols-8 gap-2">
-                {palette.map((c) => (
+                {BACKGROUND_COLOR_PALETTE.map((c) => (
                   <button
                     key={c}
                     onClick={() => setDraftColor(c)}

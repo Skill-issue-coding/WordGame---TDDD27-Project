@@ -5,21 +5,25 @@ import Link from "next/link";
 import { PlayerList } from "@/components/lobby/PlayerList";
 import { SettingsPanel } from "@/components/lobby/GameSettings";
 import { Button } from "@/components/ui/button";
-import { useGameContext } from "@/hooks/gamecontext";
 import { useState, useEffect } from "react";
+import { useUserContext } from "@/hooks/usercontext";
+import { useLobbyContext } from "@/hooks/lobbycontext";
+import { useWebsocketContext } from "@/hooks/websocketcontext";
 
 export default function LobbyView({ code }: { code: string }) {
-  const { user, lobbyState, sendEvent, isConnected } = useGameContext();
+  const { user } = useUserContext();
+  const { lobbyState } = useLobbyContext();
+  const { sendEvent, connectionStatus } = useWebsocketContext();
   const [hasAttemptedJoin, setHasAttemptedJoin] = useState(false);
 
   useEffect(() => {
     if (!code || typeof code !== "string") return;
 
-    if (isConnected && user && !lobbyState && !hasAttemptedJoin) {
+    if (connectionStatus === "connected" && user && !lobbyState && !hasAttemptedJoin) {
       setHasAttemptedJoin(true);
       sendEvent("join_lobby", { lobby_code: code });
     }
-  }, [isConnected, user, lobbyState, code, hasAttemptedJoin, sendEvent]);
+  }, [connectionStatus, user, lobbyState, code, hasAttemptedJoin, sendEvent]);
 
   if (!user || !lobbyState) {
     return (
@@ -59,9 +63,7 @@ export default function LobbyView({ code }: { code: string }) {
             </Link>
           </div>
 
-          <h1 className="text-4xl font-bold font-display text-game-purple whitespace-nowrap">
-            {hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}s rum`}
-          </h1>
+          <h1 className="text-4xl font-bold font-display text-game-purple whitespace-nowrap">{hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}s rum`}</h1>
           <div className="flex-1" />
         </div>
         <div>

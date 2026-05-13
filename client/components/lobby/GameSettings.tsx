@@ -8,21 +8,14 @@ import { useState } from "react";
 import CodeDisplay from "@/components/lobby/CodeDisplay";
 import { GAME_MODES, getMode, MODE_SETTINGS, ModeSetting, type GameModeId } from "@/lib/game/gameModes";
 import { useEffect } from "react";
-import { useGameContext } from "@/hooks/gamecontext";
+import { useLobbyContext } from "@/hooks/lobbycontext";
+import { useUserContext } from "@/hooks/usercontext";
 
 interface SettingsPanelProps {
   className?: string;
 }
 
-function GameMode({
-  selectedMode,
-  onModeChange,
-  disabled,
-}: {
-  selectedMode: GameModeId;
-  onModeChange: (id: GameModeId) => void;
-  disabled: boolean;
-}) {
+function GameMode({ selectedMode, onModeChange, disabled }: { selectedMode: GameModeId; onModeChange: (id: GameModeId) => void; disabled: boolean }) {
   const mode = getMode(selectedMode);
 
   return (
@@ -37,31 +30,16 @@ function GameMode({
               onClick={() => onModeChange(m.id)}
               className={cn(
                 "relative text-left rounded-lg border-2 p-3 transition-all flex items-center gap-3",
-                active
-                  ? `bg-card border-current ${m.textClass} shadow-md`
-                  : "bg-muted/40 border-border hover:border-muted-foreground/40",
+                active ? `bg-card border-current ${m.textClass} shadow-md` : "bg-muted/40 border-border hover:border-muted-foreground/40",
                 disabled ? "cursor-not-allowed pointer-events-none" : "cursor-pointer opacity-80",
               )}>
-              <div
-                className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0",
-                  `bg-game-${m.color}`,
-                )}>
-                {m.icon}
-              </div>
+              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0", `bg-game-${m.color}`)}>{m.icon}</div>
               <div className="flex-1 min-w-0">
-                <div
-                  className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>
-                  {m.title}
-                </div>
+                <div className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>{m.title}</div>
                 <div className="text-xs text-muted-foreground truncate">{m.players}</div>
               </div>
               {active && (
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0",
-                    `bg-game-${m.color}`,
-                  )}>
+                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0", `bg-game-${m.color}`)}>
                   <Check className="w-4 h-4" />
                 </div>
               )}
@@ -103,41 +81,20 @@ function GameSettings({ config, disabled }: { config: ModeSetting[]; disabled: b
         return (
           <div key={setting.key} className="flex flex-col gap-2.5 flex-1">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              {setting.key === "impostorCount" ? (
-                <HatGlasses className="w-4 h-4 text-muted-foreground" />
-              ) : setting.key.includes("Time") ? (
-                <Timer className="w-4 h-4 text-muted-foreground" />
-              ) : (
-                <RefreshCw className="w-4 h-4 text-muted-foreground" />
-              )}
+              {setting.key === "impostorCount" ? <HatGlasses className="w-4 h-4 text-muted-foreground" /> : setting.key.includes("Time") ? <Timer className="w-4 h-4 text-muted-foreground" /> : <RefreshCw className="w-4 h-4 text-muted-foreground" />}
               {setting.label}
             </div>
 
             {setting.type === "slider" ? (
               <div className={cn("flex items-center gap-4", disabled && "pointer-events-none")}>
-                <Slider
-                  disabled={disabled}
-                  min={setting.min}
-                  max={setting.max}
-                  step={setting.step}
-                  value={[currentValue]}
-                  onValueChange={([v]) => updateValue(setting.key, v)}
-                  className="flex-1"
-                />
+                <Slider disabled={disabled} min={setting.min} max={setting.max} step={setting.step} value={[currentValue]} onValueChange={([v]) => updateValue(setting.key, v)} className="flex-1" />
                 <span className="text-sm font-bold w-8 text-right tabular-nums">
                   {values[setting.key] ?? setting.default}
                   {setting.key.includes("Time") ? "s" : ""}
                 </span>
               </div>
             ) : (
-              <ToggleGroup
-                disabled={disabled}
-                type="single"
-                spacing={2}
-                size="sm"
-                value={String(currentValue)}
-                onValueChange={(v) => v && updateValue(setting.key, isNaN(Number(v)) ? v : Number(v))}
-                className={cn(disabled && "pointer-events-none")}>
+              <ToggleGroup disabled={disabled} type="single" spacing={2} size="sm" value={String(currentValue)} onValueChange={(v) => v && updateValue(setting.key, isNaN(Number(v)) ? v : Number(v))} className={cn(disabled && "pointer-events-none")}>
                 {setting.options?.map((opt) => (
                   <ToggleGroupItem
                     key={opt.value}
@@ -158,7 +115,9 @@ function GameSettings({ config, disabled }: { config: ModeSetting[]; disabled: b
 }
 
 export function SettingsPanel({ className }: SettingsPanelProps) {
-  const { lobbyState, user } = useGameContext();
+  const { lobbyState } = useLobbyContext();
+  const { user } = useUserContext();
+
   const [selectedMode, setSelectedMode] = useState<GameModeId>("impostor");
 
   const isHost = lobbyState?.host === user?.user_id;
@@ -173,9 +132,7 @@ export function SettingsPanel({ className }: SettingsPanelProps) {
         </div>
         <GameMode selectedMode={selectedMode} onModeChange={setSelectedMode} disabled={!isHost} />
         <div className="flex items-center justify-between">
-          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">
-            Spelinställningar
-          </p>
+          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelinställningar</p>
         </div>
         <GameSettings config={settingsConfig} disabled={!isHost} />
       </div>

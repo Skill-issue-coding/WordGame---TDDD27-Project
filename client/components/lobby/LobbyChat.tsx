@@ -7,13 +7,18 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { useGameContext } from "@/hooks/gamecontext";
+import { useLobbyContext } from "@/hooks/lobbycontext";
+import { useUserContext } from "@/hooks/usercontext";
+import { useWebsocketContext } from "@/hooks/websocketcontext";
 
 const formatTime = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 const ChatButton = () => {
+  const { chatMessages, lobbyState } = useLobbyContext();
+  const { user } = useUserContext();
+  const { sendEvent } = useWebsocketContext();
+
   const location = usePathname();
-  const { chatMessages, sendEvent, user, lobbyState } = useGameContext();
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState("");
   const [lastReadIndex, setLastReadIndex] = useState(0);
@@ -36,7 +41,6 @@ const ChatButton = () => {
   const handleSend = () => {
     if (!lobbyState) return;
     if (!draft.trim()) return;
-    // sendMessage(draft, user?.username || "", user?.background || "");
     sendEvent("send_chatmessage", { message: draft });
     setDraft("");
   };

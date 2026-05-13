@@ -121,7 +121,7 @@ func nearestWords(dict *words.Dictionary, n int) []string {
 	return out
 }
 
-func main() {
+func test() {
 	fmt.Println("Laddar ordbok…")
 	dict, err := words.InitializeDictionary()
 	if err != nil {

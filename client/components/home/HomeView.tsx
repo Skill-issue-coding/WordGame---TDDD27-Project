@@ -4,11 +4,12 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Gamepad2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useGameContext } from "@/hooks/gamecontext";
 import { motion } from "framer-motion";
+import { popIn } from "@/lib/animation-util";
+import { useWebsocketContext } from "@/hooks/websocketcontext";
 
 export default function HomeView() {
-  const { sendEvent } = useGameContext();
+  const { sendEvent } = useWebsocketContext();
   const [roomCode, setRoomCode] = useState("");
 
   const formatCode = (val: string) => {
@@ -23,7 +24,7 @@ export default function HomeView() {
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md flex flex-col animate-slide-up gap-4">
-        <motion.div className="text-center mb-8" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 1200, damping: 40, delay: 0.1 }}>
+        <motion.div className="text-center mb-8" {...popIn(0.25, 1.5)}>
           <div className="inline-flex items-center justify-center gap-2 mb-2">
             <Gamepad2 className="h-14 w-14 text-game-purple" />
             <h1 className="font-display text-4xl sm:text-6xl font-bold text-game-purple">
@@ -33,7 +34,7 @@ export default function HomeView() {
           <p className="text-muted-foreground text-base font-display font-semibold">Snabbtänkt multiplayer ordspel</p>
         </motion.div>
 
-        <motion.div className="game-card border-game-blue/30 mt-2" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 1200, damping: 40, delay: 0.25 }}>
+        <motion.div className="game-card border-game-blue/30 mt-2" {...popIn(0.5)}>
           <h2 className="font-display text-base font-bold mb-3 text-foreground flex items-center gap-2">Gå med i rum</h2>
           <div className="flex gap-2">
             <Input
@@ -49,13 +50,13 @@ export default function HomeView() {
           </div>
         </motion.div>
 
-        <motion.div className="flex items-center gap-3 mt-1.5" initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 1200, damping: 40, delay: 0.4 }}>
+        <motion.div className="flex items-center gap-3 mt-1.5" {...popIn(0.55)}>
           <div className="flex-1 h-px bg-border" />
           <span className="font-display font-bold text-xs text-muted-foreground uppercase tracking-widest">eller</span>
           <div className="flex-1 h-px bg-border" />
         </motion.div>
 
-        <motion.div initial={{ scale: 0, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} transition={{ type: "spring", stiffness: 1200, damping: 40, delay: 0.45 }}>
+        <motion.div {...popIn(0.45)}>
           <Button size="lg" className="w-full h-16 text-lg font-bold mb-4" onClick={handleCreateLobby}>
             Skapa rum +
           </Button>

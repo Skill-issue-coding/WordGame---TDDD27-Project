@@ -64,6 +64,14 @@ export type WSRecievedEvent =
 /** Union of all event type strings the server can send. */
 export type WSEventType = WSRecievedEvent["type"];
 
+/** Map each received event type to its payload shape. */
+export type WSRecievedPayloadMap = {
+  [E in WSRecievedEvent as E["type"]]: E["payload"];
+};
+
+/** Union of all event type strings the server can send. */
+export type WSRecievedEventType = WSRecievedEvent["type"];
+
 // ---------------------------------------------------------------------------
 // Client → Server
 // ---------------------------------------------------------------------------
