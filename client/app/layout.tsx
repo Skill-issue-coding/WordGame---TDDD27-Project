@@ -11,6 +11,7 @@ import { Suspense } from "react";
 import { WebSocketProvider } from "@/hooks/websocketcontext";
 import { UserProvider } from "@/hooks/usercontext";
 import { LobbyContextProvider } from "@/hooks/lobbycontext";
+import { Background } from "@/components/background/background";
 
 const fredoka = Fredoka({
   subsets: ["latin"],
@@ -80,6 +81,7 @@ export default function RootLayout({
           </WebSocketProvider>
           <ThemedToaster />
         </ThemeProvider>
+        <Background />
       </body>
     </html>
   );

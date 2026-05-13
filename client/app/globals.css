@@ -212,15 +212,19 @@
   0% {
     transform: translateX(0);
   }
+
   10% {
     transform: translateX(0);
   }
+
   50% {
     transform: translateX(-20%);
   }
+
   60% {
     transform: translateX(-20%);
   }
+
   100% {
     transform: translateX(0);
   }
@@ -233,6 +237,7 @@
 
   body {
     @apply bg-background text-foreground font-body antialiased;
+    position: relative;
     background-image:
       radial-gradient(circle at 20% 10%, oklch(0.5619 0.2421 290 / 0.08) 0%, transparent 40%),
       radial-gradient(circle at 80% 90%, oklch(0.6798 0.2001 3.54 / 0.08) 0%, transparent 40%),

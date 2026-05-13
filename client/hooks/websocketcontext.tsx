@@ -122,27 +122,66 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return () => subscribersRef.current.get(eventType)?.delete(callback as EventCallback<WSRecievedEventType>);
   }, []);
 
+  /**
+   * @param attemptRef The number that keeps track of how many
+   * @param timeoutRef The timeout reference
+   * @param maxAttempts The max number of reconnect attempts
+   * @param initialDelay the initial delay
+   * @param isUnmounted Variable to prevent reconnects after the component unmounts
+   */
+  const attemptRef = useRef(0);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const maxAttempts = 10;
+  const initialDelay = 1000;
+  let isUnmounted = false;
+
   useEffect(() => {
     /**
      * Initializes the connection and attaches all base event listeners.
      * Wrapped in a function to make future exponential backoff implementations easier.
      */
     const connect = () => {
+      // Clear any pending reconnect timers safety check
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+
       const url = process.env.NEXT_PUBLIC_WS_PATH ? `wss://${process.env.NEXT_PUBLIC_WS_PATH}/ws/game` : `ws://localhost:8080/ws/game`;
 
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
-      ws.onopen = () => setConnectionStatus("connected");
+      ws.onopen = () => {
+        setConnectionStatus("connected");
+        attemptRef.current = 0; // Reset backoff on successful connection
+      };
 
       ws.onerror = () => {
         setConnectionStatus("error");
-        ToastError("Fel med anslutning till servern");
       };
 
       ws.onclose = () => {
         setConnectionStatus("disconnected");
-        // TODO: Exponential backoff connect() call goes here later
+
+        // Stop reconnecting if the component unmounted or max attempts reached
+        if (isUnmounted) return;
+
+        if (attemptRef.current >= maxAttempts) {
+          ToastError("Kunde inte återansluta till servern. Vänligen ladda om sidan.");
+          return;
+        }
+
+        ToastError(`Fel med anslutning. Försöker igen... (${attemptRef.current + 1}/${maxAttempts})`);
+
+        // Exponential backoff logic: 1s, 2s, 4s, 8s, up to ~30s max cap
+        const backoff = Math.min(initialDelay * Math.pow(2, attemptRef.current), 30000);
+        const jitter = Math.random() * 0.5 * backoff;
+        const delay = backoff + jitter;
+
+        console.log(`Reconnecting in ${Math.round(delay)}ms... (Attempt ${attemptRef.current + 1}/${maxAttempts})`);
+
+        timeoutRef.current = setTimeout(() => {
+          attemptRef.current++;
+          connect();
+        }, delay);
       };
 
       /**
@@ -152,11 +191,9 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
         const parsedEvent = JSON.parse(event.data) as WSRecievedEvent;
         const { type, payload } = parsedEvent;
 
-        // 1. Handle global socket-level UI
         if (type === "error") ToastError(payload.message);
         if (type === "success") ToastSucess(payload.message);
 
-        // 2. Route the payload to anyone listening to this specific event type
         const listeners = subscribersRef.current.get(type as WSRecievedEventType);
         if (listeners) listeners.forEach((callback) => callback(payload));
       };
@@ -164,9 +201,15 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
     connect();
 
-    // Cleanup function for React 18 Strict Mode and component unmounts
+    // Cleanup function component unmounts
     return () => {
-      if (wsRef.current) wsRef.current.close();
+      isUnmounted = true;
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      if (wsRef.current) {
+        // Remove onclose handler before closing to prevent triggering an instant reconnect loop during unmount
+        wsRef.current.onclose = null;
+        wsRef.current.close();
+      }
     };
   }, []);
 

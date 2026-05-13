@@ -24,7 +24,7 @@ export default function HomeView() {
   return (
     <div className="h-screen w-screen overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6">
       <div className="w-full max-w-md flex flex-col animate-slide-up gap-4">
-        <motion.div className="text-center mb-8" {...popIn(0.25, 1.5)}>
+        <motion.div className="text-center mb-8" {...popIn(0.15, 1.5)}>
           <div className="inline-flex items-center justify-center gap-2 mb-2">
             <Gamepad2 className="h-14 w-14 text-game-purple" />
             <h1 className="font-display text-4xl sm:text-6xl font-bold text-game-purple">
