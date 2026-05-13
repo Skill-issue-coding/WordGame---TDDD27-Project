@@ -7,6 +7,7 @@ import time
 from pathlib import Path
 from dotenv import load_dotenv
 import sys
+from seeding import clean_seeding
 
 # === Configuration ===
 # Look for the cleaned seeding files first, fallback to the raw output
@@ -161,6 +162,8 @@ def main():
     os.makedirs(OUTPUT_DIR, exist_ok=True)
     csv_files = glob.glob(os.path.join(input_dir, "*.csv"))
     
+    clean_seeding.process_seeding()
+
     print("=" * 50)
     print("STAGE 2: WIKIPEDIA CONTEXT ENRICHMENT")
     print("=" * 50)

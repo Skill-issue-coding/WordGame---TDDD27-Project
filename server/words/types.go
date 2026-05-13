@@ -20,11 +20,12 @@ type RelatedWord struct {
 }
 
 type WordEntry struct {
-	Word       string
-	Type       string
-	WordVector []float32
-	Popularity float64
-	Sitelinks  float64
-	Score      float64
-	IsSeed     bool
+	Word        string
+	Type        string
+	WordVector  []float32 // passage vector — used when this word is the target
+	QueryVector []float32 // query vector — used when this word is guessed; falls back to WordVector if nil
+	Popularity  float64
+	Sitelinks   float64
+	Score       float64
+	IsSeed      bool
 }

@@ -51,7 +51,12 @@ func (dictionary *Dictionary) CalculateDistance(word string) float64 {
 		return math.NaN()
 	}
 
-	return util.CosineDistance(activeWordEntry.WordVector, guessEntry.WordVector)
+	// Use asymmetric passage(target) · query(guess) when available.
+	guessVec := guessEntry.QueryVector
+	if len(guessVec) == 0 {
+		guessVec = guessEntry.WordVector
+	}
+	return util.CosineDistance(activeWordEntry.WordVector, guessVec)
 }
 
 func (dictionary *Dictionary) IsValid(word string) bool {

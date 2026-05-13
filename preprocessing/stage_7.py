@@ -143,22 +143,19 @@ def main():
     encoded = load_encoded_vocab()
     log.info(f"Stage 7: encoded vocab size {len(encoded)}")
 
-    general  = collect_general_targets(encoded)
     entities = collect_entity_targets(encoded)
-    log.info(f"Stage 7: general targets {len(general)}")
     log.info(f"Stage 7: entity targets {len(entities)}")
 
-    # Deduplicate, entities take priority (they have richer context)
     seen: set[str] = set()
     targets: list[dict] = []
-    for word, word_type in entities + general:
+    for word, word_type in entities:
         key = word.lower()
         if key not in seen:
             seen.add(key)
             targets.append({"word": word, "type": word_type})
 
     if not targets:
-        print("Inga målord hittades — kontrollera att stage 3 och 4 körts.")
+        print("Inga målord hittades — kontrollera att stage 3 körts och att entiteter har wiki-kontext.")
         sys.exit(1)
 
     targets.sort(key=lambda t: t["word"].lower())

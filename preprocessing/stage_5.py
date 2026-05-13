@@ -1,19 +1,29 @@
 """
-Stage 5: Encode all words and entities using intfloat/multilingual-e5-large.
+Stage 5: Encode all words and entities using KBLab/sentence-bert-swedish-cased.
+
+This model is symmetric (no query/passage prefixes) and trained specifically
+for Swedish sentence similarity. KB-BERT base + MPNet teacher distillation,
+768-dim output, mean pooling, max 384 tokens in v2.0.
+
+We still produce two embedding files, but the asymmetry is now about TEXT
+CONTENT rather than model prefixes:
+
+  - embeddings.npy        target-side: rich text for entities, bare word for general
+  - embeddings_query.npy  guess-side:  bare name/word for everything
+
+The rich-text representation on the target side is what lets the model
+"know" that Rasmus Wranå is associated with curling — without it the model
+just sees an unfamiliar proper noun and produces a meaningless vector.
 
 Inputs:
-  - intermediate/stage4_general/general_words.csv   (general vocabulary from Korp)
-  - intermediate/stage3_attrs/*.csv                 (entities enriched with wiki summary + attributes)
+  - intermediate/stage4_general/general_words.csv
+  - intermediate/stage3_attrs/*.csv
 
-Output:
-  - intermediate/stage5_encoded/embeddings.npy      (float32, shape N*1024, L2-normalised)
-  - intermediate/stage5_encoded/vocab.json          (list of N canonical word/entity strings)
-
-Entity passage format: "passage: <Name>. <wiki_summary>. <wiki_attributes>"
-General word format:   "passage: <word>"
-
-Entities take priority — if a general word overlaps with a known entity, the richer
-entity passage is kept and the naked word form is dropped.
+Outputs:
+  - intermediate/stage5_encoded/embeddings.npy        (float32, N×768, L2-normalised)
+  - intermediate/stage5_encoded/embeddings_query.npy  (float32, N×768, L2-normalised)
+  - intermediate/stage5_encoded/vocab.json
+  - intermediate/stage5_encoded/sources.json
 """
 
 import json
@@ -40,9 +50,12 @@ STAGE4_CSV     = BASE_DIR / "intermediate" / "stage4_general" / "general_words.c
 OUTPUT_DIR     = BASE_DIR / "intermediate" / "stage5_encoded"
 SERVER_DIR     = BASE_DIR.parent / "server" / "wordfiles"
 
-MODEL_NAME     = "intfloat/multilingual-e5-large"
+MODEL_NAME     = "KBLab/sentence-bert-swedish-cased"
 BATCH_SIZE     = 128
-SUMMARY_MAX_CHARS = 1500
+# KB-SBERT v2.0 supports up to 384 tokens. ~1200 chars in Swedish leaves
+# comfortable headroom; longer text is silently truncated by the tokenizer.
+SUMMARY_MAX_CHARS = 1200
+
 
 def _setup_logger() -> logging.Logger:
     log_path = Path(__file__).resolve().parent / "pipeline.log"
@@ -61,24 +74,26 @@ def _setup_logger() -> logging.Logger:
 log = _setup_logger()
 
 
-# ── Passage builders ──────────────────────────────────────────────────────────
+# ── Text builders (NO prefixes — KB-SBERT is symmetric) ────────────────────────
 
-def entity_passage(name: str, summary: str, attrs: str) -> str:
+def entity_text(name: str, summary: str, attrs: str) -> str:
+    """Rich text used for the target-side embedding of an entity."""
     name    = (name    or "").strip()
     summary = (summary or "").strip()[:SUMMARY_MAX_CHARS]
     attrs   = (attrs   or "").strip()
     parts   = [p for p in (name, summary, attrs) if p]
-    return "passage: " + ". ".join(parts)
+    return ". ".join(parts)
 
 
-def word_passage(word: str) -> str:
-    return f"passage: {word.strip()}"
+def bare(text: str) -> str:
+    """Used for general words on both sides, and for the guess-side of entities."""
+    return (text or "").strip()
 
 
 # ── Loaders ───────────────────────────────────────────────────────────────────
 
 def load_entities() -> tuple[dict[str, tuple[str, str]], dict[str, str]]:
-    """Returns ({key: (name, passage)}, {key: category})."""
+    """Returns ({key: (name, target_text)}, {key: category})."""
     records:    dict[str, tuple[str, str]] = {}
     categories: dict[str, str]             = {}
 
@@ -106,14 +121,14 @@ def load_entities() -> tuple[dict[str, tuple[str, str]], dict[str, str]]:
                 continue  # first CSV wins (sorted → deterministic)
             summary = str(row.get("wiki_summary", ""))
             attrs   = str(row.get("wiki_attributes", ""))
-            records[key]    = (name, entity_passage(name, summary, attrs))
+            records[key]    = (name, entity_text(name, summary, attrs))
             categories[key] = cat
 
     return records, categories
 
 
 def load_general_words(entity_keys: set[str]) -> dict[str, tuple[str, str]]:
-    """Returns {lowercase_key: (word, passage_text)}, skipping entity overlaps."""
+    """Returns {key: (word, target_text)} — target_text is just the bare word."""
     records: dict[str, tuple[str, str]] = {}
 
     if not STAGE4_CSV.exists():
@@ -128,7 +143,7 @@ def load_general_words(entity_keys: set[str]) -> dict[str, tuple[str, str]]:
         key = word.lower()
         if key in entity_keys or key in records:
             continue
-        records[key] = (word, word_passage(word))
+        records[key] = (word, bare(word))
 
     return records
 
@@ -142,6 +157,7 @@ def main():
     print(f"Device: {device}")
     log.info("Stage 5: start")
     log.info(f"Device: {device}")
+    log.info(f"Model: {MODEL_NAME}")
 
     # 1. Collect items
     entity_records, entity_cats = load_entities()
@@ -152,23 +168,32 @@ def main():
     print(f"Generella ord (stage 4): {len(word_records):,}")
     log.info(f"Stage 5: general words {len(word_records)}")
 
-    # Entities first so their indices stay grouped, then general words
-    entity_items = list(entity_records.items())   # [(key, (name, passage)), ...]
+    entity_items = list(entity_records.items())
     word_items   = list(word_records.items())
     if not entity_items and not word_items:
         print("Inga poster att koda — avbryter.")
         sys.exit(1)
 
-    vocab    = [name    for _, (name, _)       in entity_items] + \
-               [name    for _, (name, _)       in word_items]
-    passages = [passage for _, (_,    passage) in entity_items] + \
-               [passage for _, (_,    passage) in word_items]
-    sources  = [entity_cats.get(key, "general") for key, _ in entity_items] + \
-               ["general" for _ in word_items]
-    print(f"Totalt att koda: {len(passages):,}")
-    log.info(f"Stage 5: total passages {len(passages)}")
+    # Canonical display names (same order = same indices across all three arrays)
+    vocab = [name for _, (name, _) in entity_items] + \
+            [name for _, (name, _) in word_items]
 
-    # 2. Load E5 model
+    # Category labels
+    sources = [entity_cats.get(key, "general") for key, _ in entity_items] + \
+              ["general" for _ in word_items]
+
+    # Target-side TEXT: rich for entities, bare for general words
+    target_texts = [text for _, (_, text) in entity_items] + \
+                   [text for _, (_, text) in word_items]
+
+    # Guess-side TEXT: always the bare name/word
+    guess_texts = [name for _, (name, _) in entity_items] + \
+                  [name for _, (name, _) in word_items]
+
+    print(f"Totalt att koda: {len(vocab):,}")
+    log.info(f"Stage 5: total items {len(vocab)}")
+
+    # 2. Load KB-SBERT
     try:
         from sentence_transformers import SentenceTransformer
     except ImportError:
@@ -179,31 +204,43 @@ def main():
     log.info(f"Stage 5: loading model {MODEL_NAME}")
     model = SentenceTransformer(MODEL_NAME, device=device)
 
-    # 3. Encode
-    print(f"Kodar i batchar om {BATCH_SIZE}...")
-    log.info(f"Stage 5: encoding batch_size={BATCH_SIZE}")
+    # 3. Encode target-side (rich-context for entities)
+    print(f"Kodar target-vektorer i batchar om {BATCH_SIZE}...")
+    log.info(f"Stage 5: encoding target side batch_size={BATCH_SIZE}")
     embeddings = model.encode(
-        passages,
+        target_texts,
         batch_size=BATCH_SIZE,
         show_progress_bar=True,
         normalize_embeddings=True,  # cosine sim == dot product after L2 norm
         convert_to_numpy=True,
-    )
+    ).astype(np.float32)
 
-    embeddings = embeddings.astype(np.float32)
+    # 4. Encode guess-side (always bare name)
+    print(f"Kodar guess-vektorer i batchar om {BATCH_SIZE}...")
+    log.info(f"Stage 5: encoding guess side batch_size={BATCH_SIZE}")
+    embeddings_query = model.encode(
+        guess_texts,
+        batch_size=BATCH_SIZE,
+        show_progress_bar=True,
+        normalize_embeddings=True,
+        convert_to_numpy=True,
+    ).astype(np.float32)
 
-    # 4. Save
-    emb_path     = OUTPUT_DIR / "embeddings.npy"
-    vocab_path   = OUTPUT_DIR / "vocab.json"
-    sources_path = OUTPUT_DIR / "sources.json"
+    # 5. Save
+    emb_path       = OUTPUT_DIR / "embeddings.npy"
+    emb_query_path = OUTPUT_DIR / "embeddings_query.npy"
+    vocab_path     = OUTPUT_DIR / "vocab.json"
+    sources_path   = OUTPUT_DIR / "sources.json"
 
     np.save(str(emb_path), embeddings)
+    np.save(str(emb_query_path), embeddings_query)
     with vocab_path.open("w", encoding="utf-8") as f:
         json.dump(vocab, f, ensure_ascii=False)
     with sources_path.open("w", encoding="utf-8") as f:
         json.dump(sources, f, ensure_ascii=False)
 
-    log.info(f"Stage 5: wrote {emb_path}")
+    log.info(f"Stage 5: wrote {emb_path} {embeddings.shape}")
+    log.info(f"Stage 5: wrote {emb_query_path} {embeddings_query.shape}")
     log.info(f"Stage 5: wrote {vocab_path}")
     log.info(f"Stage 5: wrote {sources_path}")
 
@@ -213,11 +250,12 @@ def main():
         json.dump(sources, f, ensure_ascii=False)
     log.info(f"Stage 5: wrote {server_sources_path}")
 
-    print(f"\nKlar! {len(vocab):,} poster kodade.")
-    print(f"  embeddings : {emb_path}  (shape {embeddings.shape})")
-    print(f"  vocab      : {vocab_path}")
-    print(f"  sources    : {sources_path}")
-    print(f"  sources    : {server_sources_path}  (server)")
+    print(f"\nKlar! {len(vocab):,} poster kodade ({embeddings.shape[1]} dimensioner).")
+    print(f"  embeddings        : {emb_path}  (shape {embeddings.shape})")
+    print(f"  embeddings_query  : {emb_query_path}  (shape {embeddings_query.shape})")
+    print(f"  vocab             : {vocab_path}")
+    print(f"  sources (lokal)   : {sources_path}")
+    print(f"  sources (server)  : {server_sources_path}")
 
 
 if __name__ == "__main__":

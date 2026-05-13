@@ -42,15 +42,17 @@ BASE_DIR    = Path(__file__).resolve().parent
 INPUT_DIR   = BASE_DIR / "intermediate" / "stage5_encoded"
 OUTPUT_DIR  = BASE_DIR.parent / "server" / "wordfiles"
 
-EMB_FILE     = INPUT_DIR  / "embeddings.npy"
-VOCAB_FILE   = INPUT_DIR  / "vocab.json"
-SOURCES_FILE = INPUT_DIR  / "sources.json"
-TARGET_FILE  = OUTPUT_DIR / "targets.json"
+EMB_FILE       = INPUT_DIR  / "embeddings.npy"
+EMB_QUERY_FILE = INPUT_DIR  / "embeddings_query.npy"
+VOCAB_FILE     = INPUT_DIR  / "vocab.json"
+SOURCES_FILE   = INPUT_DIR  / "sources.json"
+TARGET_FILE    = OUTPUT_DIR / "targets.json"
 
-OUT_BIN     = OUTPUT_DIR / "vocab.bin"
-OUT_VOCAB   = OUTPUT_DIR / "vocab.json"
-OUT_META    = OUTPUT_DIR / "meta.json"
-OUT_SOURCES = OUTPUT_DIR / "sources.json"
+OUT_BIN       = OUTPUT_DIR / "vocab.bin"
+OUT_QUERY_BIN = OUTPUT_DIR / "vocab_query.bin"
+OUT_VOCAB     = OUTPUT_DIR / "vocab.json"
+OUT_META      = OUTPUT_DIR / "meta.json"
+OUT_SOURCES   = OUTPUT_DIR / "sources.json"
 
 BATCH_SIZE = 128  # targets per matmul for top-K step
 
@@ -142,6 +144,17 @@ def main():
         else:
             sources = loaded_sources
 
+    # Load query embeddings if produced by stage 5
+    embeddings_query: np.ndarray | None = None
+    if EMB_QUERY_FILE.exists():
+        print("Laddar query-embeddings…")
+        eq = np.load(str(EMB_QUERY_FILE))
+        if eq.shape != embeddings.shape:
+            print(f"Varning: query-embeddings har fel form {eq.shape} (förväntat {embeddings.shape}) — ignoreras.")
+        else:
+            embeddings_query = eq
+            log.info(f"Stage 8: loaded query embeddings {eq.shape}")
+
     with TARGET_FILE.open("r", encoding="utf-8") as f:
         targets_raw = json.load(f)
     # Handle both old format (list[str]) and new format (list[{"word":…,"type":…}])
@@ -172,6 +185,8 @@ def main():
                 print(f"  batch {batch_num}/{total_batches}  —  {len(keep):,} unika ord")
         keep_sorted = sorted(keep)
         embeddings  = embeddings[keep_sorted]
+        if embeddings_query is not None:
+            embeddings_query = embeddings_query[keep_sorted]
         vocab       = [vocab[i] for i in keep_sorted]
         if sources is not None:
             sources = [sources[i] for i in keep_sorted]
@@ -181,6 +196,9 @@ def main():
     # ── Optional PCA dimensionality reduction ─────────────────────────────────
     if args.dims is not None and args.dims < dims:
         embeddings = reduce_dims(embeddings, args.dims)
+        if embeddings_query is not None:
+            print("Applicerar PCA på query-embeddings…")
+            embeddings_query = reduce_dims(embeddings_query, args.dims)
         dims = args.dims
     elif args.dims is not None and args.dims >= dims:
         print(f"  --dims {args.dims} >= befintliga {dims} — hoppas över.")
@@ -189,13 +207,15 @@ def main():
     out_emb = embeddings.astype("<f4")   # guarantee little-endian float32
     m       = len(vocab)
     size_mb = out_emb.nbytes / 1_048_576
+    dual    = embeddings_query is not None
 
     print(f"\nResultat:")
     print(f"  Ord:        {n:>10,}")
     print(f"  Dimensioner: {dims}")
     print(f"  Fil-storlek: {size_mb:>8.1f} MB  (ursprung: {306318 * 1024 * 4 / 1_048_576:.0f} MB)")
     print(f"  RAM (Go):    {size_mb:>8.1f} MB  (float32)")
-    log.info(f"Stage 8: output {m}×{dims}  {size_mb:.1f} MB")
+    print(f"  Dual-vektor: {'ja' if dual else 'nej'}")
+    log.info(f"Stage 8: output {m}×{dims}  {size_mb:.1f} MB  dual={dual}")
 
     # ── Sanity check: all targets still present ───────────────────────────────
     filtered_keys = {w.lower() for w in vocab}
@@ -214,12 +234,19 @@ def main():
         f.write(out_emb.tobytes())
     log.info(f"Stage 8: wrote {OUT_BIN}")
 
+    if dual:
+        out_query = embeddings_query.astype("<f4")  # type: ignore[union-attr]
+        print(f"Skriver {OUT_QUERY_BIN}  ({out_query.nbytes / 1_048_576:.1f} MB)…")
+        with OUT_QUERY_BIN.open("wb") as f:
+            f.write(out_query.tobytes())
+        log.info(f"Stage 8: wrote {OUT_QUERY_BIN}")
+
     print(f"Skriver {OUT_VOCAB}…")
     with OUT_VOCAB.open("w", encoding="utf-8") as f:
         json.dump(vocab, f, ensure_ascii=False)
     log.info(f"Stage 8: wrote {OUT_VOCAB}")
 
-    meta = {"n": m, "dims": dims}
+    meta = {"n": m, "dims": dims, "dual": dual}
     with OUT_META.open("w", encoding="utf-8") as f:
         json.dump(meta, f)
     print(f"Skriver {OUT_META}: {meta}")

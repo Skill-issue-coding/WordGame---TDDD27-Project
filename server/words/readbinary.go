@@ -12,18 +12,22 @@ import (
 )
 
 type binaryMeta struct {
-	N    int `json:"n"`
-	Dims int `json:"dims"`
+	N    int  `json:"n"`
+	Dims int  `json:"dims"`
+	Dual bool `json:"dual"`
 }
 
 // ReadBinaryFiles loads vocab.bin + vocab.json + meta.json produced by stage 6.
-// Returns nil if the binary files are absent (caller falls back to CSV loader).
+// If vocab_query.bin is present (dual=true in meta.json), query vectors are loaded
+// into WordEntry.QueryVector for asymmetric passage/query similarity.
+// Returns nil if the required binary files are absent (caller falls back to CSV loader).
 func ReadBinaryFiles() map[string]WordEntry {
 	dir := baseFileDirectory()
 
-	metaPath  := filepath.Join(dir, "meta.json")
-	vocabPath := filepath.Join(dir, "vocab.json")
-	binPath   := filepath.Join(dir, "vocab.bin")
+	metaPath     := filepath.Join(dir, "meta.json")
+	vocabPath    := filepath.Join(dir, "vocab.json")
+	binPath      := filepath.Join(dir, "vocab.bin")
+	queryBinPath := filepath.Join(dir, "vocab_query.bin")
 
 	for _, p := range []string{metaPath, vocabPath, binPath} {
 		if _, err := os.Stat(p); os.IsNotExist(err) {
@@ -84,6 +88,26 @@ func ReadBinaryFiles() map[string]WordEntry {
 		return nil
 	}
 
+	// ── Load vocab_query.bin (optional, dual-vector mode) ────────────────────
+	var rawQuery []float32
+	if meta.Dual {
+		if info, err := os.Stat(queryBinPath); err == nil && info.Size() == expectedBytes {
+			qf, err := os.Open(queryBinPath)
+			if err != nil {
+				log.Printf("words: could not open vocab_query.bin: %v", err)
+			} else {
+				defer qf.Close()
+				rawQuery = make([]float32, meta.N*meta.Dims)
+				if err := binary.Read(qf, binary.LittleEndian, rawQuery); err != nil && err != io.EOF {
+					log.Printf("words: error reading vocab_query.bin: %v — falling back to passage vectors", err)
+					rawQuery = nil
+				}
+			}
+		} else {
+			log.Printf("words: meta.dual=true but vocab_query.bin absent or wrong size — falling back to passage vectors")
+		}
+	}
+
 	// ── Load sources.json for category metadata (optional) ───────────────────
 	var sources []string
 	if data, err := os.ReadFile(filepath.Join(dir, "sources.json")); err == nil {
@@ -112,14 +136,30 @@ func ReadBinaryFiles() map[string]WordEntry {
 			}
 		}
 
-		wordMap[key] = WordEntry{
+		entry := WordEntry{
 			Word:       word,
 			Type:       wordType,
 			WordVector: row,
 		}
+
+		if rawQuery != nil {
+			qrow := rawQuery[i*meta.Dims : (i+1)*meta.Dims]
+			for j, v := range qrow {
+				if math.IsNaN(float64(v)) || math.IsInf(float64(v), 0) {
+					qrow[j] = 0
+				}
+			}
+			entry.QueryVector = qrow
+		}
+
+		wordMap[key] = entry
 	}
 
-	log.Printf("words: loaded %d entries from binary files (dims=%d)", len(wordMap), meta.Dims)
+	dualNote := ""
+	if rawQuery != nil {
+		dualNote = " (dual passage+query vectors)"
+	}
+	log.Printf("words: loaded %d entries from binary files (dims=%d)%s", len(wordMap), meta.Dims, dualNote)
 	return wordMap
 }
 
