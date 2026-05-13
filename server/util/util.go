@@ -56,23 +56,26 @@ func GenerateGameCode() string {
 //
 // This is the core similarity primitive used by all game modes to compare
 // Swedish fastText word vectors.
-func CosineDistance(vecA []float64, vecB []float64) float64 {
+func CosineDistance(vecA []float32, vecB []float32) float64 {
 	if len(vecA) == 0 || len(vecB) == 0 || len(vecA) != len(vecB) {
 		return math.NaN()
 	}
 
 	var dot, normA, normB float64
+
 	for i := range vecA {
-		dot += vecA[i] * vecB[i]
-		normA += vecA[i] * vecA[i]
-		normB += vecB[i] * vecB[i]
+		a, b := float64(vecA[i]), float64(vecB[i])
+		dot += a * b
+		normA += a * a
+		normB += b * b
 	}
 
 	if normA == 0 || normB == 0 {
 		return math.NaN()
 	}
 
-	return 1 - dot/(math.Sqrt(normA)*math.Sqrt(normB))
+	cosineSimilarity := dot / (math.Sqrt(normA) * math.Sqrt(normB))
+	return 1 - cosineSimilarity
 }
 
 // GenerateUsername returns a random Swedish display name in the format

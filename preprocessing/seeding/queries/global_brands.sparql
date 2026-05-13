@@ -1,0 +1,22 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+
+SELECT DISTINCT ?brand ?brandLabel ?sitelinks WHERE {
+  VALUES ?brandType {
+    wd:Q4830453 wd:Q431289 wd:Q783794 wd:Q6881511 wd:Q891723
+  }
+  ?brand wdt:P31 ?brandType .
+
+  ?svArticle schema:about ?brand ;
+             schema:isPartOf <https://sv.wikipedia.org/> .
+
+  ?brand wikibase:sitelinks ?sitelinks .
+  FILTER(?sitelinks > 30)
+  
+  SERVICE wikibase:label { 
+    bd:serviceParam wikibase:language "sv,en". 
+  }
+}

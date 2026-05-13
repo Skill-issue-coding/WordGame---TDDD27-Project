@@ -1,0 +1,26 @@
+PREFIX wd: <http://www.wikidata.org/entity/>
+PREFIX wdt: <http://www.wikidata.org/prop/direct/>
+PREFIX wikibase: <http://wikiba.se/ontology#>
+PREFIX bd: <http://www.bigdata.com/rdf#>
+PREFIX schema: <http://schema.org/>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT DISTINCT ?person ?personLabel ?sitelinks WHERE {
+  ?svArticle schema:isPartOf <https://sv.wikipedia.org/> ;
+             schema:about ?person .
+
+  ?person wdt:P31 wd:Q5 ;        # instance of: human
+          wdt:P27 wd:Q34 ;       # country of citizenship: Sweden
+          wdt:P569 ?birthDate ;  # date of birth
+          wikibase:sitelinks ?sitelinks .
+
+  FILTER(
+    ?sitelinks > 3 && ?sitelinks < 60 &&
+    ?birthDate >= "1990-01-01T00:00:00Z"^^xsd:dateTime
+  )
+  
+  SERVICE wikibase:label {
+    bd:serviceParam wikibase:language "sv,en".
+  }
+}
+# NO LIMIT, NO ORDER BY! Python will handle this!
