@@ -85,15 +85,28 @@ function GameSettings({
   disabled,
   serverSettings,
   onSettingUpdate,
+  maxImpostors,
 }: {
   config: ModeSetting[];
   disabled: boolean;
   serverSettings: LobbyState["settings"] | undefined;
   onSettingUpdate: (key: string, value: number) => void;
+  maxImpostors: number;
 }) {
   const [localvalues, setLocalValues] = useState<Record<string, number>>({});
-
   const lastSendRef = useRef<Record<string, number>>({});
+
+  // Select lower impostor count if players leave when higher count is selected
+  useEffect(() => {
+    const currentImpostorCount =
+      localvalues["impostor_count"] ??
+      (serverSettings && "impostor_count" in serverSettings ? serverSettings.impostor_count : undefined);
+
+    if (currentImpostorCount && currentImpostorCount > maxImpostors) {
+      setLocalValues((prev) => ({ ...prev, impostor_count: maxImpostors }));
+      onSettingUpdate("impostor_count", maxImpostors);
+    }
+  }, [maxImpostors, serverSettings, onSettingUpdate]);
 
   useEffect(() => {
     if (serverSettings) {
@@ -169,16 +182,20 @@ function GameSettings({
                 value={String(currentValue)}
                 onValueChange={(v) => v && onSettingUpdate(setting.key, Number(v))}
                 className={cn(disabled && "pointer-events-none")}>
-                {setting.options?.map((opt) => (
-                  <ToggleGroupItem
-                    key={opt.value}
-                    value={String(opt.value)}
-                    className={
-                      "flex-1 font-display font-bold px-4.5 border-2 transition-all cursor-pointer bg-muted/40 border-border text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/60 data-[state=on]:bg-primary data-[state=on]:border-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-md data-[state=on]:opacity-100 disabled:cursor-not-allowed"
-                    }>
-                    {opt.label}
-                  </ToggleGroupItem>
-                ))}
+                {setting.options?.map((opt) => {
+                  const isOptionDisabled = setting.key === "impostor_count" && Number(opt.value) > maxImpostors;
+                  return (
+                    <ToggleGroupItem
+                      key={opt.value}
+                      value={String(opt.value)}
+                      disabled={isOptionDisabled}
+                      className={
+                        "flex-1 font-display font-bold px-4.5 border-2 transition-all cursor-pointer bg-muted/40 border-border text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/60 data-[state=on]:bg-primary data-[state=on]:border-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-md data-[state=on]:opacity-100 disabled:cursor-not-allowed"
+                      }>
+                      {opt.label}
+                    </ToggleGroupItem>
+                  );
+                })}
               </ToggleGroup>
             )}
           </div>
@@ -197,6 +214,9 @@ export function SettingsPanel({ className }: SettingsPanelProps) {
 
   const currentMode = (lobbyState?.mode as GameMode) || "impostor";
   const settingsConfig = MODE_SETTINGS[currentMode];
+
+  const playerCount = Object.keys(lobbyState?.users || {}).length;
+  const maxImpostors = Math.max(1, Math.floor(playerCount / 3));
 
   const handleModeChange = (newMode: GameMode) => {
     if (!isHost) return;
@@ -226,6 +246,7 @@ export function SettingsPanel({ className }: SettingsPanelProps) {
           disabled={!isHost}
           serverSettings={lobbyState?.settings}
           onSettingUpdate={handleSettingUpdate}
+          maxImpostors={maxImpostors}
         />
       </div>
     </div>

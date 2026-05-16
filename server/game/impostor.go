@@ -11,7 +11,7 @@ type ImpostorSettings struct {
 
 func DefaultImpostorSettings() ImpostorSettings {
 	return ImpostorSettings{
-		InputDuration:      2,
+		InputDuration:      30,
 		DiscussionDuration: 15,
 		ImpostorCount:      1,
 		VoteDuration:       30,
