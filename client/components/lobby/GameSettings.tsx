@@ -3,8 +3,8 @@
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
-import { Timer, RefreshCw, Check, HatGlasses, RulerDimensionLine } from "lucide-react";
-import { useState } from "react";
+import { Timer, RefreshCw, Check, HatGlasses, RulerDimensionLine, Languages } from "lucide-react";
+import { useState, useRef } from "react";
 import CodeDisplay from "@/components/lobby/CodeDisplay";
 import { GAME_MODES, getMode, MODE_SETTINGS, ModeSetting } from "@/lib/game/gameModes";
 import { useEffect } from "react";
@@ -93,6 +93,8 @@ function GameSettings({
 }) {
   const [localvalues, setLocalValues] = useState<Record<string, number>>({});
 
+  const lastSendRef = useRef<Record<string, number>>({});
+
   useEffect(() => {
     if (serverSettings) {
       setLocalValues(serverSettings as Record<string, number>);
@@ -110,6 +112,14 @@ function GameSettings({
 
   const handleSliderDrag = (key: string, val: number) => {
     setLocalValues((prev) => ({ ...prev, [key]: val }));
+
+    const now = Date.now();
+    const lastSend = lastSendRef.current[key] || 0;
+
+    if (now - lastSend > 100) {
+      onSettingUpdate(key, val);
+      lastSendRef.current[key] = now;
+    }
   };
 
   return (
@@ -125,6 +135,8 @@ function GameSettings({
                 <Timer className="w-4 h-4 text-muted-foreground" />
               ) : setting.key.includes("distance") ? (
                 <RulerDimensionLine className="w-4 h-4 text-muted-foreground" />
+              ) : setting.key.includes("word") ? (
+                <Languages className="w-4 h-4 text-muted-foreground" />
               ) : (
                 <RefreshCw className="w-4 h-4 text-muted-foreground" />
               )}

@@ -82,11 +82,11 @@ export default function LobbyView({ code }: { code: string }) {
         </motion.div>
         <div>
           <div className="flex flex-col sm:grid sm:grid-cols-5 gap-6">
-            <motion.div className="sm:col-span-3" {...snapIn({ delay: 0.16, x: -12, y: 12 })}>
-              <SettingsPanel className={"sm:col-span-3"} />
+            <motion.div className="sm:col-span-3 h-full" {...snapIn({ delay: 0.16, x: -12, y: 12 })}>
+              <SettingsPanel className="h-full" />
             </motion.div>
-            <motion.div className="sm:col-span-2" {...snapIn({ delay: 0.2, x: 12, y: 12 })}>
-              <PlayerList className={"sm:col-span-2"} />
+            <motion.div className="sm:col-span-2 h-full" {...snapIn({ delay: 0.2, x: 12, y: 12 })}>
+              <PlayerList className="h-full max-h-150" />
             </motion.div>
           </div>
           <motion.div className="flex flex-col sm:flex-row mt-6 gap-6" {...snapIn({ delay: 0.24, y: 14, rotate: 1.5 })}>

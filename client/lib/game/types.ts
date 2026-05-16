@@ -64,20 +64,25 @@ export type ImpostorSettings = {
   input_duration: number;
   discussion_duration: number;
   impostor_count: number;
+  vote_duration: number;
 };
 
 export type ContextoBattleSettings = {
   round_duration: number;
+  word_type: number;
+  rounds: number;
 };
 
 export type SynonymDuelSettings = {
   round_duration: number;
+  word_type: number;
   rounds: number;
 };
 
 export type AntiMatchSettings = {
   input_duration: number;
   max_distance: number;
+  rounds: number;
 };
 
 export type ModeSettings =

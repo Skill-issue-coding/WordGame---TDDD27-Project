@@ -97,8 +97,7 @@ export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
       step: 5,
       default: 30,
     },
-    /*
-    { TODO: maybe add this too?
+    {
       key: "discussion_duration",
       label: "Diskussionstid",
       type: "slider",
@@ -107,9 +106,27 @@ export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
       step: 5,
       default: 30,
     },
-    */
+    {
+      key: "vote_duration",
+      label: "Röstningstid",
+      type: "slider",
+      min: 10,
+      max: 60,
+      step: 5,
+      default: 30,
+    },
   ],
   contexto_battle: [
+    {
+      key: "word_type",
+      label: "Typ av ord",
+      type: "choice",
+      options: [
+        { value: 1, label: "Vanliga" },
+        { value: 2, label: "Kreativa" },
+      ],
+      default: 1,
+    },
     {
       key: "round_duration",
       label: "Betänketid",
@@ -119,8 +136,7 @@ export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
       step: 60,
       default: 120,
     },
-    /*
-    { TODO: maybe add this too?
+    {
       key: "rounds",
       label: "Antal rundor",
       type: "slider",
@@ -129,9 +145,18 @@ export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
       step: 1,
       default: 3,
     },
-    */
   ],
   synonym_duel: [
+    {
+      key: "word_type",
+      label: "Typ av ord",
+      type: "choice",
+      options: [
+        { value: 1, label: "Vanliga" },
+        { value: 2, label: "Kreativa" },
+      ],
+      default: 1,
+    },
     {
       key: "round_duration",
       label: "Betänketid",
@@ -161,8 +186,7 @@ export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
       step: 10,
       default: 20,
     },
-    /*
-    { TODO: maybe add this too?
+    {
       key: "rounds",
       label: "Antal rundor",
       type: "slider",
@@ -171,7 +195,6 @@ export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
       step: 1,
       default: 3,
     },
-    */
     {
       key: "max_distance",
       label: "Max Avstånd",

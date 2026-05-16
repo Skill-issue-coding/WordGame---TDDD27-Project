@@ -194,10 +194,17 @@ func (lobby *GameLobby) ApplySetting(key string, value float64) {
 			lobby.ImpostorSettings.DiscussionDuration = int(value)
 		case "impostor_count":
 			lobby.ImpostorSettings.ImpostorCount = int(value)
+		case "vote_duration":
+			lobby.ImpostorSettings.VoteDuration = int(value)
 		}
 	case ModeContextoBattle:
-		if key == "round_duration" {
+		switch key {
+		case "round_duration":
 			lobby.ContextoBattleSettings.RoundDuration = int(value)
+		case "rounds":
+			lobby.ContextoBattleSettings.Rounds = int(value)
+		case "word_type":
+			lobby.ContextoBattleSettings.WordType = int(value)
 		}
 	case ModeSynonymDuel:
 		switch key {
@@ -205,6 +212,8 @@ func (lobby *GameLobby) ApplySetting(key string, value float64) {
 			lobby.SynonymDuelSettings.RoundDuration = int(value)
 		case "rounds":
 			lobby.SynonymDuelSettings.Rounds = int(value)
+		case "word_type":
+			lobby.SynonymDuelSettings.WordType = int(value)
 		}
 	case ModeAntiMatch:
 		switch key {
@@ -212,6 +221,8 @@ func (lobby *GameLobby) ApplySetting(key string, value float64) {
 			lobby.AntiMatchSettings.InputDuration = int(value)
 		case "max_distance":
 			lobby.AntiMatchSettings.MaxDistance = value
+		case "rounds":
+			lobby.AntiMatchSettings.Rounds = int(value)
 		}
 	}
 }
