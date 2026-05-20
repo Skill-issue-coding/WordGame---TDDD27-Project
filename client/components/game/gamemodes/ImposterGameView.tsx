@@ -15,7 +15,7 @@ import { cn } from "@/lib/utils";
 
 type Phase = "reveal" | "input" | "discuss" | "vote";
 
-const ImpostorGame = () => {
+export const ImpostorView = () => {
   //const { username, color } = useUser();
   const [phase, setPhase] = useState<Phase>("reveal");
   const [guess, setGuess] = useState("");
@@ -121,5 +121,3 @@ const ImpostorGame = () => {
     </div>
   );
 };
-
-export default ImpostorGame;

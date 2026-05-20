@@ -1,6 +1,6 @@
 package game
 
-const defaultAntiHiveMaxDistance = 0.6
+const defaultAntiHiveMaxDistance = 0.5
 
 type AntiHiveSettings struct {
 	InputDuration int     `json:"input_duration"`
@@ -9,7 +9,11 @@ type AntiHiveSettings struct {
 }
 
 func DefaultAntiHiveSettings() AntiHiveSettings {
-	return AntiHiveSettings{InputDuration: 2, MaxDistance: defaultAntiHiveMaxDistance}
+	return AntiHiveSettings{
+		InputDuration: 20,
+		MaxDistance:   defaultAntiHiveMaxDistance,
+		Rounds:        3,
+	}
 }
 
 // AntiHiveThresholdFor returns the per-target distance threshold when the

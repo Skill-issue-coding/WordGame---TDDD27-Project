@@ -84,8 +84,11 @@ def _setup_logger() -> logging.Logger:
 
 log = _setup_logger()
 
-_SWEDISH_RE = re.compile(r"[a-zåäöA-ZÅÄÖ]")
-_BAD_RE     = re.compile(r"[_/\\]")
+_SWEDISH_RE     = re.compile(r"[a-zåäöA-ZÅÄÖ]")
+_BAD_RE         = re.compile(r"[_/\\]")
+# Reject words that contain any character outside the Swedish alphabet (a-z, å, ä, ö),
+# digits, and hyphens. This removes Norwegian ø, Czech č/š, Turkish ş/ü, etc.
+_NON_SWEDISH_RE = re.compile(r"[^a-zåäö0-9\-]", re.IGNORECASE)
 
 
 def _is_valid_word(text: str, stopwords: set) -> bool:
@@ -94,6 +97,8 @@ def _is_valid_word(text: str, stopwords: set) -> bool:
     if text.lower() in stopwords:
         return False
     if not _SWEDISH_RE.search(text):
+        return False
+    if _NON_SWEDISH_RE.search(text):
         return False
     if _BAD_RE.search(text):
         return False

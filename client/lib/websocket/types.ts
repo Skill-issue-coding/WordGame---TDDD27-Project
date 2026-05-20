@@ -59,6 +59,13 @@ export type WSRecievedEvent =
   | {
       type: "error" | "success";
       payload: { message: string };
+    }
+  | {
+      /**
+       * TODO: DEFINE PAYLOAD
+       */
+      type: "game_started";
+      payload: any;
     };
 
 /** Union of all event type strings the server can send. */
@@ -108,6 +115,9 @@ export type WSSendPayloadMap = {
 
   /** Sends a reuqest to the backend to leave the lobby */
   leave_lobby: null;
+
+  /** Sends a request to the backend to start the game */
+  start_game: null;
 };
 
 /** Union of all event type strings the client can send. */

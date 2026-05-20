@@ -12,38 +12,38 @@ import (
 
 const (
 	// Settings matching the client-side settings for Impostor game
-	IPOSTOR_COUNT_MIN = 1
-	IPOSTOR_COUNT_MAX = 4
-	IMPOSTOR_INPUT_DURATION_MIN = 10
-	IMPOSTOR_INPUT_DURATION_MAX = 60
+	IPOSTOR_COUNT_MIN                = 1
+	IPOSTOR_COUNT_MAX                = 4
+	IMPOSTOR_INPUT_DURATION_MIN      = 10
+	IMPOSTOR_INPUT_DURATION_MAX      = 60
 	IMPOSTOR_DISCUSSION_DURATION_MIN = 10
 	IMPOSTOR_DISCUSSION_DURATION_MAX = 60
-	IMPOSTOR_VOTE_DURATION_MIN = 10
-	IMPOSTOR_VOTE_DURATION_MAX = 60
-	
+	IMPOSTOR_VOTE_DURATION_MIN       = 10
+	IMPOSTOR_VOTE_DURATION_MAX       = 60
+
 	// Settings matching the client-side settings for Contexto game
-	CONTEXTO_WORD_TYPE_MIN = 1
-	CONTEXTO_WORD_TYPE_MAX = 2
+	CONTEXTO_WORD_TYPE_MIN      = 1
+	CONTEXTO_WORD_TYPE_MAX      = 2
 	CONTEXTO_ROUND_DURATION_MIN = 60
 	CONTEXTO_ROUND_DURATION_MAX = 600
-	CONTEXTO_ROUNDS_MIN = 1
-	CONTEXTO_ROUNDS_MAX = 5
+	CONTEXTO_ROUNDS_MIN         = 1
+	CONTEXTO_ROUNDS_MAX         = 5
 
 	// Settings matching the client-side settings for Synonym game
-	SYNONYM_WORD_TYPE_MIN = 1
-	SYNONYM_WORD_TYPE_MAX = 2
+	SYNONYM_WORD_TYPE_MIN      = 1
+	SYNONYM_WORD_TYPE_MAX      = 2
 	SYNONYM_ROUND_DURATION_MIN = 10
 	SYNONYM_ROUND_DURATION_MAX = 60
-	SYNONYM_ROUNDS_MIN = 1
-	SYNONYM_ROUNDS_MAX = 5
+	SYNONYM_ROUNDS_MIN         = 1
+	SYNONYM_ROUNDS_MAX         = 5
 
 	// Settings matching the client-side settings for Anti-match game
 	ANTIMATCH_ROUND_DURATION_MIN = 10
 	ANTIMATCH_ROUND_DURATION_MAX = 60
-	ANTIMATCH_ROUNDS_MIN = 1
-	ANTIMATCH_ROUNDS_MAX = 5
-	ANTIMATCH_DISTANCE_MIN = 0.1
-	ANTIMATCH_DISTANCE_MAX = 1.0
+	ANTIMATCH_ROUNDS_MIN         = 1
+	ANTIMATCH_ROUNDS_MAX         = 5
+	ANTIMATCH_DISTANCE_MIN       = 0.1
+	ANTIMATCH_DISTANCE_MAX       = 1.0
 )
 
 // NewLobby creates and returns a new GameLobby with the given room code.
@@ -216,6 +216,13 @@ func (lobby *GameLobby) SetMode(mode GameMode) {
 		lobby.SynonymDuelSettings = game.DefaultSynonymDuelSettings()
 	case ModeAntiMatch:
 		lobby.AntiMatchSettings = game.DefaultAntiHiveSettings()
+	}
+}
+
+func (lobby *GameLobby) StartLobby(client *Client) {
+	// TODO: Add host, setting and other checks
+	for client := range lobby.Clients {
+		client.SendEvent(events.GameStartedEvent, nil)
 	}
 }
 

@@ -17,15 +17,7 @@ interface SettingsPanelProps {
   className?: string;
 }
 
-function GameModeSelector({
-  selectedMode,
-  onModeChange,
-  disabled,
-}: {
-  selectedMode: GameMode;
-  onModeChange: (id: GameMode) => void;
-  disabled: boolean;
-}) {
+function GameModeSelector({ selectedMode, onModeChange, disabled }: { selectedMode: GameMode; onModeChange: (id: GameMode) => void; disabled: boolean }) {
   const mode = getMode(selectedMode);
 
   return (
@@ -40,31 +32,16 @@ function GameModeSelector({
               onClick={() => onModeChange(m.id)}
               className={cn(
                 "relative text-left rounded-lg border-2 p-3 transition-all flex items-center gap-3",
-                active
-                  ? `bg-card border-current ${m.textClass} shadow-md`
-                  : "bg-muted/40 border-border hover:border-muted-foreground/40",
+                active ? `bg-card border-current ${m.textClass} shadow-md` : "bg-muted/40 border-border hover:border-muted-foreground/40",
                 disabled ? "cursor-not-allowed pointer-events-none opacity-50" : "cursor-pointer opacity-80",
               )}>
-              <div
-                className={cn(
-                  "w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0",
-                  `bg-game-${m.color}`,
-                )}>
-                {m.icon}
-              </div>
+              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0", `bg-game-${m.color}`)}>{m.icon}</div>
               <div className="flex-1 min-w-0">
-                <div
-                  className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>
-                  {m.title}
-                </div>
+                <div className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>{m.title}</div>
                 <div className="text-xs text-muted-foreground truncate">{m.players}</div>
               </div>
               {active && (
-                <div
-                  className={cn(
-                    "w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0",
-                    `bg-game-${m.color}`,
-                  )}>
+                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0", `bg-game-${m.color}`)}>
                   <Check className="w-4 h-4" />
                 </div>
               )}
@@ -98,9 +75,7 @@ function GameSettings({
 
   // Select lower impostor count if players leave when higher count is selected
   useEffect(() => {
-    const currentImpostorCount =
-      localvalues["impostor_count"] ??
-      (serverSettings && "impostor_count" in serverSettings ? serverSettings.impostor_count : undefined);
+    const currentImpostorCount = localvalues["impostor_count"] ?? (serverSettings && "impostor_count" in serverSettings ? serverSettings.impostor_count : undefined);
 
     if (currentImpostorCount && currentImpostorCount > maxImpostors) {
       setLocalValues((prev) => ({ ...prev, impostor_count: maxImpostors }));
@@ -180,12 +155,15 @@ function GameSettings({
                 spacing={2}
                 size="sm"
                 value={String(currentValue)}
+                //onValueChange={(v) => v && onSettingUpdate(setting.key, Number(v))}
+                /**/
                 onValueChange={(v) => {
                   if (!v) return;
                   const nextValue = Number(v);
                   setLocalValues((prev) => ({ ...prev, [setting.key]: nextValue }));
                   onSettingUpdate(setting.key, nextValue);
                 }}
+                /**/
                 className={cn(disabled && "pointer-events-none")}>
                 {setting.options?.map((opt) => {
                   const isOptionDisabled = setting.key === "impostor_count" && Number(opt.value) > maxImpostors;
@@ -242,17 +220,9 @@ export function SettingsPanel({ className }: SettingsPanelProps) {
         </div>
         <GameModeSelector selectedMode={currentMode} onModeChange={handleModeChange} disabled={!isHost} />
         <div className="flex items-center justify-between">
-          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">
-            Spelinställningar
-          </p>
+          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelinställningar</p>
         </div>
-        <GameSettings
-          config={settingsConfig}
-          disabled={!isHost}
-          serverSettings={lobbyState?.settings}
-          onSettingUpdate={handleSettingUpdate}
-          maxImpostors={maxImpostors}
-        />
+        <GameSettings config={settingsConfig} disabled={!isHost} serverSettings={lobbyState?.settings} onSettingUpdate={handleSettingUpdate} maxImpostors={maxImpostors} />
       </div>
     </div>
   );

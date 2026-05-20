@@ -49,24 +49,29 @@ const (
 	// JoinLobbyErrorEvent is sent when the user is trying to join a lobby but an error occurs
 	// not allowing the user to join
 	JoinLobbyErrorEvent EventType = "join_error"
+
+	// GameStartedEvent is sent when the server has started the game
+	// Payload: unkown
+	// TODO: Define payload
+	GameStartedEvent EventType = "game_started"
 )
 
 // Client → Server event types.
 const (
-	// CreateLobbyEvent requests creation of a new lobby. The client is
+	// CreateLobbyRequestEvent requests creation of a new lobby. The client is
 	// automatically registered as the host.
 	// Payload: nil.
-	CreateLobbyEvent EventType = "create_lobby"
+	CreateLobbyRequestEvent EventType = "create_lobby"
 
-	// JoinLobbyEvent requests joining an existing lobby using a room code.
+	// JoinLobbyRequestEvent requests joining an existing lobby using a room code.
 	// Payload: JoinLobbyPayload.
-	JoinLobbyEvent EventType = "join_lobby"
+	JoinLobbyRequestEvent EventType = "join_lobby"
 
-	// UpdateUserEvent requests a profile update (username and/or background).
+	// UpdateUserRequestEvent requests a profile update (username and/or background).
 	// The server mutates the client's shared UserProfile pointer and triggers
 	// a SyncGameStateEvent broadcast to the lobby.
 	// Payload: UpdateUserPayload.
-	UpdateUserEvent EventType = "update_user"
+	UpdateUserRequestEvent EventType = "update_user"
 
 	// ChatMessageRequestEvent is sent to the server to broadcast a message to the lobby.
 	// Payload: ChatMessageRequestPayload
@@ -76,15 +81,19 @@ const (
 	// Payload: nil
 	LeaveLobbyRequestEvent EventType = "leave_lobby"
 
-	// ChangeModeEvent is received when a user wants to change the game mode.
+	// ChangeModeRequestEvent is received when a user wants to change the game mode.
 	// This event is only processed if the requesting user is the host of the lobby.
 	// Payload: ChangeModePayload
-	ChangeModeEvent EventType = "change_mode"
+	ChangeModeRequestEvent EventType = "change_mode"
 
-	// UpdateSettingEvent is received when a user wants to update the lobby settings.
+	// UpdateSettingsRequestEvent is received when a user wants to update the lobby settings.
 	// This event is only processed if the requesting user is the host of the lobby.
 	// Payload: UpdateSettingPayload
-	UpdateSettingEvent EventType = "update_setting"
+	UpdateSettingsRequestEvent EventType = "update_setting"
+
+	// StartGameRequestEvent is recieved when a client wants to start the game.
+	// Payload: nil
+	StartGameRequestEvent EventType = "start_game"
 )
 
 // Event is the wire envelope for all WebSocket messages. Both directions use

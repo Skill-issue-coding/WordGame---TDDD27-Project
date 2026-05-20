@@ -108,12 +108,17 @@ export function LobbyContextProvider({ children }: { children: ReactNode }) {
       if (lobbyCodeRef.current) router.push(`/lobby/${lobbyCodeRef.current}`);
     });
 
+    const unsubGameStarted = subscribe("game_started", () => {
+      router.push(`/lobby/${lobbyCodeRef.current}/game`);
+    });
+
     return () => {
       unsubJoinError();
       unsubLeftLobby();
       unsubChat();
       unsubSync();
       unsubJoined();
+      unsubGameStarted();
     };
   }, [router, subscribe]);
 

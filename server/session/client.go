@@ -131,7 +131,7 @@ func (c *Client) ReadPump() {
 
 		// create_lobby — creates a new room, assigns this client as host,
 		// and registers them into it.
-		case events.CreateLobbyEvent:
+		case events.CreateLobbyRequestEvent:
 			code := c.Hub.CreateUniqueRoom()
 			lobby := c.Hub.GetRoom(code)
 
@@ -143,7 +143,7 @@ func (c *Client) ReadPump() {
 
 		// join_lobby — validates the room code and registers the client into
 		// an existing lobby.
-		case events.JoinLobbyEvent:
+		case events.JoinLobbyRequestEvent:
 			payload, err := events.DecodePayload[JoinLobbyPayload](event)
 			if err != nil {
 				c.SendError("Serverfel vid inläsningen av lobby koden")
@@ -184,7 +184,7 @@ func (c *Client) ReadPump() {
 			c.Lobby.Unregister <- c
 
 		// update_user — updates the client's username and/or background color.
-		case events.UpdateUserEvent:
+		case events.UpdateUserRequestEvent:
 			payload, err := events.DecodePayload[UpdateUserPayload](event)
 			if err != nil {
 				c.SendError("Serverfel vid inläsningen av uppdateringarna")
@@ -224,7 +224,7 @@ func (c *Client) ReadPump() {
 
 			c.Lobby.ChatMessages <- chatMessage
 
-		case events.ChangeModeEvent:
+		case events.ChangeModeRequestEvent:
 			if c.Lobby == nil || c.Lobby.Host != c.UserId {
 				c.SendError("Endast hosten kan ändra spelläge.")
 				continue
@@ -239,7 +239,7 @@ func (c *Client) ReadPump() {
 
 			c.Lobby.ModeUpdateRequests <- payload.Mode
 
-		case events.UpdateSettingEvent:
+		case events.UpdateSettingsRequestEvent:
 			if c.Lobby == nil || c.Lobby.Host != c.UserId {
 				c.SendError("Endast hosten kan ändra inställningar.")
 				continue
@@ -251,6 +251,9 @@ func (c *Client) ReadPump() {
 				continue
 			}
 			c.Lobby.SettingUpdateRequests <- payload
+
+		case events.StartGameRequestEvent:
+			c.Lobby.StartLobby(c)
 
 		default:
 			log.Printf("Unknown event type %s", event.Type)

@@ -58,7 +58,7 @@ export default function LobbyView({ code }: { code: string }) {
 
   const handleStartGame = () => {
     if (!isHost) return;
-    //sendEvent("start_game", null); TODO: skicka till backenden att spelet startar
+    sendEvent("start_game", null);
   };
 
   const playerCount = Object.keys(lobbyState?.users || {}).length;
@@ -68,9 +68,7 @@ export default function LobbyView({ code }: { code: string }) {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-4xl animate-slide-up">
-        <motion.div
-          className="relative flex items-center justify-between mb-6"
-          {...snapIn({ delay: 0.08, strength: 1.2, y: 10 })}>
+        <motion.div className="relative flex items-center justify-between mb-6" {...snapIn({ delay: 0.08, strength: 1.2, y: 10 })}>
           <div className="flex-1 flex justify-start">
             <Link href="/" className="flex items-center" onClick={handleLeave}>
               <button className="flex items-center gap-2 transition-colors cursor-pointer text-muted-foreground hover:text-foreground">
@@ -102,13 +100,9 @@ export default function LobbyView({ code }: { code: string }) {
 
             <Button
               size="lg"
-              disabled={!isHost || !enoughPlayers}
+              // disabled={!isHost || !enoughPlayers}
               onClick={handleStartGame}
-              className={cn(
-                "gap-2 flex-1 min-h-12 font-body transition-all",
-                (!isHost || !enoughPlayers) && "opacity-50 cursor-not-allowed",
-                isHost && !enoughPlayers && "opacity-50 cursor-not-allowed",
-              )}>
+              className={cn("gap-2 flex-1 min-h-12 font-body transition-all", (!isHost || !enoughPlayers) && "opacity-50 cursor-not-allowed", isHost && !enoughPlayers && "opacity-50 cursor-not-allowed")}>
               {isHost && enoughPlayers ? (
                 <>
                   Starta
