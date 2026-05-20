@@ -222,8 +222,11 @@ __marimo__/
 # intermediate files
 intermediate
 
-model/*.bin
 model/*npy
 old-model
 
 handover-files/*
+
+model/db/
+
+data/*

@@ -3,3 +3,4 @@
 server/words/korp_vectors.csv filter=lfs diff=lfs merge=lfs -text
 server/wordfiles/vocab.bin filter=lfs diff=lfs merge=lfs -text
 server/wordfiles/vocab_query.bin filter=lfs diff=lfs merge=lfs -text
+preprocessing/model/*bin filter=lfs diff=lfs merge=lfs -text
