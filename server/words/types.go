@@ -41,11 +41,6 @@ type Dictionary struct {
 	LemmaMap map[string]string
 }
 
-type RelatedWord struct {
-	Word       string
-	Similarity float64
-}
-
 type WordEntry struct {
 	Word       string
 	Type       string
