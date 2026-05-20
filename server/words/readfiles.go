@@ -12,18 +12,7 @@ import (
 	"strings"
 )
 
-const defaultBaseFileDirectory string = "wordfiles/"
-
-func baseFileDirectory() string {
-	dir := strings.TrimSpace(os.Getenv("WORDGAME_WORDFILES_DIR"))
-	if dir == "" {
-		return defaultBaseFileDirectory
-	}
-	if !strings.HasSuffix(dir, "/") {
-		dir += "/"
-	}
-	return dir
-}
+const DEFAULT_WORD_FILES_DIRECTORY string = "wordfiles/"
 
 var VECTOR_FILES = []string{"celebrities_vectors.csv", "companies_vectors.csv", "culture_vectors.csv", "games_vectors.csv"}
 
@@ -146,7 +135,7 @@ func parseVectorColumns(record []string, columns map[string]int) []float32 {
 }
 
 func readCSVFile(wordMap *map[string]WordEntry, filename string) {
-	fullPath := filepath.Join(baseFileDirectory(), filename)
+	fullPath := filepath.Join(DEFAULT_WORD_FILES_DIRECTORY, filename)
 	file, err := os.Open(fullPath)
 	if err != nil {
 		log.Printf("Skipping missing or unreadable file %s: %v", fullPath, err)
@@ -214,10 +203,6 @@ func readCSVFile(wordMap *map[string]WordEntry, filename string) {
 			Word:       word,
 			Type:       wordType,
 			WordVector: vector,
-			Popularity: parseOptionalFloat(firstNonEmpty(record, columns, "popularity")),
-			Sitelinks:  parseOptionalFloat(firstNonEmpty(record, columns, "sitelinks")),
-			Score:      parseOptionalFloat(firstNonEmpty(record, columns, "score")),
-			IsSeed:     parseOptionalBool(firstNonEmpty(record, columns, "is_seed")),
 		}
 
 		key := normalizeWordKey(entry.Word)
@@ -225,20 +210,14 @@ func readCSVFile(wordMap *map[string]WordEntry, filename string) {
 			continue
 		}
 
-		if existing, exists := (*wordMap)[key]; exists {
-			if existing.Popularity >= entry.Popularity {
-				continue
-			}
-		}
-
 		(*wordMap)[key] = entry
 	}
 }
 
 func discoverVectorFiles() []string {
-	entries, err := os.ReadDir(baseFileDirectory())
+	entries, err := os.ReadDir(DEFAULT_WORD_FILES_DIRECTORY)
 	if err != nil {
-		log.Printf("Could not list vector files in %s: %v", defaultBaseFileDirectory, err)
+		log.Printf("Could not list vector files in %s: %v", DEFAULT_WORD_FILES_DIRECTORY, err)
 		return nil
 	}
 
