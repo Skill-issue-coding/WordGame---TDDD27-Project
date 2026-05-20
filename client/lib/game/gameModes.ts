@@ -72,7 +72,7 @@ export const GAME_MODES: GameModeConfig[] = [
   },
 ];
 
-export const getMode = (id: string): GameModeConfig => GAME_MODES.find((m) => m.id === id) ?? GAME_MODES[0];
+export const getMode = (id: GameMode): GameModeConfig => GAME_MODES.find((m) => m.id === id) ?? GAME_MODES[0];
 
 export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
   impostor: [

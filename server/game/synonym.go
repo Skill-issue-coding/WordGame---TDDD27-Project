@@ -8,7 +8,7 @@ type SynonymDuelSettings struct {
 
 func DefaultSynonymDuelSettings() SynonymDuelSettings {
 	return SynonymDuelSettings{
-		RoundDuration: 20, 
+		RoundDuration: 20,
 		Rounds:        3,
 		WordType:      1, // 1 = Regular, 2 = Creative
 	}

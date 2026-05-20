@@ -92,3 +92,26 @@ func GenerateUsername() string {
 func GenerateBackgroundColor() string {
 	return palette[rand.Intn(len(palette))]
 }
+
+// Helper functions to ensure client-provided values remain within safe bounds
+// Example, used in validating client inputs and applying gamesettings on serverside
+func ClampInt(val float64, min int, max int) int {
+	v := int(val)
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
+}
+
+func ClampFloat(val float64, min float64, max float64) float64 {
+	if val < min {
+		return min
+	}
+	if val > max {
+		return max
+	}
+	return val
+}

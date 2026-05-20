@@ -180,7 +180,12 @@ function GameSettings({
                 spacing={2}
                 size="sm"
                 value={String(currentValue)}
-                onValueChange={(v) => v && onSettingUpdate(setting.key, Number(v))}
+                onValueChange={(v) => {
+                  if (!v) return;
+                  const nextValue = Number(v);
+                  setLocalValues((prev) => ({ ...prev, [setting.key]: nextValue }));
+                  onSettingUpdate(setting.key, nextValue);
+                }}
                 className={cn(disabled && "pointer-events-none")}>
                 {setting.options?.map((opt) => {
                   const isOptionDisabled = setting.key === "impostor_count" && Number(opt.value) > maxImpostors;
