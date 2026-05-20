@@ -4,9 +4,46 @@ import (
 	"log"
 	"server/events"
 	"server/game"
+	"server/util"
 	"time"
 
 	"github.com/google/uuid"
+)
+
+const (
+	// Settings matching the client-side settings for Impostor game
+	IPOSTOR_COUNT_MIN = 1
+	IPOSTOR_COUNT_MAX = 4
+	IMPOSTOR_INPUT_DURATION_MIN = 10
+	IMPOSTOR_INPUT_DURATION_MAX = 60
+	IMPOSTOR_DISCUSSION_DURATION_MIN = 10
+	IMPOSTOR_DISCUSSION_DURATION_MAX = 60
+	IMPOSTOR_VOTE_DURATION_MIN = 10
+	IMPOSTOR_VOTE_DURATION_MAX = 60
+	
+	// Settings matching the client-side settings for Contexto game
+	CONTEXTO_WORD_TYPE_MIN = 1
+	CONTEXTO_WORD_TYPE_MAX = 2
+	CONTEXTO_ROUND_DURATION_MIN = 60
+	CONTEXTO_ROUND_DURATION_MAX = 600
+	CONTEXTO_ROUNDS_MIN = 1
+	CONTEXTO_ROUNDS_MAX = 5
+
+	// Settings matching the client-side settings for Synonym game
+	SYNONYM_WORD_TYPE_MIN = 1
+	SYNONYM_WORD_TYPE_MAX = 2
+	SYNONYM_ROUND_DURATION_MIN = 10
+	SYNONYM_ROUND_DURATION_MAX = 60
+	SYNONYM_ROUNDS_MIN = 1
+	SYNONYM_ROUNDS_MAX = 5
+
+	// Settings matching the client-side settings for Anti-match game
+	ANTIMATCH_ROUND_DURATION_MIN = 10
+	ANTIMATCH_ROUND_DURATION_MAX = 60
+	ANTIMATCH_ROUNDS_MIN = 1
+	ANTIMATCH_ROUNDS_MAX = 5
+	ANTIMATCH_DISTANCE_MIN = 0.1
+	ANTIMATCH_DISTANCE_MAX = 1.0
 )
 
 // NewLobby creates and returns a new GameLobby with the given room code.
@@ -189,29 +226,40 @@ func (lobby *GameLobby) ApplySetting(key string, value float64) {
 	case ModeImpostor:
 		switch key {
 		case "input_duration":
-			lobby.ImpostorSettings.InputDuration = int(value)
+			lobby.ImpostorSettings.InputDuration = util.ClampInt(value, IMPOSTOR_INPUT_DURATION_MIN, IMPOSTOR_INPUT_DURATION_MAX)
 		case "discussion_duration":
-			lobby.ImpostorSettings.DiscussionDuration = int(value)
+			lobby.ImpostorSettings.DiscussionDuration = util.ClampInt(value, IMPOSTOR_DISCUSSION_DURATION_MIN, IMPOSTOR_DISCUSSION_DURATION_MAX)
 		case "impostor_count":
-			lobby.ImpostorSettings.ImpostorCount = int(value)
+			lobby.ImpostorSettings.ImpostorCount = util.ClampInt(value, IPOSTOR_COUNT_MIN, IPOSTOR_COUNT_MIN)
+		case "vote_duration":
+			lobby.ImpostorSettings.VoteDuration = util.ClampInt(value, IMPOSTOR_VOTE_DURATION_MIN, IMPOSTOR_DISCUSSION_DURATION_MAX)
 		}
 	case ModeContextoBattle:
-		if key == "round_duration" {
-			lobby.ContextoBattleSettings.RoundDuration = int(value)
+		switch key {
+		case "round_duration":
+			lobby.ContextoBattleSettings.RoundDuration = util.ClampInt(value, CONTEXTO_ROUND_DURATION_MIN, CONTEXTO_ROUND_DURATION_MAX)
+		case "rounds":
+			lobby.ContextoBattleSettings.Rounds = util.ClampInt(value, CONTEXTO_ROUNDS_MIN, CONTEXTO_ROUNDS_MAX)
+		case "word_type":
+			lobby.ContextoBattleSettings.WordType = util.ClampInt(value, CONTEXTO_WORD_TYPE_MIN, CONTEXTO_WORD_TYPE_MAX)
 		}
 	case ModeSynonymDuel:
 		switch key {
 		case "round_duration":
-			lobby.SynonymDuelSettings.RoundDuration = int(value)
+			lobby.SynonymDuelSettings.RoundDuration = util.ClampInt(value, SYNONYM_ROUND_DURATION_MIN, SYNONYM_ROUNDS_MAX)
 		case "rounds":
-			lobby.SynonymDuelSettings.Rounds = int(value)
+			lobby.SynonymDuelSettings.Rounds = util.ClampInt(value, SYNONYM_ROUNDS_MIN, SYNONYM_ROUNDS_MAX)
+		case "word_type":
+			lobby.SynonymDuelSettings.WordType = util.ClampInt(value, SYNONYM_WORD_TYPE_MIN, SYNONYM_WORD_TYPE_MAX)
 		}
 	case ModeAntiMatch:
 		switch key {
 		case "input_duration":
-			lobby.AntiMatchSettings.InputDuration = int(value)
+			lobby.AntiMatchSettings.InputDuration = util.ClampInt(value, ANTIMATCH_ROUND_DURATION_MIN, ANTIMATCH_ROUND_DURATION_MAX)
 		case "max_distance":
-			lobby.AntiMatchSettings.MaxDistance = value
+			lobby.AntiMatchSettings.MaxDistance = util.ClampFloat(value, ANTIMATCH_DISTANCE_MIN, ANTIMATCH_DISTANCE_MAX)
+		case "rounds":
+			lobby.AntiMatchSettings.Rounds = util.ClampInt(value, SYNONYM_ROUNDS_MIN, SYNONYM_ROUNDS_MAX)
 		}
 	}
 }

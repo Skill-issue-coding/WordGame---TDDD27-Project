@@ -3,16 +3,18 @@ package game
 import "server/words"
 
 type ImpostorSettings struct {
-	InputDuration      int `json:"inputDuration"`      // seconds to submit word
-	DiscussionDuration int `json:"discussionDuration"` // seconds for discussion/voting
-	ImpostorCount      int `json:"impostorCount"`
+	InputDuration      int `json:"input_duration"`      // seconds to submit word
+	DiscussionDuration int `json:"discussion_duration"` // seconds for discussion
+	ImpostorCount      int `json:"impostor_count"`		// amount of impostors
+	VoteDuration       int `json:"vote_duration"`		// seconds for voting
 }
 
 func DefaultImpostorSettings() ImpostorSettings {
 	return ImpostorSettings{
-		InputDuration:      2,
+		InputDuration:      30,
 		DiscussionDuration: 15,
 		ImpostorCount:      1,
+		VoteDuration:       30,
 	}
 }
 

@@ -3,8 +3,9 @@ package game
 const defaultAntiHiveMaxDistance = 0.6
 
 type AntiHiveSettings struct {
-	InputDuration int     `json:"inputDuration"`
-	MaxDistance   float64 `json:"maxDistance"` // semantic distance threshold
+	InputDuration int     `json:"input_duration"`
+	MaxDistance   float64 `json:"max_distance"` // semantic distance threshold
+	Rounds        int     `json:"rounds"`
 }
 
 func DefaultAntiHiveSettings() AntiHiveSettings {

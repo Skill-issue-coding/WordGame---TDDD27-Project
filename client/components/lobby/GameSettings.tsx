@@ -3,19 +3,29 @@
 import { cn } from "@/lib/utils";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
-import { Timer, RefreshCw, Check, HatGlasses } from "lucide-react";
-import { useState } from "react";
+import { Timer, RefreshCw, Check, HatGlasses, RulerDimensionLine, Languages } from "lucide-react";
+import { useState, useRef } from "react";
 import CodeDisplay from "@/components/lobby/CodeDisplay";
-import { GAME_MODES, getMode, MODE_SETTINGS, ModeSetting, type GameModeId } from "@/lib/game/gameModes";
+import { GAME_MODES, getMode, MODE_SETTINGS, ModeSetting } from "@/lib/game/gameModes";
 import { useEffect } from "react";
 import { useLobbyContext } from "@/hooks/lobbycontext";
 import { useUserContext } from "@/hooks/usercontext";
+import { useWebsocketContext } from "@/hooks/websocketcontext";
+import { GameMode, LobbyState } from "@/lib/game/types";
 
 interface SettingsPanelProps {
   className?: string;
 }
 
-function GameMode({ selectedMode, onModeChange, disabled }: { selectedMode: GameModeId; onModeChange: (id: GameModeId) => void; disabled: boolean }) {
+function GameModeSelector({
+  selectedMode,
+  onModeChange,
+  disabled,
+}: {
+  selectedMode: GameMode;
+  onModeChange: (id: GameMode) => void;
+  disabled: boolean;
+}) {
   const mode = getMode(selectedMode);
 
   return (
@@ -30,16 +40,31 @@ function GameMode({ selectedMode, onModeChange, disabled }: { selectedMode: Game
               onClick={() => onModeChange(m.id)}
               className={cn(
                 "relative text-left rounded-lg border-2 p-3 transition-all flex items-center gap-3",
-                active ? `bg-card border-current ${m.textClass} shadow-md` : "bg-muted/40 border-border hover:border-muted-foreground/40",
-                disabled ? "cursor-not-allowed pointer-events-none" : "cursor-pointer opacity-80",
+                active
+                  ? `bg-card border-current ${m.textClass} shadow-md`
+                  : "bg-muted/40 border-border hover:border-muted-foreground/40",
+                disabled ? "cursor-not-allowed pointer-events-none opacity-50" : "cursor-pointer opacity-80",
               )}>
-              <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0", `bg-game-${m.color}`)}>{m.icon}</div>
+              <div
+                className={cn(
+                  "w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0",
+                  `bg-game-${m.color}`,
+                )}>
+                {m.icon}
+              </div>
               <div className="flex-1 min-w-0">
-                <div className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>{m.title}</div>
+                <div
+                  className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>
+                  {m.title}
+                </div>
                 <div className="text-xs text-muted-foreground truncate">{m.players}</div>
               </div>
               {active && (
-                <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0", `bg-game-${m.color}`)}>
+                <div
+                  className={cn(
+                    "w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0",
+                    `bg-game-${m.color}`,
+                  )}>
                   <Check className="w-4 h-4" />
                 </div>
               )}
@@ -55,56 +80,127 @@ function GameMode({ selectedMode, onModeChange, disabled }: { selectedMode: Game
   );
 }
 
-function GameSettings({ config, disabled }: { config: ModeSetting[]; disabled: boolean }) {
-  const [values, setValues] = useState<Record<string, any>>({});
+function GameSettings({
+  config,
+  disabled,
+  serverSettings,
+  onSettingUpdate,
+  maxImpostors,
+}: {
+  config: ModeSetting[];
+  disabled: boolean;
+  serverSettings: LobbyState["settings"] | undefined;
+  onSettingUpdate: (key: string, value: number) => void;
+  maxImpostors: number;
+}) {
+  const [localvalues, setLocalValues] = useState<Record<string, number>>({});
+  const lastSendRef = useRef<Record<string, number>>({});
+
+  // Select lower impostor count if players leave when higher count is selected
+  useEffect(() => {
+    const currentImpostorCount =
+      localvalues["impostor_count"] ??
+      (serverSettings && "impostor_count" in serverSettings ? serverSettings.impostor_count : undefined);
+
+    if (currentImpostorCount && currentImpostorCount > maxImpostors) {
+      setLocalValues((prev) => ({ ...prev, impostor_count: maxImpostors }));
+      onSettingUpdate("impostor_count", maxImpostors);
+    }
+  }, [maxImpostors, serverSettings, onSettingUpdate]);
 
   useEffect(() => {
-    const defaults = config.reduce(
-      (acc, setting) => {
-        acc[setting.key] = setting.default;
-        return acc;
-      },
-      {} as Record<string, any>,
-    );
+    if (serverSettings) {
+      setLocalValues(serverSettings as Record<string, number>);
+    } else {
+      const defaults = config.reduce(
+        (acc, setting) => {
+          acc[setting.key] = setting.default;
+          return acc;
+        },
+        {} as Record<string, number>,
+      );
+      setLocalValues(defaults);
+    }
+  }, [serverSettings, config]);
 
-    setValues(defaults);
-  }, [config]);
+  const handleSliderDrag = (key: string, val: number) => {
+    setLocalValues((prev) => ({ ...prev, [key]: val }));
 
-  const updateValue = (key: string, val: any) => {
-    setValues((prev) => ({ ...prev, [key]: val }));
+    const now = Date.now();
+    const lastSend = lastSendRef.current[key] || 0;
+
+    if (now - lastSend > 100) {
+      onSettingUpdate(key, val);
+      lastSendRef.current[key] = now;
+    }
   };
 
   return (
     <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-8 w-full", disabled && "opacity-50")}>
       {config.map((setting) => {
-        const currentValue = values[setting.key] ?? setting.default;
+        const currentValue = localvalues[setting.key] ?? setting.default;
         return (
           <div key={setting.key} className="flex flex-col gap-2.5 flex-1">
             <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
-              {setting.key === "impostorCount" ? <HatGlasses className="w-4 h-4 text-muted-foreground" /> : setting.key.includes("Time") ? <Timer className="w-4 h-4 text-muted-foreground" /> : <RefreshCw className="w-4 h-4 text-muted-foreground" />}
+              {setting.key === "impostor_count" ? (
+                <HatGlasses className="w-4 h-4 text-muted-foreground" />
+              ) : setting.key.includes("duration") ? (
+                <Timer className="w-4 h-4 text-muted-foreground" />
+              ) : setting.key.includes("distance") ? (
+                <RulerDimensionLine className="w-4 h-4 text-muted-foreground" />
+              ) : setting.key.includes("word") ? (
+                <Languages className="w-4 h-4 text-muted-foreground" />
+              ) : (
+                <RefreshCw className="w-4 h-4 text-muted-foreground" />
+              )}
               {setting.label}
             </div>
 
             {setting.type === "slider" ? (
               <div className={cn("flex items-center gap-4", disabled && "pointer-events-none")}>
-                <Slider disabled={disabled} min={setting.min} max={setting.max} step={setting.step} value={[currentValue]} onValueChange={([v]) => updateValue(setting.key, v)} className="flex-1" />
+                <Slider
+                  disabled={disabled}
+                  min={setting.min}
+                  max={setting.max}
+                  step={setting.step}
+                  value={[currentValue]}
+                  onValueChange={([v]) => handleSliderDrag(setting.key, v)}
+                  onValueCommit={([v]) => onSettingUpdate(setting.key, v)}
+                  className="flex-1"
+                />
                 <span className="text-sm font-bold w-8 text-right tabular-nums">
-                  {values[setting.key] ?? setting.default}
-                  {setting.key.includes("Time") ? "s" : ""}
+                  {localvalues[setting.key] ?? setting.default}
+                  {setting.key.includes("duration") ? "s" : ""}
                 </span>
               </div>
             ) : (
-              <ToggleGroup disabled={disabled} type="single" spacing={2} size="sm" value={String(currentValue)} onValueChange={(v) => v && updateValue(setting.key, isNaN(Number(v)) ? v : Number(v))} className={cn(disabled && "pointer-events-none")}>
-                {setting.options?.map((opt) => (
-                  <ToggleGroupItem
-                    key={opt.value}
-                    value={String(opt.value)}
-                    className={
-                      "flex-1 font-display font-bold px-4.5 border-2 transition-all cursor-pointer bg-muted/40 border-border text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/60 data-[state=on]:bg-primary data-[state=on]:border-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-md data-[state=on]:opacity-100 disabled:cursor-not-allowed"
-                    }>
-                    {opt.label}
-                  </ToggleGroupItem>
-                ))}
+              <ToggleGroup
+                disabled={disabled}
+                type="single"
+                spacing={2}
+                size="sm"
+                value={String(currentValue)}
+                onValueChange={(v) => {
+                  if (!v) return;
+                  const nextValue = Number(v);
+                  setLocalValues((prev) => ({ ...prev, [setting.key]: nextValue }));
+                  onSettingUpdate(setting.key, nextValue);
+                }}
+                className={cn(disabled && "pointer-events-none")}>
+                {setting.options?.map((opt) => {
+                  const isOptionDisabled = setting.key === "impostor_count" && Number(opt.value) > maxImpostors;
+                  return (
+                    <ToggleGroupItem
+                      key={opt.value}
+                      value={String(opt.value)}
+                      disabled={isOptionDisabled}
+                      className={
+                        "flex-1 font-display font-bold px-4.5 border-2 transition-all cursor-pointer bg-muted/40 border-border text-muted-foreground hover:border-muted-foreground/40 hover:bg-muted/60 data-[state=on]:bg-primary data-[state=on]:border-primary data-[state=on]:text-primary-foreground data-[state=on]:shadow-md data-[state=on]:opacity-100 disabled:cursor-not-allowed"
+                      }>
+                      {opt.label}
+                    </ToggleGroupItem>
+                  );
+                })}
               </ToggleGroup>
             )}
           </div>
@@ -117,11 +213,25 @@ function GameSettings({ config, disabled }: { config: ModeSetting[]; disabled: b
 export function SettingsPanel({ className }: SettingsPanelProps) {
   const { lobbyState } = useLobbyContext();
   const { user } = useUserContext();
-
-  const [selectedMode, setSelectedMode] = useState<GameModeId>("impostor");
+  const { sendEvent } = useWebsocketContext();
 
   const isHost = lobbyState?.host === user?.user_id;
-  const settingsConfig = MODE_SETTINGS[selectedMode];
+
+  const currentMode = (lobbyState?.mode as GameMode) || "impostor";
+  const settingsConfig = MODE_SETTINGS[currentMode];
+
+  const playerCount = Object.keys(lobbyState?.users || {}).length;
+  const maxImpostors = Math.max(1, Math.floor(playerCount / 3));
+
+  const handleModeChange = (newMode: GameMode) => {
+    if (!isHost) return;
+    sendEvent("change_mode", { mode: newMode });
+  };
+
+  const handleSettingUpdate = (key: string, value: number) => {
+    if (!isHost) return;
+    sendEvent("update_setting", { key, value });
+  };
 
   return (
     <div className={cn("game-card flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border", className)}>
@@ -130,11 +240,19 @@ export function SettingsPanel({ className }: SettingsPanelProps) {
         <div className="flex items-center justify-between">
           <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelläge</p>
         </div>
-        <GameMode selectedMode={selectedMode} onModeChange={setSelectedMode} disabled={!isHost} />
+        <GameModeSelector selectedMode={currentMode} onModeChange={handleModeChange} disabled={!isHost} />
         <div className="flex items-center justify-between">
-          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelinställningar</p>
+          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">
+            Spelinställningar
+          </p>
         </div>
-        <GameSettings config={settingsConfig} disabled={!isHost} />
+        <GameSettings
+          config={settingsConfig}
+          disabled={!isHost}
+          serverSettings={lobbyState?.settings}
+          onSettingUpdate={handleSettingUpdate}
+          maxImpostors={maxImpostors}
+        />
       </div>
     </div>
   );

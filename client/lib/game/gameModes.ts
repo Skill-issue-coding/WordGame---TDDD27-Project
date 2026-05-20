@@ -1,8 +1,10 @@
-export type GameModeId = "impostor" | "contexto" | "synonym" | "antimatch";
+//export type GameModeId = "impostor" | "contexto" | "synonym" | "antimatch";
+
+import { GameMode } from "./types";
 export type GameModeColor = "green" | "pink" | "blue" | "yellow" | "red";
 
-export interface GameMode {
-  id: GameModeId;
+export interface GameModeConfig {
+  id: GameMode;
   title: string;
   description: string;
   icon: string;
@@ -25,19 +27,19 @@ export interface ModeSetting {
   default: number;
 }
 
-export const GAME_MODES: GameMode[] = [
+export const GAME_MODES: GameModeConfig[] = [
   {
     id: "impostor",
     title: "Hitta Impostern",
     description: "En spelare får ett unikt ord. Försök att tillsammans hitta impostern innan det är försent!",
     icon: "🕵️",
-    players: "4-12 spelare",
-    min_players: 4,
+    players: "3-12 spelare",
+    min_players: 3,
     color: "red",
     textClass: "text-game-red",
   },
   {
-    id: "contexto",
+    id: "contexto_battle",
     title: "Kontext Strid",
     description:
       "Tävla om att hitta det dålda ordet. Semantiska likheter leder dig närmare och närmare det rätta ordet!",
@@ -48,7 +50,7 @@ export const GAME_MODES: GameMode[] = [
     textClass: "text-game-blue",
   },
   {
-    id: "synonym",
+    id: "synonym_duel",
     title: "Synonym Duell",
     description: "Ange den bästa synonymen varje runda. Den som svarar med den sämsta åker ut!",
     icon: "⚔️",
@@ -58,7 +60,7 @@ export const GAME_MODES: GameMode[] = [
     textClass: "text-game-green",
   },
   {
-    id: "antimatch",
+    id: "anti_match",
     title: "Anti-matchning",
     description:
       "Tänk anorlunda! Skriv en synonym men var försiktig så det inte matchar någon annans, då får båda noll poäng!",
@@ -70,12 +72,12 @@ export const GAME_MODES: GameMode[] = [
   },
 ];
 
-export const getMode = (id: string): GameMode => GAME_MODES.find((m) => m.id === id) ?? GAME_MODES[0];
+export const getMode = (id: GameMode): GameModeConfig => GAME_MODES.find((m) => m.id === id) ?? GAME_MODES[0];
 
-export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
+export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
   impostor: [
     {
-      key: "impostorCount",
+      key: "impostor_count",
       label: "Antal Impostors",
       type: "choice",
       options: [
@@ -87,7 +89,7 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       default: 1,
     },
     {
-      key: "thinkTime",
+      key: "input_duration",
       label: "Betänketid",
       type: "slider",
       min: 10,
@@ -95,9 +97,8 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       step: 5,
       default: 30,
     },
-    /*
     {
-      key: "discussionTime",
+      key: "discussion_duration",
       label: "Diskussionstid",
       type: "slider",
       min: 10,
@@ -105,11 +106,29 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       step: 5,
       default: 30,
     },
-    */
-  ],
-  contexto: [
     {
-      key: "thinkTime",
+      key: "vote_duration",
+      label: "Röstningstid",
+      type: "slider",
+      min: 10,
+      max: 60,
+      step: 5,
+      default: 30,
+    },
+  ],
+  contexto_battle: [
+    {
+      key: "word_type",
+      label: "Typ av ord",
+      type: "choice",
+      options: [
+        { value: 1, label: "Vanliga" },
+        { value: 2, label: "Kreativa" },
+      ],
+      default: 1,
+    },
+    {
+      key: "round_duration",
       label: "Betänketid",
       type: "slider",
       min: 60,
@@ -118,7 +137,7 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       default: 120,
     },
     {
-      key: "roundCount",
+      key: "rounds",
       label: "Antal rundor",
       type: "slider",
       min: 1,
@@ -127,9 +146,19 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       default: 3,
     },
   ],
-  synonym: [
+  synonym_duel: [
     {
-      key: "thinkTime",
+      key: "word_type",
+      label: "Typ av ord",
+      type: "choice",
+      options: [
+        { value: 1, label: "Vanliga" },
+        { value: 2, label: "Kreativa" },
+      ],
+      default: 1,
+    },
+    {
+      key: "round_duration",
       label: "Betänketid",
       type: "slider",
       min: 10,
@@ -138,7 +167,7 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       default: 20,
     },
     {
-      key: "roundCount",
+      key: "rounds",
       label: "Antal rundor",
       type: "slider",
       min: 1,
@@ -147,9 +176,9 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       default: 3,
     },
   ],
-  antimatch: [
+  anti_match: [
     {
-      key: "thinkTime",
+      key: "input_duration",
       label: "Betänketid",
       type: "slider",
       min: 10,
@@ -158,13 +187,22 @@ export const MODE_SETTINGS: Record<GameModeId, ModeSetting[]> = {
       default: 20,
     },
     {
-      key: "roundCount",
+      key: "rounds",
       label: "Antal rundor",
       type: "slider",
       min: 1,
       max: 5,
       step: 1,
       default: 3,
+    },
+    {
+      key: "max_distance",
+      label: "Max Avstånd",
+      type: "slider",
+      min: 0.1,
+      max: 1.0,
+      step: 0.1,
+      default: 0.5,
     },
   ],
 };
