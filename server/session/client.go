@@ -253,7 +253,11 @@ func (c *Client) ReadPump() {
 			c.Lobby.SettingUpdateRequests <- payload
 
 		case events.StartGameRequestEvent:
-			c.Lobby.StartLobby(c)
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
+			c.Lobby.StartGameRequests <- c
 
 		default:
 			log.Printf("Unknown event type %s", event.Type)

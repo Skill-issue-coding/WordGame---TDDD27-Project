@@ -1,24 +1,37 @@
 package game
 
 import (
-	"time"
+	"server/events"
 
 	"github.com/google/uuid"
 )
 
-type GameMode interface {
-	// Called When The Host Starts The Game
-	Start()
+// Game is the interface that all game modes must implement. A game is created
+// by the lobby when the host starts the session, runs in its own goroutine,
+// and is responsible for all game-phase logic and player communication.
+type Game interface {
+	// Run starts the game's main event loop in its own goroutine. It is
+	// responsible for timers, phase transitions, and processing inputs until
+	// the game ends or Stop is called.
+	Run()
 
-	// Called when a player types a word and hits enter
-	HandleInput(playerID uuid.UUID, word string)
+	// HandleInput delivers a player action to the game. It is called from the
+	// lobby's Run goroutine, so implementations must forward the input to an
+	// internal channel rather than processing it inline.
+	HandleInput(GameInput)
 
-	// Called every second (or tick) to handle time limits (e.g., 2 or 3 seconds)
-	Tick(dt time.Duration)
+	// Stop signals the game to clean up and exit its Run goroutine. It is
+	// called by the lobby when the room is torn down or the game ends early.
+	Stop()
+}
 
-	// Returns the full authoritative state (server internal use).
-	GetStateInternal() interface{}
+// GameInput carries a single player action from the lobby to the active game.
+// The lobby receives raw events from clients and wraps them here before
+// forwarding to Game.HandleInput.
+type GameInput struct {
+	// ClientId identifies which player sent the action.
+	ClientId uuid.UUID
 
-	// Returns a client-facing view of state for one specific player.
-	GetStateForClient(viewerID uuid.UUID) interface{}
+	// Event is the raw parsed event from the client's WebSocket message.
+	Event events.Event
 }
