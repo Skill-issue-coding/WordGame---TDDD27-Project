@@ -204,5 +204,23 @@ func LoadTargets() []Target {
 	return targets
 }
 
+// LoadLemmaMap reads lemma_map.json produced by stage 5/6.
+// It maps lowercased surface forms to their canonical lemma, e.g. "bilar" → "bil".
+// Returns nil if the file is absent (callers treat nil as no-op).
+func LoadLemmaMap() map[string]string {
+	p := filepath.Join(baseFileDirectory(), "lemma_map.json")
+	data, err := os.ReadFile(p)
+	if err != nil {
+		return nil
+	}
+	var m map[string]string
+	if err := json.Unmarshal(data, &m); err != nil {
+		log.Printf("words: could not parse lemma_map.json: %v", err)
+		return nil
+	}
+	log.Printf("words: loaded %d lemma mappings", len(m))
+	return m
+}
+
 // ErrNoBinaryFiles is returned when the binary word files are absent or malformed.
 var ErrNoBinaryFiles = fmt.Errorf("binary wordfiles not found")

@@ -14,6 +14,22 @@ MAKTBAROMETERN_DIR = CURRENT_DIR / "maktbarometern" / "csv"
 SEEDING_OUTPUT_DIR = CURRENT_DIR / "output"
 CLEANED_DIR = CURRENT_DIR.parent / "intermediate" / "seeding_cleaned"
 
+# === Score Thresholds ===
+# Only entries with score >= the threshold for their platform are kept.
+# Set to 0 to disable filtering for a platform.
+# Platform scores vary widely (x: 3-8, tiktok: 7-16, facebook: 11-30,
+# youtube: 15-51, instagram: 16-55, arets-makthavare: 33-142).
+SCORE_LIMITS: dict[str, int] = {
+    "arets-makthavare": 35,
+    "facebook":         15,
+    "instagram":        20,
+    "tiktok":           13,
+    "x":                6,
+    "youtube":          18,
+}
+# Fallback for any file not listed above.
+DEFAULT_SCORE_LIMIT = 0
+
 def clean_text(text):
     """Normalizes Unicode and removes emojis/special characters."""
     if not isinstance(text, str):
@@ -74,22 +90,33 @@ def process_maktbarometern():
     all_dfs = []
     for f in files:
         df = pd.read_csv(f)
-        
+
         # Standardize the name column
         if 'name' not in df.columns and 'account_name' in df.columns:
             df['name'] = df['account_name']
         elif 'name' not in df.columns:
             continue
-            
+
         cols_to_keep = ['name']
         if 'score' in df.columns:
             cols_to_keep.append('score')
-            
+
         df = df[cols_to_keep].dropna(subset=['name']).copy()
-        
+
+        # Apply score threshold: derive platform key from filename (e.g. "2025-facebook.csv" → "facebook")
+        if 'score' in df.columns:
+            stem = Path(f).stem  # e.g. "2025-facebook"
+            platform = stem.split('-', 1)[-1] if '-' in stem else stem  # e.g. "facebook"
+            limit = SCORE_LIMITS.get(platform, DEFAULT_SCORE_LIMIT)
+            if limit > 0:
+                before = len(df)
+                df['score'] = pd.to_numeric(df['score'], errors='coerce')
+                df = df[df['score'] >= limit]
+                print(f"  {Path(f).name}: score >= {limit} → kept {len(df)}/{before} rows")
+
         # Apply the Unicode/Emoji cleaner
         df['name'] = df['name'].apply(clean_text)
-        
+
         # Drop rows that became empty after cleaning (e.g. accounts that were just emojis)
         df = df[df['name'] != ""]
         all_dfs.append(df)

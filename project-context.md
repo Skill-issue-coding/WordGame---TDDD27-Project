@@ -21,8 +21,8 @@ Main entry points: staged scripts `preprocessing/stage_1.py` ... `preprocessing/
 
 Pipeline behavior:
 
-- Uses `intfloat/multilingual-e5-large` (1024-dim) instead of fastText.
-- Enriches entities with Swedish Wikipedia summaries and Wikidata attributes before encoding.
+- Uses **Wikipedia2Vec** (`svwiki-w2v-300d`, 300-dim) trained on Swedish Wikipedia.
+- Entity vectors are harvested directly from the model; the nearest words per entity form the vocabulary.
 - Builds a general Swedish vocabulary from Korp frequency data + Kelly dictionary + spaCy POS filtering.
 - Writes compact binary embeddings for fast Go startup (no CSV float parsing).
 - Produces a curated target list for Contexto-style modes.
@@ -89,12 +89,12 @@ Current frontend state:
 ## NLP and Language Constraints
 
 - Game semantics are Swedish-first.
-- Vector distance calculations depend on Swedish fastText vectors.
+- Vector distance calculations use Wikipedia2Vec vectors (300-dim, trained on Swedish Wikipedia).
 - POS filtering and vocabulary curation are part of the preprocessing pipeline.
 
 ## 3. Game Modes
 
-The game consists of four distinct word-based game modes. All distance/similarity calculations rely on the Swedish fastText model.
+The game consists of four distinct word-based game modes. All distance/similarity calculations rely on Wikipedia2Vec embeddings (Swedish Wikipedia, 300-dim).
 
 ### Mode 1: The Impostor
 

@@ -146,9 +146,13 @@ def main():
     entities = collect_entity_targets(encoded)
     log.info(f"Stage 7: entity targets {len(entities)}")
 
+    general = collect_general_targets(encoded)
+    log.info(f"Stage 7: general targets {len(general)}")
+
     seen: set[str] = set()
     targets: list[dict] = []
-    for word, word_type in entities:
+    # Entities first so they take priority when a word appears in both lists.
+    for word, word_type in entities + general:
         key = word.lower()
         if key not in seen:
             seen.add(key)
@@ -164,12 +168,13 @@ def main():
         json.dump(targets, f, ensure_ascii=False, indent=2)
     log.info(f"Stage 7: wrote {OUT_FILE} ({len(targets)})")
 
-    cats = {}
+    cats: dict[str, int] = {}
     for t in targets:
         cats[t["type"]] = cats.get(t["type"], 0) + 1
     breakdown = "  ".join(f"{c}: {n:,}" for c, n in sorted(cats.items()))
     print(f"Klar! {len(targets):,} målord sparade till {OUT_FILE}")
     print(f"  {breakdown}")
+    print("Kör stage_9.py för att berika med likhetsmetadata och impostorkandidater.")
 
 
 if __name__ == "__main__":

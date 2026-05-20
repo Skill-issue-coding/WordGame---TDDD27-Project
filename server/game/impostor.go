@@ -22,7 +22,7 @@ type ImpostorPair struct {
 }
 
 func GenerateImpostorPair(dictionary *words.Dictionary) (ImpostorPair, error) {
-	normal, impostor, err := dictionary.RandomRelatedPair(words.IMPOSTOR_PRIMARY_TYPES)
+	normal, impostor, err := dictionary.RandomImpostorPairFromTargets()
 	if err != nil {
 		return ImpostorPair{}, err
 	}

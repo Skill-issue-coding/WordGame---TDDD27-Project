@@ -30,16 +30,30 @@ func InitializeDictionary() (Dictionary, error) {
 	}
 
 	return Dictionary{
-		WordMap: wordMap,
-		Targets: LoadTargets(),
+		WordMap:  wordMap,
+		Targets:  LoadTargets(),
+		LemmaMap: LoadLemmaMap(),
 	}, nil
+}
+
+// Resolve maps a surface form to its canonical lemma key using LemmaMap.
+// "bilar" → "bil", "röda" → "röd".  Falls back to the lowercased input when
+// the word is not in the map (entities, already-canonical lemmas, etc.).
+func (dictionary *Dictionary) Resolve(word string) string {
+	key := strings.ToLower(strings.TrimSpace(word))
+	if dictionary != nil && dictionary.LemmaMap != nil {
+		if lemma, ok := dictionary.LemmaMap[key]; ok {
+			return lemma
+		}
+	}
+	return key
 }
 
 func (dictionary *Dictionary) lookup(word string) (WordEntry, bool) {
 	if dictionary == nil || len(dictionary.WordMap) == 0 {
 		return WordEntry{}, false
 	}
-	entry, exists := dictionary.WordMap[normalizeWordKey(word)]
+	entry, exists := dictionary.WordMap[dictionary.Resolve(word)]
 	return entry, exists
 }
 
@@ -438,4 +452,44 @@ func (dictionary *Dictionary) RandomRelatedPair(allowedTypes []string) (WordEntr
 	}
 
 	return WordEntry{}, WordEntry{}, errors.New("failed to find related word pair")
+}
+
+// RandomImpostorPairFromTargets picks a normal/impostor word pair using the
+// precomputed impostor_candidates list in targets.json (stage 9). Falls back
+// to RandomRelatedPair when no enriched targets are available.
+func (dictionary *Dictionary) RandomImpostorPairFromTargets() (WordEntry, WordEntry, error) {
+	eligible := make([]Target, 0, len(dictionary.Targets))
+	for _, t := range dictionary.Targets {
+		if len(t.ImpostorCandidates) >= 3 {
+			eligible = append(eligible, t)
+		}
+	}
+
+	if len(eligible) == 0 {
+		log.Printf("words: no enriched impostor targets — falling back to RandomRelatedPair")
+		return dictionary.RandomRelatedPair(IMPOSTOR_PRIMARY_TYPES)
+	}
+
+	// Shuffle candidates so we don't always try them in pipeline order.
+	perm := rand.Perm(len(eligible))
+	for _, pi := range perm {
+		t := eligible[pi]
+		normalEntry, ok := dictionary.lookup(t.Word)
+		if !ok {
+			continue
+		}
+
+		// Try impostor candidates in random order.
+		candPerm := rand.Perm(len(t.ImpostorCandidates))
+		for _, ci := range candPerm {
+			impostorEntry, ok := dictionary.lookup(t.ImpostorCandidates[ci])
+			if !ok {
+				continue
+			}
+			return normalEntry, impostorEntry, nil
+		}
+	}
+
+	log.Printf("words: all enriched impostor targets failed lookup — falling back to RandomRelatedPair")
+	return dictionary.RandomRelatedPair(IMPOSTOR_PRIMARY_TYPES)
 }

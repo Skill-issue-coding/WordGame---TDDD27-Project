@@ -1,14 +1,14 @@
-# Migration Plan: Wikipedia2Vec + Supplementary Corpus + Lemmatization
+# Migration Notes: Wikipedia2Vec + Supplementary Corpus + Lemmatization
 
-This document is the implementation roadmap for migrating away from KB-SBERT to a
-Wikipedia2Vec-based embedding model with a lemmatization-aware vocabulary. It lives
-in `preprocessing/` because all the work happens here.
+This document was the implementation roadmap for migrating to a Wikipedia2Vec-based
+embedding model with a lemmatization-aware vocabulary. **The migration is complete.**
 
-**Current state:** KB-SBERT (`KBLab/sentence-bert-swedish-cased`) in `stage_5.py`, 768 dims,
+**Previous state:** KB-SBERT (`KBLab/sentence-bert-swedish-cased`) in `stage_5.py`, 768 dims,
 dual-embedding structure, no lemmatization.
 
-**Target state:** Wikipedia2Vec trained on Swedish Wikipedia, 300 dims, single embedding file,
-general words keyed by lemma, surface-form resolution map exported to Go.
+**Current state:** Wikipedia2Vec trained on Swedish Wikipedia (`svwiki-w2v-300d`), 300 dims,
+single symmetric embedding file, general words keyed by lemma, surface-form resolution map
+exported to Go as `lemma_map.json`.
 
 ---
 
@@ -22,7 +22,7 @@ pip install wikipedia2vec
 
 Hardware: 16+ GB RAM, decent multi-core CPU. Expect 12–24 hours of wall time on a
 standard developer machine. No GPU needed — wikipedia2vec is CPU-bound skip-gram.
-Output model file will be around 3–4 GB before any trimming.
+Output model file will be around 3-4 GB before any trimming.
 
 ### 1.2 Download the Swedish Wikipedia dump
 
@@ -118,7 +118,7 @@ Available at: `https://spraakbanken.gu.se/en/resources/gigaword`
 Free to download after registering at Språkbanken (research use).
 
 **SOU Corpus** (Statens offentliga utredningar)
-Cleaned Swedish Government Official Reports 1994–2020. Very neutral, topically
+Cleaned Swedish Government Official Reports 1994-2020. Very neutral, topically
 diverse, covers health, education, environment, culture, sports, law.
 Available via Språkbanken: search for "SOU" in their resource catalogue.
 
@@ -229,7 +229,7 @@ Files removed from `server/wordfiles/` (no longer needed):
 
 ## Execution Order
 
-```
+```text
 Phase 1 (can start immediately):
   Download Wikipedia dump
   → Train Wikipedia2Vec (~1 day)

@@ -14,12 +14,12 @@ Two optional reductions can be combined:
                when the target list is small (< ~500 words).
 
 Inputs:
-  - intermediate/stage5_encoded/embeddings.npy   (float32, N×D, L2-normalised)
+  - intermediate/stage5_encoded/embeddings.npy   (float32, NxD, L2-normalised)
   - intermediate/stage5_encoded/vocab.json        (list of N strings)
   - server/wordfiles/targets.json                 (list of T target strings)
 
 Output (overwrites stage-6 output):
-  - server/wordfiles/vocab.bin    raw little-endian float32, M×D'
+  - server/wordfiles/vocab.bin    raw little-endian float32, MxD'
   - server/wordfiles/vocab.json   list of M canonical word strings
   - server/wordfiles/meta.json    {"n": M, "dims": D'}
 
@@ -127,7 +127,7 @@ def main():
     embeddings = np.load(str(EMB_FILE))      # (N, D), float32
     n, dims = embeddings.shape
     print(f"  {n:,} ord, {dims} dimensioner  ({embeddings.nbytes / 1_048_576:.0f} MB)")
-    log.info(f"Stage 8: loaded embeddings {n}×{dims}")
+    log.info(f"Stage 8: loaded embeddings {n}x{dims}")
 
     with VOCAB_FILE.open("r", encoding="utf-8") as f:
         vocab: list[str] = json.load(f)
@@ -215,7 +215,7 @@ def main():
     print(f"  Fil-storlek: {size_mb:>8.1f} MB  (ursprung: {306318 * 1024 * 4 / 1_048_576:.0f} MB)")
     print(f"  RAM (Go):    {size_mb:>8.1f} MB  (float32)")
     print(f"  Dual-vektor: {'ja' if dual else 'nej'}")
-    log.info(f"Stage 8: output {m}×{dims}  {size_mb:.1f} MB  dual={dual}")
+    log.info(f"Stage 8: output {m}x{dims}  {size_mb:.1f} MB  dual={dual}")
 
     # ── Sanity check: all targets still present ───────────────────────────────
     filtered_keys = {w.lower() for w in vocab}

@@ -1,8 +1,8 @@
 # Preprocessing Pipeline
 
-This directory contains the NLP pipeline that builds the word embeddings used by the game server. The pipeline is based on **`intfloat/multilingual-e5-large`** — a 1024-dimensional multilingual transformer model — replacing the earlier FastText approach.
+This directory contains the NLP pipeline that builds the word embeddings used by the game server. The pipeline is based on **Wikipedia2Vec** trained on Swedish Wikipedia (`svwiki-w2v-300d`, 300-dimensional), replacing earlier approaches based on FastText and sentence transformers.
 
-The core idea is to give the model _context_, not just naked words. Named entities (celebrities, companies, games, etc.) are enriched with Swedish Wikipedia summaries and Wikidata attribute strings before encoding, so the model understands that "Zlatan" is a footballer, not just a string of characters.
+The core idea is that Wikipedia2Vec places both *words* and *named entities* in the same vector space. This means "Zlatan" as an entity and "fotboll" as a word end up near each other naturally — no manual context enrichment required at encode time.
 
 State is passed between stages via files in `intermediate/` (git-ignored). The final output lands in `server/wordfiles/` where the Go backend loads it at startup.
 
@@ -30,15 +30,15 @@ State is passed between stages via files in `intermediate/` (git-ignored). The f
    pip install -r requirements.txt
    ```
 
-   Key packages: `sentence-transformers`, `torch` (with ROCm for AMD GPU or CUDA for NVIDIA), `spacy`, `pandas`, `requests`.
+   Key packages: `wikipedia2vec`, `spacy`, `pandas`, `requests`, `numpy`.
 
-4. **Korp frequency data**
+4. **Wikipedia2Vec model**
+
+   The trained model file (`svwiki-w2v-300d.bin`, ~3–4 GB) must be placed at `preprocessing/model/svwiki-w2v-300d.bin`. See `plan.md` for training instructions if you need to retrain it.
+
+5. **Korp frequency data**
 
    Place raw Korp CSV files inside [`korp/`](korp). The cleaning step runs automatically the first time.
-
-<!-- 4. **AMD GPU (ROCm)**
-
-   The pipeline assumes a ROCm-enabled PyTorch installation. Stage 5 auto-detects `cuda` via `torch.cuda.is_available()` and falls back to CPU if unavailable — it will just be slower. -->
 
 ---
 
@@ -56,9 +56,10 @@ python stage_1.py   # SPARQL → seeding/output/
 python stage_2.py   # Wikipedia summaries → intermediate/stage2_wiki/
 python stage_3.py   # Wikidata attributes → intermediate/stage3_attrs/
 python stage_4.py   # Korp + Kelly + spaCy → intermediate/stage4_general/
-python stage_5.py   # E5 encoding → intermediate/stage5_encoded/
+python stage_5.py   # Wikipedia2Vec encoding → intermediate/stage5_encoded/
 python stage_6.py   # Binary export → server/wordfiles/
 python stage_7.py   # Curated targets → server/wordfiles/targets.json
+python stage_9.py   # Target quality enrichment → server/wordfiles/targets.json (overwrite)
 ```
 
 ### Logging
@@ -100,16 +101,20 @@ flowchart TD
         S4["stage_4.py\nspaCy POS filter (NOUN/VERB/ADJ/PROPN)\nKorp frequency threshold\nKelly list validation\n→ intermediate/stage4_general/general_words.csv"]
     end
 
-    subgraph STAGE5 [Stage 5 — E5 Encoding]
-        S5["stage_5.py\nBuilds passage: prefixed texts\nEncodes with multilingual-e5-large\nBatch size 512, ROCm/CUDA\n→ intermediate/stage5_encoded/\n   embeddings.npy  (N × 1024 float32)\n   vocab.json      (N word strings)"]
+    subgraph STAGE5 [Stage 5 — Wikipedia2Vec Encoding]
+        S5["stage_5.py\nEntity vectors from Wikipedia2Vec model\nHarvests top-250 nearest words per entity\nLemmatisation + reverse inflection expansion\n→ intermediate/stage5_encoded/\n   embeddings.npy  (N x 300 float32)\n   vocab.json      (N word strings)\n   lemma_map.json  (surface → lemma)"]
     end
 
     subgraph STAGE6 [Stage 6 — Binary Export]
-        S6["stage_6.py\n→ server/wordfiles/\n   vocab.bin   (raw float32, little-endian)\n   vocab.json  (word list)\n   meta.json   ({n, dims})"]
+        S6["stage_6.py\n→ server/wordfiles/\n   vocab.bin   (raw float32, little-endian)\n   vocab.json  (word list)\n   meta.json   ({n, dims, dual})"]
     end
 
     subgraph STAGE7 [Stage 7 — Contexto Targets]
         S7["stage_7.py\nFilters to game-worthy nouns + entities\n→ server/wordfiles/targets.json"]
+    end
+
+    subgraph STAGE9 [Stage 9 — Target Quality Enrichment]
+        S9["stage_9.py\nCone quality filter (drops boring/frustrating targets)\nPer-target: sim_at_rank, antihive_threshold,\nimpostor_candidates\n→ server/wordfiles/targets.json (overwrite)"]
     end
 
     KORP --> CK
@@ -124,8 +129,10 @@ flowchart TD
     S4 --> S5
     S5 --> S6
     S5 --> S7
+    S5 --> S9
+    S7 --> S9
     S6 --> GO["Go backend\n(words.Dictionary)"]
-    S7 --> GO
+    S9 --> GO
 
     style RAW fill:transparent,stroke:#555,stroke-dasharray:5 5
     style CLEAN fill:transparent,stroke:#555,stroke-dasharray:5 5
@@ -136,6 +143,7 @@ flowchart TD
     style STAGE5 fill:transparent,stroke:#333
     style STAGE6 fill:transparent,stroke:#333
     style STAGE7 fill:transparent,stroke:#333
+    style STAGE9 fill:transparent,stroke:#333
 ```
 
 ---
@@ -189,7 +197,7 @@ Queries Wikidata via SPARQL to fetch named entities grouped by category (Swedish
 
 ### Stage 2 — Wikipedia Context [`stage_2.py`](stage_2.py)
 
-For each entity in the cleaned seeding CSVs, fetches the introductory paragraph from **Swedish Wikipedia** (`sv.wikipedia.org`). This gives the E5 model rich contextual prose — "Minecraft är ett sandlådespel…" is far more informative than the bare word "Minecraft".
+For each entity in the cleaned seeding CSVs, fetches the introductory paragraph from **Swedish Wikipedia** (`sv.wikipedia.org`). This is used for display context and Wikidata enrichment in later stages. Wikipedia2Vec already internalised Wikipedia content during training, so this data is not needed for embedding — it is used by stage 3 to supplement entity records.
 
 Includes resume support: already-processed files are skipped, so the stage can safely be interrupted and restarted.
 
@@ -200,7 +208,7 @@ Includes resume support: already-processed files are skipped, so the stage can s
 
 ### Stage 3 — Wikidata Attributes [`stage_3.py`](stage_3.py)
 
-Fetches structured Wikidata P-claims for each entity and translates them into readable Swedish attribute strings. This supplements sparse Wikipedia summaries with categorical facts.
+Fetches structured Wikidata P-claims for each entity and translates them into readable Swedish attribute strings. Used alongside stage 2 data to enrich entity records stored in `stage3_attrs/`.
 
 Properties fetched:
 
@@ -237,48 +245,54 @@ Pipeline:
 
 ---
 
-### Stage 5 — E5 Encoding [`stage_5.py`](stage_5.py)
+### Stage 5 — Wikipedia2Vec Encoding [`stage_5.py`](stage_5.py)
 
-The core stage. Merges entity and word data, constructs `passage:`-prefixed text inputs, and encodes everything with `intfloat/multilingual-e5-large`.
+The core stage. Loads `svwiki-w2v-300d.bin` (the Wikipedia2Vec model trained on Swedish Wikipedia) and uses it to build the vocabulary and embeddings.
 
-**Passage format:**
+**How entity vectors are harvested:**
 
-- Entities: `passage: <Name>. <wiki_summary>. <wiki_attributes>`
-- General words: `passage: <word>`
+1. For each entity in `stage3_attrs/`, look up its entity vector directly from the Wikipedia2Vec model.
+2. Batch matrix-multiply all entity vectors against the full model word matrix to get cosine similarities.
+3. Keep the top 250 nearest words per entity (threshold: cosine sim ≥ 0.15). Each word keeps its best similarity score across all entities.
+4. If the word bank is still below `TARGET_VOCAB_SIZE` (80 000), supplement with high-frequency Korp words.
 
-Entities take priority — if a general word overlaps with a known entity (e.g. "Stockholm"), the richer entity passage is used and the naked word form is dropped.
+**Lemmatisation and inflection expansion:**
 
-All vectors are **L2-normalised** so that cosine similarity equals a simple dot product at runtime — no `sqrt` needed in the Go backend.
+- Every word in the bank is forward-lemmatised via spaCy (`sv_core_news_sm`). The canonical key in the vocab is the lemma.
+- A reverse lookup then adds all attested Korp inflected forms of each lemma (e.g., if `bil` is in the bank, `bilar`, `bilens`, `bilarna` are added too). Inflected forms share the same vector as their lemma.
+- The surface→lemma mapping is exported as `lemma_map.json` so the Go backend can resolve player input at runtime.
 
-Configuration:
+All vectors are **L2-normalised** so cosine similarity equals a dot product — no `sqrt` needed in the Go backend.
 
-- Batch size: 512
-- Device: `cuda` (ROCm/CUDA) with CPU fallback
-- Summary truncated to 1 500 chars to stay within E5's 512-token limit
-
-- **Reads:** `intermediate/stage3_attrs/*.csv`, `intermediate/stage4_general/general_words.csv`
+- **Reads:** `intermediate/stage3_attrs/*.csv`, `model/svwiki-w2v-300d.bin`
 - **Output:**
-  - `intermediate/stage5_encoded/embeddings.npy` — float32, shape (N, 1024)
+  - `intermediate/stage5_encoded/embeddings.npy` — float32, shape (N, 300)
   - `intermediate/stage5_encoded/vocab.json` — list of N word strings, same row order
+  - `intermediate/stage5_encoded/sources.json` — category per entry ("celebrity", "game", …, "general")
+  - `intermediate/stage5_encoded/lemma_map.json` — `{surface_form: lemma}` for all attested inflections
 
 ---
 
 ### Stage 6 — Binary Export [`stage_6.py`](stage_6.py)
 
-Converts the numpy embeddings into a compact binary format that the Go backend can load instantly via `encoding/binary`. Avoids parsing gigabytes of CSV floats at server startup.
+Converts the numpy embeddings into a compact binary format that the Go backend can load instantly via `encoding/binary`. Avoids parsing large CSV floats at server startup.
+
+Wikipedia2Vec is a symmetric embedding space (words and entities share one matrix, no query/passage distinction), so `dual` is always `false` and only one embedding file is written.
 
 **Output files in `server/wordfiles/`:**
 
-| File         | Contents                                                    |
-| ------------ | ----------------------------------------------------------- |
-| `vocab.bin`  | Raw little-endian float32, N × 1024 bytes                   |
-| `vocab.json` | JSON list of N word strings (same order as rows)            |
-| `meta.json`  | `{"n": N, "dims": 1024}` — shape metadata for the Go loader |
+| File             | Contents                                                     |
+| ---------------- | ------------------------------------------------------------ |
+| `vocab.bin`      | Raw little-endian float32, N x 300 bytes                     |
+| `vocab.json`     | JSON list of N word strings (same order as rows)             |
+| `meta.json`      | `{"n": N, "dims": 300, "dual": false}` -- shape metadata     |
+| `sources.json`   | Category label per entry (if produced by stage 5)            |
+| `lemma_map.json` | Surface-to-lemma map for Go runtime resolution               |
 
 A round-trip sanity check is run before exit: the first vector is re-read from disk and compared against the original numpy array.
 
 - **Reads:** `intermediate/stage5_encoded/embeddings.npy`, `intermediate/stage5_encoded/vocab.json`
-- **Output:** `server/wordfiles/vocab.bin`, `vocab.json`, `meta.json`
+- **Output:** `server/wordfiles/vocab.bin`, `vocab.json`, `meta.json`, `sources.json`, `lemma_map.json`
 
 ---
 
@@ -299,15 +313,30 @@ At game start the Go backend calls `dictionary.SetRandomContextoTarget()`, which
 
 ---
 
+### Stage 9 — Target Quality Enrichment [`stage_9.py`](stage_9.py)
+
+Overwrites `targets.json` with a richer format. For every target it computes the full cosine-similarity ranking across the whole vocabulary and attaches three pieces of metadata:
+
+**`sim_at_rank`** — similarity values at ranks 10, 50, 100, 500, 1000. Lets the Contexto UI show calibrated hot/warm/cold hints that are consistent across all target words (a rank-200 guess near "Fotboll" means something different than rank-200 near "Avicii").
+
+**`antihive_threshold`** — cosine distance at rank 500 for this specific target. Replaces the single global `MaxDistance: 0.6` constant in Anti-Hivemind mode with a threshold that reflects the natural density of each word's neighborhood.
+
+**`impostor_candidates`** — up to 12 same-category words with similarity in `[0.50, 0.80]`. Impostor mode picks from here rather than running a runtime search, removing the 8-attempt retry failure mode.
+
+**Cone quality filter** — targets are dropped if their similarity distribution is too concentrated (`sim@10 − sim@500 < 0.06`, meaning all words feel equally close) or too diffuse (`sim@10 − sim@500 > 0.72`, meaning almost nothing is near the target). Tunable at the top of the script.
+
+- **Reads:** `intermediate/stage5_encoded/embeddings.npy`, `vocab.json`, `sources.json`, `lemma_map.json`; `server/wordfiles/targets.json`
+- **Output:** `server/wordfiles/targets.json` — same word list, filtered and enriched
+
+---
+
 ## Go Backend Integration
 
-The Go server (`server/words/`) auto-detects the new binary format on startup:
+The Go server (`server/words/`) auto-detects the binary format on startup:
 
 1. If `vocab.bin` + `vocab.json` + `meta.json` exist → load binary (fast path)
 2. Otherwise → fall back to legacy `*_vectors.csv` files
 
 The binary loader lives in `server/words/readbinary.go`. After loading, the in-memory `Dictionary` is identical in structure to before — all game logic (`CalculateDistance`, `RandomRelatedPair`, etc.) is unchanged.
 
-For player guesses the backend must prepend **`query:`** to the input before embedding and comparison. This is the E5 query/passage asymmetry: passages are indexed with `passage:`, queries are issued with `query:`.
-
-> **Note:** The current `CalculateDistance` implementation compares stored vectors directly (dot product, since they are L2-normalised). Player inputs are validated against the dictionary (`IsValid`) but are not re-encoded at runtime — they are looked up by key. Live re-encoding of arbitrary player input is a future enhancement.
+Because Wikipedia2Vec is a symmetric space, player guesses are looked up directly by key (via `LemmaMap` resolution). There is no query/passage asymmetry to handle — the same vector is used whether a word is a target or a guess.
