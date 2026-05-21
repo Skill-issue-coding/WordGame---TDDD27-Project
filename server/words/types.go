@@ -31,8 +31,7 @@ type Target struct {
 }
 
 type Dictionary struct {
-	ActiveWord string
-	WordMap    map[string]WordEntry
+	WordMap map[string]WordEntry
 	// Targets is the curated Contexto target list from targets.json.
 	// Nil means fall back to random selection from the full WordMap.
 	Targets []Target
