@@ -160,9 +160,14 @@ func (lobby *GameLobby) Run() {
 			}
 			onDone := func() { lobby.GameDone <- struct{}{} }
 
+			players := make([]uuid.UUID, 0, len(lobby.Users))
+			for id := range lobby.Users {
+				players = append(players, id)
+			}
+
 			switch lobby.Mode {
 			case ModeImpostor:
-				lobby.CurrentGame = game.NewImpostorGame(lobby.ImpostorSettings, notify, broadcast, onDone)
+				lobby.CurrentGame = game.NewImpostorGame(lobby.ImpostorSettings, players, &client.Hub.Dictionary, notify, broadcast, onDone)
 			case ModeAntiMatch:
 				lobby.CurrentGame = game.NewAntimatchGame(lobby.AntiMatchSettings, notify, broadcast, onDone)
 			}

@@ -2,6 +2,7 @@ package game
 
 import (
 	"server/events"
+	"time"
 
 	"github.com/google/uuid"
 )
@@ -23,6 +24,30 @@ type Game interface {
 	// Stop signals the game to clean up and exit its Run goroutine. It is
 	// called by the lobby when the room is torn down or the game ends early.
 	Stop()
+
+	// StartTime returns the time at which Run was invoked. Zero if not yet started.
+	StartTime() time.Time
+
+	// EndTime returns the time at which the game finished. Zero if still running.
+	EndTime() time.Time
+}
+
+// GameTimestamps can be embedded in any game struct to satisfy the StartTime
+// and EndTime methods of the Game interface.
+type GameTimestamps struct {
+	startTime time.Time
+	endTime   time.Time
+}
+
+func (t *GameTimestamps) StartTime() time.Time { return t.startTime }
+func (t *GameTimestamps) EndTime() time.Time   { return t.endTime }
+
+const SYNC_DELAY = 2 * time.Second
+
+func (t *GameTimestamps) StartPhase(duration int) {
+	now := time.Now()
+	t.startTime = now
+	t.endTime = now.Add((time.Duration(duration) * time.Second) + SYNC_DELAY)
 }
 
 // GameInput carries a single player action from the lobby to the active game.

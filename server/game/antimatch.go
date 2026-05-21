@@ -34,6 +34,7 @@ const (
 )
 
 type AntiMatchGame struct {
+	GameTimestamps
 	settings  AntiMatchSettings
 	notify    func(uuid.UUID, events.EventType, any) // send to one player
 	broadcast func(events.EventType, any)            // send to all players
@@ -84,6 +85,8 @@ func AntiHiveThresholdFor(perTargetThreshold float64) float64 {
 
 // Run starts the AntiMatch game loop. It must be called in its own goroutine.
 func (g *AntiMatchGame) Run() {
+	g.startTime = time.Now()
+	defer func() { g.endTime = time.Now() }()
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	defer g.onDone()
