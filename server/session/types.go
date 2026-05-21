@@ -83,12 +83,13 @@ type UserProfile struct {
 // LobbyState is the complete shared game state that is broadcast to every
 // client in a lobby on each sync. It contains no private per-player data.
 type LobbyState struct {
-	Code     string                     `json:"code"`
-	Mode     GameMode                   `json:"mode"`
-	Phase    GamePhase                  `json:"phase"`
-	Host     uuid.UUID                  `json:"host"`
-	Users    map[uuid.UUID]*UserProfile `json:"users"`
-	Settings any                        `json:"settings"`
+	Code      string                     `json:"code"`
+	Mode      GameMode                   `json:"mode"`
+	Phase     GamePhase                  `json:"phase"`
+	Host      uuid.UUID                  `json:"host"`
+	Users     map[uuid.UUID]*UserProfile `json:"users"`
+	Settings  any                        `json:"settings"`
+	GameState any                        `json:"game_state,omitempty"` // any so it can hold state for any gamemode
 }
 
 // GameLobby represents an active game room. It has its own Run() goroutine that
@@ -136,6 +137,16 @@ type GameLobby struct {
 	ContextoBattleSettings game.ContextoBattleSettings
 	SynonymDuelSettings    game.SynonymDuelSettings
 	AntiMatchSettings      game.AntiHiveSettings
+
+	ImpostorState *ImpostorGameState
+
+	PlayerInputs chan PlayerInputRequest
+}
+
+// helper struct to pass the user ID and their word
+type PlayerInputRequest struct {
+	UserID uuid.UUID
+	Word   string
 }
 
 // GameHub is the top-level coordinator for all connected clients and lobbies.
@@ -164,4 +175,11 @@ type ChatMessage struct {
 	Sender  UserProfile `json:"sender"`
 	Message string      `json:"message"`
 	Date    float64     `json:"date"`
+}
+
+// ImpostorGameState holds the active data for an ongoing Impostor game.
+type ImpostorGameState struct {
+	WordToGuess      string      `json:"word_to_guess,omitempty"`
+	SubmittedPlayers []uuid.UUID `json:"submitted_players"`
+	ReadyPlayers     []uuid.UUID `json:"ready_players"`
 }

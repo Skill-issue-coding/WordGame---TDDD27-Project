@@ -28,11 +28,14 @@ export const ImpostorView = () => {
     return Object.entries(lobbyState.users).map(([id, p]) => ({
       id,
       name: p.username,
-      color: p.color || "blue", // Fallback color if not in user object
+      color: p.background || "blue", // Fallback color if not in user object
     }));
   }, [lobbyState?.users]);
 
-  const impostorCount = lobbyState?.settings?.impostor_count || 1;
+  const impostorCount =
+    lobbyState?.settings && "impostor_count" in lobbyState.settings
+      ? lobbyState.settings.impostor_count
+      : 1;
 
   // Determine if the current user is an impostor
   const isImpostor = useMemo(() => {
@@ -153,7 +156,7 @@ export const ImpostorView = () => {
                   ))}
                 </div>
               </div>
-              <Button variant="neonBlue" className="w-full" onClick={() => setPhase("vote")}>
+              <Button className="w-full" onClick={() => setPhase("vote")}>
                 Skippa att rösta
               </Button>
             </div>
@@ -165,9 +168,9 @@ export const ImpostorView = () => {
             <div className="w-full max-w-md">
               <CountdownBar duration={10} isRunning />
               <div className="mt-6 text-center mb-6">
-                <h2 className="font-display text-2xl font-bold text-foreground mb-2">🗳️ Rösta!</h2>
+                <h2 className="font-display text-2xl font-bold text-foreground mb-2">Rösta!</h2>
                 <p className="text-muted-foreground text-sm font-display font-semibold">
-                  Vem är impostern?
+                  Vem är en imposter?
                 </p>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
@@ -177,7 +180,7 @@ export const ImpostorView = () => {
                 </button>
               ))}*/}
               </div>
-              <Button variant="neonPink" className="w-full" disabled={voted === null}>
+              <Button className="w-full" disabled={voted === null}>
                 Bekräfta röstning
               </Button>
             </div>

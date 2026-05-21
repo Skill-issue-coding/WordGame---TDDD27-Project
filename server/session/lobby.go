@@ -62,6 +62,7 @@ func NewLobby(id string) *GameLobby {
 		SyncRequests:          make(chan struct{}, 8),
 		Phase:                 LobbyPhase,
 		Users:                 make(map[uuid.UUID]*UserProfile),
+		PlayerInputs:          make(chan PlayerInputRequest),
 	}
 	lobby.SetMode(ModeImpostor)
 	return lobby
@@ -156,6 +157,42 @@ func (lobby *GameLobby) Run() {
 
 		case <-gameTicker.C:
 			// Reserved for game-phase countdown timers and round management.
+
+		case input := <-lobby.PlayerInputs:
+			if lobby.Phase != GameStarted || lobby.Mode != ModeImpostor {
+				continue
+			}
+
+			// Initialize the state if it hasn't been already
+			if lobby.ImpostorState == nil {
+				lobby.ImpostorState = &ImpostorGameState{
+					SubmittedPlayers: []uuid.UUID{},
+				}
+			}
+
+			// Check if the user has already submitted to avoid duplicates
+			alreadySubmitted := false
+			for _, id := range lobby.ImpostorState.SubmittedPlayers {
+				if id == input.UserID {
+					alreadySubmitted = true
+					break
+				}
+			}
+
+			if !alreadySubmitted {
+				// Record the submission
+				lobby.ImpostorState.SubmittedPlayers = append(lobby.ImpostorState.SubmittedPlayers, input.UserID)
+
+				// TODO: You will also want to store the actual `input.Word` somewhere!
+				// e.g., lobby.ImpostorState.PlayerClues[input.UserID] = input.Word
+
+				// 2. Broadcast the updated state to all clients
+				lobby.SyncStateToClients()
+
+				// Optional: Check if ALL players have submitted.
+				// If they have, you can automatically advance the phase to "discuss".
+				// if len(lobby.ImpostorState.SubmittedPlayers) == len(lobby.Clients) { ... }
+			}
 		}
 	}
 }
@@ -177,7 +214,7 @@ func (lobby *GameLobby) SyncStateToClients() {
 // BuildLobbyState assembles a point-in-time snapshot of the lobby's shared
 // state, ready to be serialised and sent to clients.
 func (lobby *GameLobby) BuildLobbyState() LobbyState {
-	return LobbyState{
+	state := LobbyState{
 		Code:     lobby.ID,
 		Mode:     lobby.Mode,
 		Phase:    lobby.Phase,
@@ -185,6 +222,12 @@ func (lobby *GameLobby) BuildLobbyState() LobbyState {
 		Users:    lobby.Users,
 		Settings: lobby.ModeSettings(),
 	}
+
+	if lobby.Mode == ModeImpostor && lobby.ImpostorState != nil {
+		state.GameState = lobby.ImpostorState
+	}
+
+	return state
 }
 
 // ModeSettings returns the settings struct for the currently active game mode.
