@@ -91,6 +91,16 @@ type LobbyState struct {
 	Settings any                        `json:"settings"`
 }
 
+type ImpostorBaseClientState struct {
+	Impostors  map[uuid.UUID]bool `json:"impostors"`
+	ClientWord string             `json:"word"`
+}
+
+type ImpostorIntermediateState struct {
+	PlayerVotes map[uuid.UUID]uuid.UUID `json:"player_votes, omitempty"`
+	PlayerWords map[uuid.UUID]string    `json:"player_words, omitempty"`
+}
+
 // GameLobby represents an active game room. It has its own Run() goroutine that
 // processes all state changes sequentially via channels.
 type GameLobby struct {
@@ -134,9 +144,14 @@ type GameLobby struct {
 	// GameStarted phase, or nil when the lobby is in the waiting room.
 	CurrentGame game.Game
 
-	// GameInputs carries player actions from the lobby's Run goroutine to the
-	// active game. The lobby enqueues here; the game drains it in its own goroutine.
+	// GameInputs carries player actions from client ReadPumps to the lobby's
+	// Run goroutine, which forwards them to the active game via HandleInput.
 	GameInputs chan game.GameInput
+
+	// GameOutputs carries events from the active game back to the lobby for
+	// delivery to clients. The game writes here; the lobby's Run goroutine drains
+	// and routes each output to the appropriate client(s).
+	GameOutputs chan game.GameOutput
 
 	// Host is the UserId of the player with administrative privileges.
 	Host uuid.UUID

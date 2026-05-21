@@ -67,7 +67,7 @@ type ImpostorGame struct {
 
 	// impostors is the set of player IDs assigned the impostor role.
 	// Populated by pickImpostors at the start of Run.
-	impostors map[uuid.UUID]bool
+	impostors map[uuid.UUID]struct{}
 
 	// wordPair holds the two secret words chosen for this round.
 	wordPair ImpostorPair
@@ -80,13 +80,9 @@ type ImpostorGame struct {
 	// A nil pointer value means the player cast a skip vote.
 	votes map[uuid.UUID]*uuid.UUID
 
-	// notify sends an event with an arbitrary payload to a single player
-	// identified by UUID. Captured from the lobby at game-start time.
-	notify func(uuid.UUID, events.EventType, any)
-
-	// broadcast sends an event with an arbitrary payload to all players in
-	// the lobby. Captured from the lobby at game-start time.
-	broadcast func(events.EventType, any)
+	// outputs is the channel shared with the lobby. The game writes GameOutput
+	// values here; the lobby's Run goroutine drains them and delivers to clients.
+	outputs chan GameOutput
 
 	// onDone is called once when the Run goroutine exits, regardless of reason.
 	// It signals the lobby to reset back to LobbyPhase.
@@ -131,16 +127,14 @@ func NewImpostorGame(
 	settings ImpostorSettings,
 	players []uuid.UUID,
 	dict *words.Dictionary,
-	notify func(uuid.UUID, events.EventType, any),
-	broadcast func(events.EventType, any),
+	outputs chan GameOutput,
 	onDone func(),
 ) *ImpostorGame {
 	return &ImpostorGame{
 		settings:    settings,
 		dict:        dict,
 		players:     players,
-		notify:      notify,
-		broadcast:   broadcast,
+		outputs:     outputs,
 		onDone:      onDone,
 		inputs:      make(chan GameInput, 16),
 		stop:        make(chan struct{}),
@@ -155,13 +149,13 @@ func NewImpostorGame(
 // Returns a set (map[uuid.UUID]bool) for O(1) role lookups during word
 // assignment. If count >= len(players) all players become impostors; the
 // caller is responsible for enforcing a sensible upper bound via settings.
-func pickImpostors(players []uuid.UUID, count int) map[uuid.UUID]bool {
+func pickImpostors(players []uuid.UUID, count int) map[uuid.UUID]struct{} {
 	shuffled := make([]uuid.UUID, len(players))
 	copy(shuffled, players)
 	rand.Shuffle(len(shuffled), func(i, j int) { shuffled[i], shuffled[j] = shuffled[j], shuffled[i] })
-	impostors := make(map[uuid.UUID]bool, count)
+	impostors := make(map[uuid.UUID]struct{}, count)
 	for i := 0; i < count && i < len(shuffled); i++ {
-		impostors[shuffled[i]] = true
+		impostors[shuffled[i]] = struct{}{}
 	}
 	return impostors
 }
@@ -220,17 +214,23 @@ func (g *ImpostorGame) Run() {
 	for _, playerID := range g.players {
 		word := g.wordPair.NormalWord
 		role := events.RoleNormal
-		if g.impostors[playerID] {
+		_, isImpostor := g.impostors[playerID]
+		if isImpostor {
 			word = g.wordPair.ImpostorWord
 			role = events.RoleImpostor
 		}
-		g.notify(playerID, events.ImpostorWordAssignedEvent, events.ImpostorWordAssignedPayload{
-			Word:          word,
-			Role:          role,
-			ImpostorCount: g.settings.ImpostorCount,
-			ShownUntil:    shownUntil,
-			InputEndsAt:   inputEndsAt,
-		})
+		id := playerID
+		g.outputs <- GameOutput{
+			Target: &id,
+			Type:   events.ImpostorWordAssignedEvent,
+			Payload: events.ImpostorWordAssignedPayload{
+				Word:          word,
+				Role:          role,
+				ImpostorCount: g.settings.ImpostorCount,
+				ShownUntil:    shownUntil,
+				InputEndsAt:   inputEndsAt,
+			},
+		}
 	}
 
 	for {
@@ -269,19 +269,25 @@ func (g *ImpostorGame) advancePhase() {
 		for id, word := range g.submissions {
 			subs = append(subs, events.ImpostorWordSubmission{UserId: id, Word: word})
 		}
-		g.broadcast(events.ImpostorDiscussionStartedEvent, events.ImpostorDiscussionStartedPayload{
-			Submissions:      subs,
-			DiscussionEndsAt: g.endTime,
-		})
+		g.outputs <- GameOutput{
+			Type: events.ImpostorDiscussionStartedEvent,
+			Payload: events.ImpostorDiscussionStartedPayload{
+				Submissions:      subs,
+				DiscussionEndsAt: g.endTime,
+			},
+		}
 	case PhaseDiscussion:
 		g.phase = PhaseVote
 		g.StartPhase(g.settings.VoteDuration)
 		candidates := make([]uuid.UUID, len(g.players))
 		copy(candidates, g.players)
-		g.broadcast(events.ImpostorVoteStartedEvent, events.ImpostorVoteStartedPayload{
-			Candidates: candidates,
-			VoteEndsAt: g.endTime,
-		})
+		g.outputs <- GameOutput{
+			Type: events.ImpostorVoteStartedEvent,
+			Payload: events.ImpostorVoteStartedPayload{
+				Candidates: candidates,
+				VoteEndsAt: g.endTime,
+			},
+		}
 	case PhaseVote:
 		g.phase = PhaseResult
 		g.broadcastResult()
@@ -329,7 +335,10 @@ func (g *ImpostorGame) broadcastResult() {
 		eliminated = nil
 	}
 
-	wasImpostor := eliminated != nil && g.impostors[*eliminated]
+	var wasImpostor bool
+	if eliminated != nil {
+		_, wasImpostor = g.impostors[*eliminated]
+	}
 
 	impostors := make([]uuid.UUID, 0, len(g.impostors))
 	for id := range g.impostors {
@@ -344,14 +353,17 @@ func (g *ImpostorGame) broadcastResult() {
 		})
 	}
 
-	g.broadcast(events.ImpostorRoundResultEvent, events.ImpostorRoundResultPayload{
-		Eliminated:   eliminated,
-		WasImpostor:  wasImpostor,
-		Impostors:    impostors,
-		Tallies:      tallies,
-		NormalWord:   g.wordPair.NormalWord,
-		ImpostorWord: g.wordPair.ImpostorWord,
-	})
+	g.outputs <- GameOutput{
+		Type: events.ImpostorRoundResultEvent,
+		Payload: events.ImpostorRoundResultPayload{
+			Eliminated:   eliminated,
+			WasImpostor:  wasImpostor,
+			Impostors:    impostors,
+			Tallies:      tallies,
+			NormalWord:   g.wordPair.NormalWord,
+			ImpostorWord: g.wordPair.ImpostorWord,
+		},
+	}
 }
 
 // processInput handles a single player action forwarded from HandleInput.

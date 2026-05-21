@@ -1,11 +1,8 @@
 package game
 
 import (
-	"server/events"
 	"sync"
 	"time"
-
-	"github.com/google/uuid"
 )
 
 const defaultAntiHiveMaxDistance = 0.5
@@ -35,16 +32,15 @@ const (
 
 type AntiMatchGame struct {
 	GameTimestamps
-	settings  AntiMatchSettings
-	notify    func(uuid.UUID, events.EventType, any) // send to one player
-	broadcast func(events.EventType, any)            // send to all players
-	onDone    func()                                 // called when game ends, resets lobby phase
-	inputs    chan GameInput
-	stop      chan struct{}
-	once      sync.Once     // prevents double-close of stop
-	phase     AntiMatchPhase
-	timer     int
-	round     int
+	settings AntiMatchSettings
+	outputs  chan GameOutput
+	onDone   func()
+	inputs   chan GameInput
+	stop     chan struct{}
+	once     sync.Once
+	phase    AntiMatchPhase
+	timer    int
+	round    int
 }
 
 func DefaultAntiMatchSettings() AntiMatchSettings {
@@ -57,19 +53,17 @@ func DefaultAntiMatchSettings() AntiMatchSettings {
 
 func NewAntimatchGame(
 	settings AntiMatchSettings,
-	notify func(uuid.UUID, events.EventType, any),
-	broadcast func(events.EventType, any),
+	outputs chan GameOutput,
 	onDone func(),
 ) *AntiMatchGame {
 	return &AntiMatchGame{
-		settings:  settings,
-		notify:    notify,
-		broadcast: broadcast,
-		onDone:    onDone,
-		inputs:    make(chan GameInput, 16),
-		stop:      make(chan struct{}),
-		phase:     AntiMatchPhaseInput,
-		timer:     settings.InputDuration,
+		settings: settings,
+		outputs:  outputs,
+		onDone:   onDone,
+		inputs:   make(chan GameInput, 16),
+		stop:     make(chan struct{}),
+		phase:    AntiMatchPhaseInput,
+		timer:    settings.InputDuration,
 	}
 }
 

@@ -40,6 +40,7 @@ func NewLobby(id string) *GameLobby {
 		Users:                 make(map[uuid.UUID]*UserProfile),
 		StartGameRequests:     make(chan *Client),
 		GameInputs:            make(chan game.GameInput, 16),
+		GameOutputs:           make(chan game.GameOutput, 32),
 		GameDone:              make(chan struct{}, 1),
 	}
 	lobby.SetMode(ModeImpostor)
@@ -141,38 +142,49 @@ func (lobby *GameLobby) Run() {
 				continue
 			}
 
-			// Snapshot send functions — game goroutine must not read lobby.Clients directly.
-			sendFns := make(map[uuid.UUID]func(events.EventType, any), len(lobby.Clients))
-			for c := range lobby.Clients {
-				fn := c.SendEvent // capture by value
-				sendFns[c.UserId] = fn
-			}
-
-			notify := func(id uuid.UUID, t events.EventType, p any) {
-				if fn, ok := sendFns[id]; ok {
-					fn(t, p)
-				}
-			}
-			broadcast := func(t events.EventType, p any) {
-				for _, fn := range sendFns {
-					fn(t, p)
-				}
-			}
-			onDone := func() { lobby.GameDone <- struct{}{} }
-
 			players := make([]uuid.UUID, 0, len(lobby.Users))
 			for id := range lobby.Users {
 				players = append(players, id)
 			}
+			onDone := func() { lobby.GameDone <- struct{}{} }
 
 			switch lobby.Mode {
 			case ModeImpostor:
-				lobby.CurrentGame = game.NewImpostorGame(lobby.ImpostorSettings, players, &client.Hub.Dictionary, notify, broadcast, onDone)
+				lobby.CurrentGame = game.NewImpostorGame(lobby.ImpostorSettings, players, &client.Hub.Dictionary, lobby.GameOutputs, onDone)
 			case ModeAntiMatch:
-				lobby.CurrentGame = game.NewAntimatchGame(lobby.AntiMatchSettings, notify, broadcast, onDone)
+				lobby.CurrentGame = game.NewAntimatchGame(lobby.AntiMatchSettings, lobby.GameOutputs, onDone)
 			}
+
+			if lobby.CurrentGame == nil {
+				client.SendError("Spelläget stöds inte än.")
+				continue
+			}
+
 			lobby.Phase = GameStarted
+			lobby.SyncStateToClients()
+			for c := range lobby.Clients {
+				c.SendEvent(events.GameStartedEvent, nil)
+			}
 			go lobby.CurrentGame.Run()
+
+		case input := <-lobby.GameInputs:
+			if lobby.CurrentGame != nil {
+				lobby.CurrentGame.HandleInput(input)
+			}
+
+		case out := <-lobby.GameOutputs:
+			if out.Target == nil {
+				for c := range lobby.Clients {
+					c.SendEvent(out.Type, out.Payload)
+				}
+			} else {
+				for c := range lobby.Clients {
+					if c.UserId == *out.Target {
+						c.SendEvent(out.Type, out.Payload)
+						break
+					}
+				}
+			}
 
 		case <-lobby.GameDone:
 			lobby.CurrentGame = nil

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"server/events"
+	"server/game"
 	"strings"
 	"time"
 
@@ -258,6 +259,17 @@ func (c *Client) ReadPump() {
 				continue
 			}
 			c.Lobby.StartGameRequests <- c
+
+		case events.GameSubmitWordRequestEvent, events.GameSubmitGuessRequestEvent, events.GameSubmitVoteRequestEvent:
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
+			select {
+			case c.Lobby.GameInputs <- game.GameInput{ClientId: c.UserId, Event: event}:
+			default:
+				log.Printf("[%s] GameInputs full, dropping input from %s", c.Lobby.ID, c.UserId)
+			}
 
 		default:
 			log.Printf("Unknown event type %s", event.Type)

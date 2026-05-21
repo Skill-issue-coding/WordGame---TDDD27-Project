@@ -60,3 +60,12 @@ type GameInput struct {
 	// Event is the raw parsed event from the client's WebSocket message.
 	Event events.Event
 }
+
+// GameOutput carries an event from the game back to the lobby for delivery.
+// A nil Target broadcasts to all players; a non-nil Target sends privately to
+// the identified player only.
+type GameOutput struct {
+	Target  *uuid.UUID
+	Type    events.EventType
+	Payload any
+}
