@@ -97,8 +97,8 @@ type ImpostorBaseClientState struct {
 }
 
 type ImpostorIntermediateState struct {
-	PlayerVotes map[uuid.UUID]uuid.UUID `json:"player_votes, omitempty"`
-	PlayerWords map[uuid.UUID]string    `json:"player_words, omitempty"`
+	PlayerVotes map[uuid.UUID]uuid.UUID `json:"player_votes,omitempty"`
+	PlayerWords map[uuid.UUID]string    `json:"player_words"`
 }
 
 // GameLobby represents an active game room. It has its own Run() goroutine that
