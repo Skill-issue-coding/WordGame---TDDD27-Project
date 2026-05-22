@@ -80,16 +80,16 @@ type UserProfile struct {
 	Score      int       `json:"score"`
 }
 
-// LobbyState is the complete shared game state that is broadcast to every
-// client in a lobby on each sync. It contains no private per-player data.
+// LobbyState is the complete shared lobby state that is broadcast to every
+// client in a lobby on each sync. It contains no private per-player data and
+// no game-specific state — game phases manage their own state via GameOutput events.
 type LobbyState struct {
-	Code      string                     `json:"code"`
-	Mode      GameMode                   `json:"mode"`
-	Phase     GamePhase                  `json:"phase"`
-	Host      uuid.UUID                  `json:"host"`
-	Users     map[uuid.UUID]*UserProfile `json:"users"`
-	Settings  any                        `json:"settings"`
-	GameState any                        `json:"game_state,omitempty"` // any so it can hold state for any gamemode
+	Code     string                     `json:"code"`
+	Mode     GameMode                   `json:"mode"`
+	Phase    GamePhase                  `json:"phase"`
+	Host     uuid.UUID                  `json:"host"`
+	Users    map[uuid.UUID]*UserProfile `json:"users"`
+	Settings any                        `json:"settings"`
 }
 
 // GameLobby represents an active game room. It has its own Run() goroutine that
@@ -202,9 +202,3 @@ type ChatMessage struct {
 	Date    int64       `json:"date"`
 }
 
-// ImpostorGameState holds the active data for an ongoing Impostor game.
-type ImpostorGameState struct {
-	WordToGuess      string      `json:"word_to_guess,omitempty"`
-	SubmittedPlayers []uuid.UUID `json:"submitted_players"`
-	ReadyPlayers     []uuid.UUID `json:"ready_players"`
-}
