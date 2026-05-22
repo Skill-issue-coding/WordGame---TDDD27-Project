@@ -91,16 +91,6 @@ type LobbyState struct {
 	Settings any                        `json:"settings"`
 }
 
-type ImpostorBaseClientState struct {
-	Impostors  map[uuid.UUID]bool `json:"impostors"`
-	ClientWord string             `json:"word"`
-}
-
-type ImpostorIntermediateState struct {
-	PlayerVotes map[uuid.UUID]uuid.UUID `json:"player_votes,omitempty"`
-	PlayerWords map[uuid.UUID]string    `json:"player_words"`
-}
-
 // GameLobby represents an active game room. It has its own Run() goroutine that
 // processes all state changes sequentially via channels.
 type GameLobby struct {
@@ -208,5 +198,5 @@ type GameHub struct {
 type ChatMessage struct {
 	Sender  UserProfile `json:"sender"`
 	Message string      `json:"message"`
-	Date    float64     `json:"date"`
+	Date    int64       `json:"date"`
 }

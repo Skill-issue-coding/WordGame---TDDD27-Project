@@ -216,7 +216,7 @@ func (c *Client) ReadPump() {
 				continue
 			}
 
-			serverTimestamp := float64(time.Now().UnixMilli())
+			serverTimestamp := time.Now().UnixMilli()
 			chatMessage := ChatMessage{
 				Sender:  *c.Profile,
 				Message: payload.Message,

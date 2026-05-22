@@ -264,9 +264,9 @@ func (lobby *GameLobby) ApplySetting(key GameSetting, value float64) {
 		case DISCUSSION_DURATION:
 			lobby.ImpostorSettings.DiscussionDuration = util.ClampInt(value, game.IMPOSTOR_DISCUSSION_DURATION_MIN, game.IMPOSTOR_DISCUSSION_DURATION_MAX)
 		case IMPOSTOR_COUNT:
-			lobby.ImpostorSettings.ImpostorCount = util.ClampInt(value, game.IMPOSTOR_COUNT_MIN, game.IMPOSTOR_COUNT_MIN)
+			lobby.ImpostorSettings.ImpostorCount = util.ClampInt(value, game.IMPOSTOR_COUNT_MIN, game.IMPOSTOR_COUNT_MAX)
 		case VOTE_DURATION:
-			lobby.ImpostorSettings.VoteDuration = util.ClampInt(value, game.IMPOSTOR_VOTE_DURATION_MIN, game.IMPOSTOR_DISCUSSION_DURATION_MAX)
+			lobby.ImpostorSettings.VoteDuration = util.ClampInt(value, game.IMPOSTOR_VOTE_DURATION_MIN, game.IMPOSTOR_VOTE_DURATION_MAX)
 		}
 	case ModeContextoBattle:
 		switch key {

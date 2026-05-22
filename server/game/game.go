@@ -2,10 +2,13 @@ package game
 
 import (
 	"server/events"
+	"sync"
 	"time"
 
 	"github.com/google/uuid"
 )
+
+const SYNC_DELAY = 2 * time.Second
 
 // Game is the interface that all game modes must implement. A game is created
 // by the lobby when the host starts the session, runs in its own goroutine,
@@ -32,22 +35,18 @@ type Game interface {
 	EndTime() time.Time
 }
 
-// GameTimestamps can be embedded in any game struct to satisfy the StartTime
-// and EndTime methods of the Game interface.
-type GameTimestamps struct {
-	startTime time.Time
-	endTime   time.Time
-}
-
-func (t *GameTimestamps) StartTime() time.Time { return t.startTime }
-func (t *GameTimestamps) EndTime() time.Time   { return t.endTime }
-
-const SYNC_DELAY = 2 * time.Second
-
-func (t *GameTimestamps) StartPhase(duration int) {
-	now := time.Now()
-	t.startTime = now
-	t.endTime = now.Add((time.Duration(duration) * time.Second) + SYNC_DELAY)
+// GameBase can be embedded in any game struct to satisfy HandleInput, Stop,
+// StartTime, and EndTime from the Game interface, leaving only Run to implement.
+// It also provides Broadcast and Send helpers to cut down on output boilerplate.
+type GameBase struct {
+	startTime     time.Time
+	endTime       time.Time
+	outputs       chan GameOutput
+	onDone        func()
+	inputs        chan GameInput
+	stop          chan struct{}
+	once          sync.Once
+	skipPhaseVote chan struct{}
 }
 
 // GameInput carries a single player action from the lobby to the active game.
@@ -68,4 +67,50 @@ type GameOutput struct {
 	Target  *uuid.UUID
 	Type    events.EventType
 	Payload any
+}
+
+func newGameBase(outputs chan GameOutput, onDone func()) GameBase {
+	return GameBase{
+		outputs:       outputs,
+		onDone:        onDone,
+		inputs:        make(chan GameInput, 16),
+		stop:          make(chan struct{}),
+		skipPhaseVote: make(chan struct{}),
+	}
+}
+
+func (b *GameBase) StartTime() time.Time { return b.startTime }
+func (b *GameBase) EndTime() time.Time   { return b.endTime }
+
+// Resets startTime and endTime when a new phase starts
+func (b *GameBase) StartPhase(duration int) {
+	now := time.Now()
+	b.startTime = now
+	b.endTime = now.Add((time.Duration(duration) * time.Second) + SYNC_DELAY)
+}
+
+// HandleInput forwards the input to the game's internal channel.
+// Safe to call from any goroutine; blocks if the input channel is full.
+func (b *GameBase) HandleInput(input GameInput) {
+	b.inputs <- input
+}
+
+// Stop signals the Run goroutine to exit. Safe to call multiple times.
+func (b *GameBase) Stop() {
+	b.once.Do(func() { close(b.stop) })
+}
+
+// Broadcast sends an event to all players in the lobby.
+func (b *GameBase) Broadcast(eventType events.EventType, payload any) {
+	b.outputs <- GameOutput{Type: eventType, Payload: payload}
+}
+
+// Send sends an event to a single player identified by target.
+func (b *GameBase) Send(target *uuid.UUID, eventType events.EventType, payload any) {
+	b.outputs <- GameOutput{Target: target, Type: eventType, Payload: payload}
+}
+
+// Broadcasts the current phase timers to all players in the lobby
+func (b *GameBase) SendPhaseTimes() {
+	b.Broadcast(events.GameNewPhaseEvent, NewGamePhasePayload{StartTime: b.startTime.UnixMilli(), EndTime: b.endTime.UnixMilli()})
 }

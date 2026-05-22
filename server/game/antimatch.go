@@ -1,9 +1,6 @@
 package game
 
-import (
-	"sync"
-	"time"
-)
+import "time"
 
 const defaultAntiHiveMaxDistance = 0.5
 
@@ -31,13 +28,8 @@ const (
 )
 
 type AntiMatchGame struct {
-	GameTimestamps
+	GameBase
 	settings AntiMatchSettings
-	outputs  chan GameOutput
-	onDone   func()
-	inputs   chan GameInput
-	stop     chan struct{}
-	once     sync.Once
 	phase    AntiMatchPhase
 	timer    int
 	round    int
@@ -57,11 +49,8 @@ func NewAntimatchGame(
 	onDone func(),
 ) *AntiMatchGame {
 	return &AntiMatchGame{
+		GameBase: newGameBase(outputs, onDone),
 		settings: settings,
-		outputs:  outputs,
-		onDone:   onDone,
-		inputs:   make(chan GameInput, 16),
-		stop:     make(chan struct{}),
 		phase:    AntiMatchPhaseInput,
 		timer:    settings.InputDuration,
 	}
@@ -124,12 +113,3 @@ func (g *AntiMatchGame) processInput(input GameInput) {
 	// TODO: switch on g.phase and input.Event.Type
 }
 
-// HandleInput is called from the lobby's Run goroutine — forwards to internal channel.
-func (g *AntiMatchGame) HandleInput(input GameInput) {
-	g.inputs <- input
-}
-
-// Stop signals the game goroutine to exit. Safe to call multiple times.
-func (g *AntiMatchGame) Stop() {
-	g.once.Do(func() { close(g.stop) })
-}

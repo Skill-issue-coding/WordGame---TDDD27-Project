@@ -4,7 +4,6 @@ import (
 	"math/rand/v2"
 	"server/events"
 	"server/words"
-	"sync"
 	"time"
 
 	"github.com/google/uuid"
@@ -51,7 +50,7 @@ type ImpostorPair struct {
 // After the input phase players discuss and vote to eliminate the suspected
 // impostor. Run must be started in its own goroutine via go game.Run().
 type ImpostorGame struct {
-	GameTimestamps
+	GameBase
 
 	// settings holds the host-configured durations and impostor count for
 	// this game instance.
@@ -74,44 +73,17 @@ type ImpostorGame struct {
 
 	// submissions maps each player ID to the word they submitted during
 	// PhaseInput. Last write wins if a player submits more than once.
-	submissions map[uuid.UUID]string
+	submissions map[uuid.UUID][]string
 
 	// votes maps each voter's player ID to their chosen vote target.
 	// A nil pointer value means the player cast a skip vote.
-	votes map[uuid.UUID]*uuid.UUID
-
-	// outputs is the channel shared with the lobby. The game writes GameOutput
-	// values here; the lobby's Run goroutine drains them and delivers to clients.
-	outputs chan GameOutput
-
-	// onDone is called once when the Run goroutine exits, regardless of reason.
-	// It signals the lobby to reset back to LobbyPhase.
-	onDone func()
-
-	// inputs is the channel through which the lobby forwards player actions to
-	// the game's Run goroutine. Buffered to avoid blocking the lobby loop.
-	inputs chan GameInput
-
-	// stop is closed by Stop to signal the Run goroutine to exit cleanly.
-	stop chan struct{}
-
-	// once guards the close of stop so Stop is safe to call multiple times.
-	once sync.Once
+	votes map[uuid.UUID][]*uuid.UUID
 
 	// phase tracks the current lifecycle stage of the game.
 	phase ImpostorPhase
-}
 
-// DefaultImpostorSettings returns the settings applied when a lobby first
-// selects the Impostor mode. These are used as the baseline before the host
-// makes any manual adjustments via UpdateSettingsRequestEvent.
-func DefaultImpostorSettings() ImpostorSettings {
-	return ImpostorSettings{
-		InputDuration:      30,
-		DiscussionDuration: 15,
-		ImpostorCount:      1,
-		VoteDuration:       30,
-	}
+	// cycleNumber keeps track of how many cycles the game has completed
+	cycleNumber int8
 }
 
 // NewImpostorGame constructs an ImpostorGame ready to be started with Run.
@@ -131,16 +103,14 @@ func NewImpostorGame(
 	onDone func(),
 ) *ImpostorGame {
 	return &ImpostorGame{
+		GameBase:    newGameBase(outputs, onDone),
 		settings:    settings,
 		dict:        dict,
 		players:     players,
-		outputs:     outputs,
-		onDone:      onDone,
-		inputs:      make(chan GameInput, 16),
-		stop:        make(chan struct{}),
 		phase:       PhaseShowWord,
-		submissions: make(map[uuid.UUID]string),
-		votes:       make(map[uuid.UUID]*uuid.UUID),
+		submissions: make(map[uuid.UUID][]string),
+		votes:       make(map[uuid.UUID][]*uuid.UUID),
+		cycleNumber: 0,
 	}
 }
 
@@ -195,7 +165,6 @@ func pickImpostorPair(dict *words.Dictionary) (ImpostorPair, bool) {
 // calls onDone, leaving players on the game-started screen. onDone is always
 // called on exit to signal the lobby to reset back to LobbyPhase.
 func (g *ImpostorGame) Run() {
-	g.StartPhase(SHOW_WORD_DURATION)
 	ticker := time.NewTicker(time.Second)
 	defer ticker.Stop()
 	defer g.onDone()
@@ -206,32 +175,8 @@ func (g *ImpostorGame) Run() {
 	}
 	g.wordPair = pair
 	g.impostors = pickImpostors(g.players, g.settings.ImpostorCount)
-
-	// shownUntil = end of ShowWord phase; inputEndsAt = end of the following Input phase.
-	shownUntil := g.endTime
-	inputEndsAt := shownUntil.Add(SYNC_DELAY + time.Duration(g.settings.InputDuration)*time.Second)
-
-	for _, playerID := range g.players {
-		word := g.wordPair.NormalWord
-		role := events.RoleNormal
-		_, isImpostor := g.impostors[playerID]
-		if isImpostor {
-			word = g.wordPair.ImpostorWord
-			role = events.RoleImpostor
-		}
-		id := playerID
-		g.outputs <- GameOutput{
-			Target: &id,
-			Type:   events.ImpostorWordAssignedEvent,
-			Payload: events.ImpostorWordAssignedPayload{
-				Word:          word,
-				Role:          role,
-				ImpostorCount: g.settings.ImpostorCount,
-				ShownUntil:    shownUntil,
-				InputEndsAt:   inputEndsAt,
-			},
-		}
-	}
+	g.StartPhase(SHOW_WORD_DURATION)
+	g.sendBaseState()
 
 	for {
 		select {
@@ -262,38 +207,39 @@ func (g *ImpostorGame) advancePhase() {
 	case PhaseShowWord:
 		g.phase = PhaseInput
 		g.StartPhase(g.settings.InputDuration)
+
 	case PhaseInput:
 		g.phase = PhaseDiscussion
 		g.StartPhase(g.settings.DiscussionDuration)
-		subs := make([]events.ImpostorWordSubmission, 0, len(g.submissions))
-		for id, word := range g.submissions {
-			subs = append(subs, events.ImpostorWordSubmission{UserId: id, Word: word})
+		subs := make(map[uuid.UUID]string)
+		for playerId, words := range g.submissions {
+			word := ""
+			if int(g.cycleNumber) < len(words) {
+				word = words[g.cycleNumber]
+			}
+			subs[playerId] = word
 		}
-		g.outputs <- GameOutput{
-			Type: events.ImpostorDiscussionStartedEvent,
-			Payload: events.ImpostorDiscussionStartedPayload{
-				Submissions:      subs,
-				DiscussionEndsAt: g.endTime,
-			},
-		}
+		g.Broadcast(events.ImpostorDiscussionStartedEvent, ImpostorDiscussionStartedPayload{Submissions: subs})
+		g.SendPhaseTimes()
+
 	case PhaseDiscussion:
 		g.phase = PhaseVote
 		g.StartPhase(g.settings.VoteDuration)
 		candidates := make([]uuid.UUID, len(g.players))
 		copy(candidates, g.players)
-		g.outputs <- GameOutput{
-			Type: events.ImpostorVoteStartedEvent,
-			Payload: events.ImpostorVoteStartedPayload{
-				Candidates: candidates,
-				VoteEndsAt: g.endTime,
-			},
-		}
+		g.Broadcast(events.ImpostorVoteStartedEvent, ImpostorVoteStartedPayload{Candidates: candidates})
+		g.SendPhaseTimes()
+
 	case PhaseVote:
-		g.phase = PhaseResult
-		g.broadcastResult()
-		g.Stop()
-	case PhaseResult:
-		g.Stop()
+		over, _ := g.broadcastResult()
+		if over {
+			g.Stop()
+		} else {
+			g.cycleNumber++
+			g.phase = PhaseShowWord
+			g.StartPhase(SHOW_WORD_DURATION)
+			g.sendBaseState()
+		}
 	}
 }
 
@@ -303,12 +249,20 @@ func (g *ImpostorGame) advancePhase() {
 // votes results in no elimination — eliminated is nil in the payload. The full
 // impostor list and both secret words (NormalWord and ImpostorWord) are always
 // revealed so players can judge how close the pair was.
-func (g *ImpostorGame) broadcastResult() {
+// broadcastResult tallies votes for the current cycle, removes the eliminated
+// player from active state, checks the win condition, and broadcasts the result.
+// Returns (gameOver, impostorsWin) so the caller can decide whether to start a
+// new cycle or stop the game.
+func (g *ImpostorGame) broadcastResult() (gameOver bool, impostorsWin bool) {
 	votersByCandidate := make(map[uuid.UUID][]uuid.UUID, len(g.players))
 	for _, id := range g.players {
 		votersByCandidate[id] = []uuid.UUID{}
 	}
-	for voter, target := range g.votes {
+	for voter, cycleVotes := range g.votes {
+		if int(g.cycleNumber) >= len(cycleVotes) {
+			continue
+		}
+		target := cycleVotes[g.cycleNumber]
 		if target == nil {
 			continue
 		}
@@ -340,30 +294,55 @@ func (g *ImpostorGame) broadcastResult() {
 		_, wasImpostor = g.impostors[*eliminated]
 	}
 
+	if eliminated != nil {
+		delete(g.impostors, *eliminated)
+		g.players = removePlayer(g.players, *eliminated)
+	}
+
+	over, impostWin := g.isGameOver()
+
 	impostors := make([]uuid.UUID, 0, len(g.impostors))
 	for id := range g.impostors {
 		impostors = append(impostors, id)
 	}
 
-	tallies := make([]events.ImpostorVoteTally, 0, len(g.players))
-	for _, id := range g.players {
-		tallies = append(tallies, events.ImpostorVoteTally{
-			UserId: id,
-			Votes:  votersByCandidate[id],
-		})
-	}
+	g.Broadcast(events.ImpostorRoundResultEvent, ImpostorRoundResultPayload{
+		Eliminated:   eliminated,
+		WasImpostor:  wasImpostor,
+		Impostors:    impostors,
+		VoteResults:  votersByCandidate,
+		NormalWord:   g.wordPair.NormalWord,
+		ImpostorWord: g.wordPair.ImpostorWord,
+		GameOver:     over,
+		ImpostorsWin: impostWin,
+	})
 
-	g.outputs <- GameOutput{
-		Type: events.ImpostorRoundResultEvent,
-		Payload: events.ImpostorRoundResultPayload{
-			Eliminated:   eliminated,
-			WasImpostor:  wasImpostor,
-			Impostors:    impostors,
-			Tallies:      tallies,
-			NormalWord:   g.wordPair.NormalWord,
-			ImpostorWord: g.wordPair.ImpostorWord,
-		},
+	return over, impostWin
+}
+
+// isGameOver returns whether the game should end and, if so, who won.
+// Normal players win when no impostors remain; impostors win when their count
+// reaches or exceeds the number of remaining normal players.
+func (g *ImpostorGame) isGameOver() (over bool, impostorsWin bool) {
+	nImpostors := len(g.impostors)
+	if nImpostors == 0 {
+		return true, false
 	}
+	nNormal := len(g.players) - nImpostors
+	if nImpostors >= nNormal {
+		return true, true
+	}
+	return false, false
+}
+
+// removePlayer returns a new slice with id removed. Order is not preserved.
+func removePlayer(players []uuid.UUID, id uuid.UUID) []uuid.UUID {
+	for i, p := range players {
+		if p == id {
+			return append(players[:i], players[i+1:]...)
+		}
+	}
+	return players
 }
 
 // processInput handles a single player action forwarded from HandleInput.
@@ -384,29 +363,55 @@ func (g *ImpostorGame) processInput(input GameInput) {
 		if input.Event.Type != events.GameSubmitWordRequestEvent {
 			return
 		}
-		payload, err := events.DecodePayload[events.GameSubmitWordPayload](input.Event)
+		payload, err := events.DecodePayload[GameSubmitWordPayload](input.Event)
 		if err != nil || payload.Word == "" {
 			return
 		}
-		g.submissions[input.ClientId] = payload.Word
+		sub := g.submissions[input.ClientId]
+		for int(g.cycleNumber) >= len(sub) {
+			sub = append(sub, "")
+		}
+		sub[g.cycleNumber] = payload.Word
+		g.submissions[input.ClientId] = sub
 	case PhaseVote:
 		if input.Event.Type != events.GameSubmitVoteRequestEvent {
 			return
 		}
-		payload, err := events.DecodePayload[events.GameSubmitVotePayload](input.Event)
+		payload, err := events.DecodePayload[GameSubmitVotePayload](input.Event)
 		if err != nil {
 			return
 		}
-		g.votes[input.ClientId] = payload.Target
+		v := g.votes[input.ClientId]
+		for int(g.cycleNumber) >= len(v) {
+			v = append(v, nil)
+		}
+		v[g.cycleNumber] = payload.Target
+		g.votes[input.ClientId] = v
 	}
 }
 
-// HandleInput is called from the lobby's Run goroutine — forwards to internal channel.
-func (g *ImpostorGame) HandleInput(input GameInput) {
-	g.inputs <- input
-}
+// Sends a base state to clients individually also calls SendPhaseTimes() from game.go
+func (g *ImpostorGame) sendBaseState() {
+	var previousRoundSubmissions map[uuid.UUID]string = make(map[uuid.UUID]string)
+	if g.cycleNumber > 0 {
+		for playerId, wordArr := range g.submissions {
+			previousRoundSubmissions[playerId] = wordArr[(g.cycleNumber - 1)]
+		}
+	}
+	for _, playerID := range g.players {
+		word := g.wordPair.NormalWord
+		role := RoleNormal
+		_, isImpostor := g.impostors[playerID]
+		if isImpostor {
+			word = g.wordPair.ImpostorWord
+			role = RoleImpostor
+		}
 
-// Stop signals the game goroutine to exit. Safe to call multiple times.
-func (g *ImpostorGame) Stop() {
-	g.once.Do(func() { close(g.stop) })
+		g.Send(&playerID, events.ImpostorNewRoundEvent, ImpostorBaseClientStatePayload{
+			Role:                   role,
+			ClientWord:             word,
+			PreviousSubmittedWords: previousRoundSubmissions,
+		})
+	}
+	g.SendPhaseTimes()
 }
