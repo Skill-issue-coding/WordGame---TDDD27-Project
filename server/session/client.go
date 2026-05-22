@@ -260,6 +260,25 @@ func (c *Client) ReadPump() {
 				log.Printf("[%s] GameInputs full, dropping input from %s", c.Lobby.ID, c.UserId)
 			}
 
+		case events.SubmitInputRequestEvent:
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
+
+			payload, err := events.DecodePayload[SubmitInputPayload](event)
+			if err != nil {
+				c.SendError("Serverfel vid inläsningen av ditt ord")
+				log.Printf("Error decoding submit_input payload: %v", err)
+				continue
+			}
+
+			// a channel on the Lobby to handle this safely
+			c.Lobby.PlayerInputs <- PlayerInputRequest{
+				UserID: c.UserId,
+				Word:   payload.Word,
+			}
+
 		default:
 			log.Printf("Unknown event type %s", event.Type)
 			c.SendError("Okänd event-typ")

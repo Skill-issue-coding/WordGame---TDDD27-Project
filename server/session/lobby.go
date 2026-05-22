@@ -227,7 +227,7 @@ func (lobby *GameLobby) SyncStateToClients() {
 // BuildLobbyState assembles a point-in-time snapshot of the lobby's shared
 // state, ready to be serialised and sent to clients.
 func (lobby *GameLobby) BuildLobbyState() LobbyState {
-	return LobbyState{
+	state := LobbyState{
 		Code:     lobby.ID,
 		Mode:     lobby.Mode,
 		Phase:    lobby.Phase,
@@ -235,6 +235,12 @@ func (lobby *GameLobby) BuildLobbyState() LobbyState {
 		Users:    lobby.Users,
 		Settings: lobby.ModeSettings(),
 	}
+
+	if lobby.Mode == ModeImpostor && lobby.ImpostorState != nil {
+		state.GameState = lobby.ImpostorState
+	}
+
+	return state
 }
 
 // ModeSettings returns the settings struct for the currently active game mode.
