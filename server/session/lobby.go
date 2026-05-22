@@ -236,10 +236,6 @@ func (lobby *GameLobby) BuildLobbyState() LobbyState {
 		Settings: lobby.ModeSettings(),
 	}
 
-	if lobby.Mode == ModeImpostor && lobby.ImpostorState != nil {
-		state.GameState = lobby.ImpostorState
-	}
-
 	return state
 }
 
