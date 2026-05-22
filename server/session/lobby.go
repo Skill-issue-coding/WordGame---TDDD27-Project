@@ -57,7 +57,15 @@ func (lobby *GameLobby) Run() {
 		case client := <-lobby.Register:
 			if lobby.Phase == GameStarted {
 				client.SendError("Spelet har redan börjat, kan inte ansluta")
+				client.SendEvent(events.JoinLobbyErrorEvent, nil)
 				continue
+			}
+
+			// Mutate Users and Host here — lobby.Run is the only writer of
+			// lobby state, so this is safe without additional locking.
+			lobby.Users[client.UserId] = client.Profile
+			if lobby.Host == (uuid.UUID{}) {
+				lobby.Host = client.UserId
 			}
 
 			lobby.Clients[client] = true
@@ -99,6 +107,9 @@ func (lobby *GameLobby) Run() {
 			// If the lobby is now empty, shut it down.
 			if len(lobby.Clients) == 0 {
 				log.Printf("[Room %s] Room is empty, closing.", lobby.ID)
+				if lobby.CurrentGame != nil {
+					lobby.CurrentGame.Stop()
+				}
 				if client.Hub != nil {
 					client.Hub.DeleteRoom(lobby.ID)
 				}
@@ -146,7 +157,12 @@ func (lobby *GameLobby) Run() {
 			for id := range lobby.Users {
 				players = append(players, id)
 			}
-			onDone := func() { lobby.GameDone <- struct{}{} }
+			onDone := func() {
+				select {
+				case lobby.GameDone <- struct{}{}:
+				default:
+				}
+			}
 
 			switch lobby.Mode {
 			case ModeImpostor:
@@ -293,7 +309,7 @@ func (lobby *GameLobby) ApplySetting(key GameSetting, value float64) {
 		case MAX_DISTANCE:
 			lobby.AntiMatchSettings.MaxDistance = util.ClampFloat(value, game.ANTIMATCH_DISTANCE_MIN, game.ANTIMATCH_DISTANCE_MAX)
 		case NUMBER_OF_ROUNDS:
-			lobby.AntiMatchSettings.Rounds = util.ClampInt(value, game.SYNONYM_ROUNDS_MIN, game.SYNONYM_ROUNDS_MAX)
+			lobby.AntiMatchSettings.Rounds = util.ClampInt(value, game.ANTIMATCH_ROUNDS_MIN, game.ANTIMATCH_ROUNDS_MAX)
 		}
 	}
 }

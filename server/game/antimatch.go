@@ -2,7 +2,7 @@ package game
 
 import "time"
 
-const defaultAntiHiveMaxDistance = 0.5
+const defaultAntiMatchMaxDistance = 0.5
 
 const (
 	// Settings matching the client-side settings for Anti-match game
@@ -38,7 +38,7 @@ type AntiMatchGame struct {
 func DefaultAntiMatchSettings() AntiMatchSettings {
 	return AntiMatchSettings{
 		InputDuration: 20,
-		MaxDistance:   defaultAntiHiveMaxDistance,
+		MaxDistance:   defaultAntiMatchMaxDistance,
 		Rounds:        3,
 	}
 }
@@ -56,14 +56,14 @@ func NewAntimatchGame(
 	}
 }
 
-// AntiHiveThresholdFor returns the per-target distance threshold when the
+// AntiMatchThresholdFor returns the per-target distance threshold when the
 // target was enriched by stage 9, otherwise the default global threshold.
 // Pass the AntiHiveThreshold field from the active words.Target.
-func AntiHiveThresholdFor(perTargetThreshold float64) float64 {
+func AntiMatchThresholdFor(perTargetThreshold float64) float64 {
 	if perTargetThreshold > 0 {
 		return perTargetThreshold
 	}
-	return defaultAntiHiveMaxDistance
+	return defaultAntiMatchMaxDistance
 }
 
 // Run starts the AntiMatch game loop. It must be called in its own goroutine.

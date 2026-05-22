@@ -11,8 +11,8 @@ func normalizeWordKey(word string) string {
 
 // inferType returns a generic type string; without per-word type metadata in
 // the binary format we fall back to "general". Entities (proper nouns /
-// named things) end up here as "general" which is fine for random-word
-// selection — RANDOM_WORD_ALLOWED_POS_TYPES already includes "general".
+// named things) also end up here as "general", which is acceptable for
+// random-word selection.
 func inferType(_ string, _ map[string]WordEntry) string {
 	return "general"
 }

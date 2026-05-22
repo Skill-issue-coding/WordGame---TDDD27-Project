@@ -339,7 +339,8 @@ func (g *ImpostorGame) isGameOver() (over bool, impostorsWin bool) {
 func removePlayer(players []uuid.UUID, id uuid.UUID) []uuid.UUID {
 	for i, p := range players {
 		if p == id {
-			return append(players[:i], players[i+1:]...)
+			players[i] = players[len(players)-1]
+			return players[:len(players)-1]
 		}
 	}
 	return players
