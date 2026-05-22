@@ -5,45 +5,21 @@ import (
 	"server/events"
 	"server/game"
 	"server/util"
-	"time"
 
 	"github.com/google/uuid"
 )
 
+type GameSetting string
+
 const (
-	// Settings matching the client-side settings for Impostor game
-	IPOSTOR_COUNT_MIN                = 1
-	IPOSTOR_COUNT_MAX                = 4
-	IMPOSTOR_INPUT_DURATION_MIN      = 10
-	IMPOSTOR_INPUT_DURATION_MAX      = 60
-	IMPOSTOR_DISCUSSION_DURATION_MIN = 10
-	IMPOSTOR_DISCUSSION_DURATION_MAX = 60
-	IMPOSTOR_VOTE_DURATION_MIN       = 10
-	IMPOSTOR_VOTE_DURATION_MAX       = 60
-
-	// Settings matching the client-side settings for Contexto game
-	CONTEXTO_WORD_TYPE_MIN      = 1
-	CONTEXTO_WORD_TYPE_MAX      = 2
-	CONTEXTO_ROUND_DURATION_MIN = 60
-	CONTEXTO_ROUND_DURATION_MAX = 600
-	CONTEXTO_ROUNDS_MIN         = 1
-	CONTEXTO_ROUNDS_MAX         = 5
-
-	// Settings matching the client-side settings for Synonym game
-	SYNONYM_WORD_TYPE_MIN      = 1
-	SYNONYM_WORD_TYPE_MAX      = 2
-	SYNONYM_ROUND_DURATION_MIN = 10
-	SYNONYM_ROUND_DURATION_MAX = 60
-	SYNONYM_ROUNDS_MIN         = 1
-	SYNONYM_ROUNDS_MAX         = 5
-
-	// Settings matching the client-side settings for Anti-match game
-	ANTIMATCH_ROUND_DURATION_MIN = 10
-	ANTIMATCH_ROUND_DURATION_MAX = 60
-	ANTIMATCH_ROUNDS_MIN         = 1
-	ANTIMATCH_ROUNDS_MAX         = 5
-	ANTIMATCH_DISTANCE_MIN       = 0.1
-	ANTIMATCH_DISTANCE_MAX       = 1.0
+	INPUT_DURATION      GameSetting = "input_duration"
+	DISCUSSION_DURATION GameSetting = "discussion_duration"
+	IMPOSTOR_COUNT      GameSetting = "impostor_count"
+	VOTE_DURATION       GameSetting = "vote_duration"
+	ROUND_DURATION      GameSetting = "round_duration"
+	NUMBER_OF_ROUNDS    GameSetting = "rounds"
+	WORD_TYPE           GameSetting = "word_type"
+	MAX_DISTANCE        GameSetting = "max_distance"
 )
 
 // NewLobby creates and returns a new GameLobby with the given room code.
@@ -62,7 +38,10 @@ func NewLobby(id string) *GameLobby {
 		SyncRequests:          make(chan struct{}, 8),
 		Phase:                 LobbyPhase,
 		Users:                 make(map[uuid.UUID]*UserProfile),
-		PlayerInputs:          make(chan PlayerInputRequest),
+		StartGameRequests:     make(chan *Client),
+		GameInputs:            make(chan game.GameInput, 16),
+		GameOutputs:           make(chan game.GameOutput, 32),
+		GameDone:              make(chan struct{}, 1),
 	}
 	lobby.SetMode(ModeImpostor)
 	return lobby
@@ -72,16 +51,21 @@ func NewLobby(id string) *GameLobby {
 // and is the only place where lobby state is mutated, making all field access
 // implicitly single-threaded and safe without additional locking.
 func (lobby *GameLobby) Run() {
-	gameTicker := time.NewTicker(1 * time.Second)
-	defer gameTicker.Stop()
-
 	for {
 		select {
 
 		case client := <-lobby.Register:
 			if lobby.Phase == GameStarted {
 				client.SendError("Spelet har redan börjat, kan inte ansluta")
+				client.SendEvent(events.JoinLobbyErrorEvent, nil)
 				continue
+			}
+
+			// Mutate Users and Host here — lobby.Run is the only writer of
+			// lobby state, so this is safe without additional locking.
+			lobby.Users[client.UserId] = client.Profile
+			if lobby.Host == (uuid.UUID{}) {
+				lobby.Host = client.UserId
 			}
 
 			lobby.Clients[client] = true
@@ -123,6 +107,9 @@ func (lobby *GameLobby) Run() {
 			// If the lobby is now empty, shut it down.
 			if len(lobby.Clients) == 0 {
 				log.Printf("[Room %s] Room is empty, closing.", lobby.ID)
+				if lobby.CurrentGame != nil {
+					lobby.CurrentGame.Stop()
+				}
 				if client.Hub != nil {
 					client.Hub.DeleteRoom(lobby.ID)
 				}
@@ -155,44 +142,70 @@ func (lobby *GameLobby) Run() {
 				client.SendEvent(events.SendChatMessageEvent, message)
 			}
 
-		case <-gameTicker.C:
-			// Reserved for game-phase countdown timers and round management.
-
-		case input := <-lobby.PlayerInputs:
-			if lobby.Phase != GameStarted || lobby.Mode != ModeImpostor {
+		case client := <-lobby.StartGameRequests:
+			if client.UserId != lobby.Host {
+				client.SendError("Endast hosten kan starta spelet.")
 				continue
 			}
 
-			// Initialize the state if it hasn't been already
-			if lobby.ImpostorState == nil {
-				lobby.ImpostorState = &ImpostorGameState{
-					SubmittedPlayers: []uuid.UUID{},
+			if lobby.Phase == GameStarted {
+				client.SendError("Spelet har redan startat.")
+				continue
+			}
+
+			players := make([]uuid.UUID, 0, len(lobby.Users))
+			for id := range lobby.Users {
+				players = append(players, id)
+			}
+			onDone := func() {
+				select {
+				case lobby.GameDone <- struct{}{}:
+				default:
 				}
 			}
 
-			// Check if the user has already submitted to avoid duplicates
-			alreadySubmitted := false
-			for _, id := range lobby.ImpostorState.SubmittedPlayers {
-				if id == input.UserID {
-					alreadySubmitted = true
-					break
+			switch lobby.Mode {
+			case ModeImpostor:
+				lobby.CurrentGame = game.NewImpostorGame(lobby.ImpostorSettings, players, &client.Hub.Dictionary, lobby.GameOutputs, onDone)
+			case ModeAntiMatch:
+				lobby.CurrentGame = game.NewAntimatchGame(lobby.AntiMatchSettings, lobby.GameOutputs, onDone)
+			}
+
+			if lobby.CurrentGame == nil {
+				client.SendError("Spelläget stöds inte än.")
+				continue
+			}
+
+			lobby.Phase = GameStarted
+			lobby.SyncStateToClients()
+			for c := range lobby.Clients {
+				c.SendEvent(events.GameStartedEvent, nil)
+			}
+			go lobby.CurrentGame.Run()
+
+		case input := <-lobby.GameInputs:
+			if lobby.CurrentGame != nil {
+				lobby.CurrentGame.HandleInput(input)
+			}
+
+		case out := <-lobby.GameOutputs:
+			if out.Target == nil {
+				for c := range lobby.Clients {
+					c.SendEvent(out.Type, out.Payload)
+				}
+			} else {
+				for c := range lobby.Clients {
+					if c.UserId == *out.Target {
+						c.SendEvent(out.Type, out.Payload)
+						break
+					}
 				}
 			}
 
-			if !alreadySubmitted {
-				// Record the submission
-				lobby.ImpostorState.SubmittedPlayers = append(lobby.ImpostorState.SubmittedPlayers, input.UserID)
-
-				// TODO: You will also want to store the actual `input.Word` somewhere!
-				// e.g., lobby.ImpostorState.PlayerClues[input.UserID] = input.Word
-
-				// 2. Broadcast the updated state to all clients
-				lobby.SyncStateToClients()
-
-				// Optional: Check if ALL players have submitted.
-				// If they have, you can automatically advance the phase to "discuss".
-				// if len(lobby.ImpostorState.SubmittedPlayers) == len(lobby.Clients) { ... }
-			}
+		case <-lobby.GameDone:
+			lobby.CurrentGame = nil
+			lobby.Phase = LobbyPhase
+			lobby.SyncStateToClients()
 		}
 	}
 }
@@ -258,58 +271,51 @@ func (lobby *GameLobby) SetMode(mode GameMode) {
 	case ModeSynonymDuel:
 		lobby.SynonymDuelSettings = game.DefaultSynonymDuelSettings()
 	case ModeAntiMatch:
-		lobby.AntiMatchSettings = game.DefaultAntiHiveSettings()
-	}
-}
-
-func (lobby *GameLobby) StartLobby(client *Client) {
-	// TODO: Add host, setting and other checks
-	for client := range lobby.Clients {
-		client.SendEvent(events.GameStartedEvent, nil)
+		lobby.AntiMatchSettings = game.DefaultAntiMatchSettings()
 	}
 }
 
 // ApplySetting updates a specific setting for the currently active game mode
 // based on the provided key and value.
-func (lobby *GameLobby) ApplySetting(key string, value float64) {
+func (lobby *GameLobby) ApplySetting(key GameSetting, value float64) {
 	switch lobby.Mode {
 	case ModeImpostor:
 		switch key {
-		case "input_duration":
-			lobby.ImpostorSettings.InputDuration = util.ClampInt(value, IMPOSTOR_INPUT_DURATION_MIN, IMPOSTOR_INPUT_DURATION_MAX)
-		case "discussion_duration":
-			lobby.ImpostorSettings.DiscussionDuration = util.ClampInt(value, IMPOSTOR_DISCUSSION_DURATION_MIN, IMPOSTOR_DISCUSSION_DURATION_MAX)
-		case "impostor_count":
-			lobby.ImpostorSettings.ImpostorCount = util.ClampInt(value, IPOSTOR_COUNT_MIN, IPOSTOR_COUNT_MIN)
-		case "vote_duration":
-			lobby.ImpostorSettings.VoteDuration = util.ClampInt(value, IMPOSTOR_VOTE_DURATION_MIN, IMPOSTOR_DISCUSSION_DURATION_MAX)
+		case INPUT_DURATION:
+			lobby.ImpostorSettings.InputDuration = util.ClampInt(value, game.IMPOSTOR_INPUT_DURATION_MIN, game.IMPOSTOR_INPUT_DURATION_MAX)
+		case DISCUSSION_DURATION:
+			lobby.ImpostorSettings.DiscussionDuration = util.ClampInt(value, game.IMPOSTOR_DISCUSSION_DURATION_MIN, game.IMPOSTOR_DISCUSSION_DURATION_MAX)
+		case IMPOSTOR_COUNT:
+			lobby.ImpostorSettings.ImpostorCount = util.ClampInt(value, game.IMPOSTOR_COUNT_MIN, game.IMPOSTOR_COUNT_MAX)
+		case VOTE_DURATION:
+			lobby.ImpostorSettings.VoteDuration = util.ClampInt(value, game.IMPOSTOR_VOTE_DURATION_MIN, game.IMPOSTOR_VOTE_DURATION_MAX)
 		}
 	case ModeContextoBattle:
 		switch key {
-		case "round_duration":
-			lobby.ContextoBattleSettings.RoundDuration = util.ClampInt(value, CONTEXTO_ROUND_DURATION_MIN, CONTEXTO_ROUND_DURATION_MAX)
-		case "rounds":
-			lobby.ContextoBattleSettings.Rounds = util.ClampInt(value, CONTEXTO_ROUNDS_MIN, CONTEXTO_ROUNDS_MAX)
-		case "word_type":
-			lobby.ContextoBattleSettings.WordType = util.ClampInt(value, CONTEXTO_WORD_TYPE_MIN, CONTEXTO_WORD_TYPE_MAX)
+		case ROUND_DURATION:
+			lobby.ContextoBattleSettings.RoundDuration = util.ClampInt(value, game.CONTEXTO_ROUND_DURATION_MIN, game.CONTEXTO_ROUND_DURATION_MAX)
+		case NUMBER_OF_ROUNDS:
+			lobby.ContextoBattleSettings.Rounds = util.ClampInt(value, game.CONTEXTO_ROUNDS_MIN, game.CONTEXTO_ROUNDS_MAX)
+		case WORD_TYPE:
+			lobby.ContextoBattleSettings.WordType = util.ClampInt(value, game.CONTEXTO_WORD_TYPE_MIN, game.CONTEXTO_WORD_TYPE_MAX)
 		}
 	case ModeSynonymDuel:
 		switch key {
-		case "round_duration":
-			lobby.SynonymDuelSettings.RoundDuration = util.ClampInt(value, SYNONYM_ROUND_DURATION_MIN, SYNONYM_ROUNDS_MAX)
-		case "rounds":
-			lobby.SynonymDuelSettings.Rounds = util.ClampInt(value, SYNONYM_ROUNDS_MIN, SYNONYM_ROUNDS_MAX)
-		case "word_type":
-			lobby.SynonymDuelSettings.WordType = util.ClampInt(value, SYNONYM_WORD_TYPE_MIN, SYNONYM_WORD_TYPE_MAX)
+		case ROUND_DURATION:
+			lobby.SynonymDuelSettings.RoundDuration = util.ClampInt(value, game.SYNONYM_ROUND_DURATION_MIN, game.SYNONYM_ROUNDS_MAX)
+		case NUMBER_OF_ROUNDS:
+			lobby.SynonymDuelSettings.Rounds = util.ClampInt(value, game.SYNONYM_ROUNDS_MIN, game.SYNONYM_ROUNDS_MAX)
+		case WORD_TYPE:
+			lobby.SynonymDuelSettings.WordType = util.ClampInt(value, game.SYNONYM_WORD_TYPE_MIN, game.SYNONYM_WORD_TYPE_MAX)
 		}
 	case ModeAntiMatch:
 		switch key {
-		case "input_duration":
-			lobby.AntiMatchSettings.InputDuration = util.ClampInt(value, ANTIMATCH_ROUND_DURATION_MIN, ANTIMATCH_ROUND_DURATION_MAX)
-		case "max_distance":
-			lobby.AntiMatchSettings.MaxDistance = util.ClampFloat(value, ANTIMATCH_DISTANCE_MIN, ANTIMATCH_DISTANCE_MAX)
-		case "rounds":
-			lobby.AntiMatchSettings.Rounds = util.ClampInt(value, SYNONYM_ROUNDS_MIN, SYNONYM_ROUNDS_MAX)
+		case INPUT_DURATION:
+			lobby.AntiMatchSettings.InputDuration = util.ClampInt(value, game.ANTIMATCH_ROUND_DURATION_MIN, game.ANTIMATCH_ROUND_DURATION_MAX)
+		case MAX_DISTANCE:
+			lobby.AntiMatchSettings.MaxDistance = util.ClampFloat(value, game.ANTIMATCH_DISTANCE_MIN, game.ANTIMATCH_DISTANCE_MAX)
+		case NUMBER_OF_ROUNDS:
+			lobby.AntiMatchSettings.Rounds = util.ClampInt(value, game.ANTIMATCH_ROUNDS_MIN, game.ANTIMATCH_ROUNDS_MAX)
 		}
 	}
 }

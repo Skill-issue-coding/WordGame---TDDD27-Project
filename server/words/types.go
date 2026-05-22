@@ -31,8 +31,7 @@ type Target struct {
 }
 
 type Dictionary struct {
-	ActiveWord string
-	WordMap    map[string]WordEntry
+	WordMap map[string]WordEntry
 	// Targets is the curated Contexto target list from targets.json.
 	// Nil means fall back to random selection from the full WordMap.
 	Targets []Target
@@ -41,18 +40,8 @@ type Dictionary struct {
 	LemmaMap map[string]string
 }
 
-type RelatedWord struct {
-	Word       string
-	Similarity float64
-}
-
 type WordEntry struct {
-	Word        string
-	Type        string
-	WordVector  []float32 // passage vector — used when this word is the target
-	QueryVector []float32 // query vector — used when this word is guessed; falls back to WordVector if nil
-	Popularity  float64
-	Sitelinks   float64
-	Score       float64
-	IsSeed      bool
+	Word       string
+	Type       string
+	WordVector []float32
 }

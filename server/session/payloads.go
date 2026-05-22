@@ -57,8 +57,8 @@ type ChangeModePayload struct {
 // UpdateSettingPayload carries a single key/value pair for updating lobby settings.
 // Value is stored as float64 because all current settings are numbers.
 type UpdateSettingPayload struct {
-	Key   string  `json:"key"`
-	Value float64 `json:"value"`
+	Key   GameSetting `json:"key"`
+	Value float64     `json:"value"`
 }
 
 // SubmitInputPayload is sent by the client when they submit their word during the input phase.

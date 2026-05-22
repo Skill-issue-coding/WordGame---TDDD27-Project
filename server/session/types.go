@@ -123,6 +123,27 @@ type GameLobby struct {
 	// SyncStateToClients broadcast.
 	SyncRequests chan struct{}
 
+	// StartGameRequests is used by clients to request that the game starts.
+	// Handling it inside Run() ensures Clients is only accessed from one goroutine.
+	StartGameRequests chan *Client
+
+	// GameDone is closed by the active game when it finishes, signalling the
+	// lobby to reset back to LobbyPhase.
+	GameDone chan struct{}
+
+	// CurrentGame holds the active game instance while the lobby is in the
+	// GameStarted phase, or nil when the lobby is in the waiting room.
+	CurrentGame game.Game
+
+	// GameInputs carries player actions from client ReadPumps to the lobby's
+	// Run goroutine, which forwards them to the active game via HandleInput.
+	GameInputs chan game.GameInput
+
+	// GameOutputs carries events from the active game back to the lobby for
+	// delivery to clients. The game writes here; the lobby's Run goroutine drains
+	// and routes each output to the appropriate client(s).
+	GameOutputs chan game.GameOutput
+
 	// Host is the UserId of the player with administrative privileges.
 	Host uuid.UUID
 
@@ -132,21 +153,20 @@ type GameLobby struct {
 	// Users is the player roster keyed by UserId.
 	Users map[uuid.UUID]*UserProfile
 
-	Mode                   GameMode
-	ImpostorSettings       game.ImpostorSettings
+	// Mode is the game mode currently selected for this lobby.
+	Mode GameMode
+
+	// ImpostorSettings holds the configuration for the Impostor game mode.
+	ImpostorSettings game.ImpostorSettings
+
+	// ContextoBattleSettings holds the configuration for the Contexto Battle game mode.
 	ContextoBattleSettings game.ContextoBattleSettings
-	SynonymDuelSettings    game.SynonymDuelSettings
-	AntiMatchSettings      game.AntiHiveSettings
 
-	ImpostorState *ImpostorGameState
+	// SynonymDuelSettings holds the configuration for the Synonym Duel game mode.
+	SynonymDuelSettings game.SynonymDuelSettings
 
-	PlayerInputs chan PlayerInputRequest
-}
-
-// helper struct to pass the user ID and their word
-type PlayerInputRequest struct {
-	UserID uuid.UUID
-	Word   string
+	// AntiMatchSettings holds the configuration for the Anti-Match game mode.
+	AntiMatchSettings game.AntiMatchSettings
 }
 
 // GameHub is the top-level coordinator for all connected clients and lobbies.
@@ -165,8 +185,13 @@ type GameHub struct {
 	// LobbiesMutex guards the Lobbies map for concurrent access from handler goroutines.
 	LobbiesMutex sync.RWMutex
 
-	Broadcast  chan []byte
-	Register   chan *Client
+	// Broadcast sends a raw message to every connected client.
+	Broadcast chan []byte
+
+	// Register adds a newly connected client to the hub.
+	Register chan *Client
+
+	// Unregister removes a client from the hub and closes their Send channel.
 	Unregister chan *Client
 }
 
@@ -174,7 +199,7 @@ type GameHub struct {
 type ChatMessage struct {
 	Sender  UserProfile `json:"sender"`
 	Message string      `json:"message"`
-	Date    float64     `json:"date"`
+	Date    int64       `json:"date"`
 }
 
 // ImpostorGameState holds the active data for an ongoing Impostor game.

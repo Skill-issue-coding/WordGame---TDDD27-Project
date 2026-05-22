@@ -4,7 +4,7 @@
 //
 // Direction conventions:
 //   - Server → Client: events the backend emits (ConnectedEvent, SyncGameStateEvent, …)
-//   - Client → Server: events the frontend sends (CreateLobbyEvent, JoinLobbyEvent, …)
+//   - Client → Server: events the frontend sends (CreateLobbyRequestEvent, JoinLobbyRequestEvent, …)
 package events
 
 import "encoding/json"
@@ -51,8 +51,7 @@ const (
 	JoinLobbyErrorEvent EventType = "join_error"
 
 	// GameStartedEvent is sent when the server has started the game
-	// Payload: unkown
-	// TODO: Define payload
+	// Payload: nil
 	GameStartedEvent EventType = "game_started"
 )
 

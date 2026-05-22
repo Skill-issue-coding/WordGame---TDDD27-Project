@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"server/events"
+	"server/game"
 	"strings"
 	"time"
 
@@ -129,20 +130,16 @@ func (c *Client) ReadPump() {
 
 		switch event.Type {
 
-		// create_lobby — creates a new room, assigns this client as host,
-		// and registers them into it.
+		// create_lobby — creates a new room and registers the client into it.
+		// Users/Host are written by lobby.Run when it processes the Register.
 		case events.CreateLobbyRequestEvent:
 			code := c.Hub.CreateUniqueRoom()
 			lobby := c.Hub.GetRoom(code)
-
-			lobby.Users[c.UserId] = c.Profile
-			lobby.Host = c.UserId
 			c.Lobby = lobby
-
 			lobby.Register <- c
 
 		// join_lobby — validates the room code and registers the client into
-		// an existing lobby.
+		// an existing lobby. The in-game check is enforced by lobby.Run.
 		case events.JoinLobbyRequestEvent:
 			payload, err := events.DecodePayload[JoinLobbyPayload](event)
 			if err != nil {
@@ -166,13 +163,6 @@ func (c *Client) ReadPump() {
 				continue
 			}
 
-			if lobby.Phase == GameStarted {
-				c.SendError("Spelet har redan börjat.")
-				c.SendEvent(events.JoinLobbyErrorEvent, nil)
-				continue
-			}
-
-			lobby.Users[c.UserId] = c.Profile
 			c.Lobby = lobby
 			lobby.Register <- c
 
@@ -215,7 +205,7 @@ func (c *Client) ReadPump() {
 				continue
 			}
 
-			serverTimestamp := float64(time.Now().UnixMilli())
+			serverTimestamp := time.Now().UnixMilli()
 			chatMessage := ChatMessage{
 				Sender:  *c.Profile,
 				Message: payload.Message,
@@ -253,7 +243,22 @@ func (c *Client) ReadPump() {
 			c.Lobby.SettingUpdateRequests <- payload
 
 		case events.StartGameRequestEvent:
-			c.Lobby.StartLobby(c)
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
+			c.Lobby.StartGameRequests <- c
+
+		case events.GameSubmitWordRequestEvent, events.GameSubmitGuessRequestEvent, events.GameSubmitVoteRequestEvent:
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
+			select {
+			case c.Lobby.GameInputs <- game.GameInput{ClientId: c.UserId, Event: event}:
+			default:
+				log.Printf("[%s] GameInputs full, dropping input from %s", c.Lobby.ID, c.UserId)
+			}
 
 		case events.SubmitInputRequestEvent:
 			if c.Lobby == nil {
@@ -289,7 +294,10 @@ func (c *Client) pongHandler(_ string) error {
 
 // SendEvent serialises the given payload into an event envelope with the
 // specified type and queues it on the client's Send channel for WritePump
-// to deliver. It is safe to call from any goroutine.
+// to deliver. If the Send buffer is full (e.g. a dead or very slow
+// connection), the message is dropped rather than blocking the caller —
+// matching the same pattern used by GameHub.Broadcast. Safe to call from
+// any goroutine.
 func (c *Client) SendEvent(eventType events.EventType, payload any) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -301,7 +309,11 @@ func (c *Client) SendEvent(eventType events.EventType, payload any) {
 		log.Printf("error preparing event: %v", err)
 		return
 	}
-	c.Send <- b
+	select {
+	case c.Send <- b:
+	default:
+		log.Printf("[client %s] Send buffer full, dropping %s", c.UserId, eventType)
+	}
 }
 
 // SendSuccess sends a success event with a human-readable message string.
