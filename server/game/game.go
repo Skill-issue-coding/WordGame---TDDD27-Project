@@ -113,8 +113,3 @@ func (b *GameBase) Broadcast(eventType events.EventType, payload any) {
 func (b *GameBase) Send(target *uuid.UUID, eventType events.EventType, payload any) {
 	b.outputs <- GameOutput{Target: target, Type: eventType, Payload: payload}
 }
-
-// Broadcasts the current phase timers to all players in the lobby
-func (b *GameBase) SendPhaseTimes() {
-	b.Broadcast(events.GameNewPhaseEvent, NewGamePhasePayload{StartTime: b.startTime.UnixMilli(), EndTime: b.endTime.UnixMilli()})
-}
