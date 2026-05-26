@@ -90,9 +90,13 @@ func (b *GameBase) StartPhase(duration int) {
 }
 
 // HandleInput forwards the input to the game's internal channel.
-// Safe to call from any goroutine; blocks if the input channel is full.
+// Non-blocking: inputs are dropped when the buffer is full so the caller
+// (the lobby's Run goroutine) is never stalled by a slow game consumer.
 func (b *GameBase) HandleInput(input GameInput) {
-	b.inputs <- input
+	select {
+	case b.inputs <- input:
+	default:
+	}
 }
 
 // Stop signals the Run goroutine to exit. Safe to call multiple times.

@@ -60,8 +60,3 @@ type UpdateSettingPayload struct {
 	Key   GameSetting `json:"key"`
 	Value float64     `json:"value"`
 }
-
-// SubmitInputPayload is sent by the client when they submit their word during the input phase.
-type SubmitInputPayload struct {
-	Word string `json:"word"`
-}

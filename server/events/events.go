@@ -90,13 +90,9 @@ const (
 	// Payload: UpdateSettingPayload
 	UpdateSettingsRequestEvent EventType = "update_setting"
 
-	// StartGameRequestEvent is recieved when a client wants to start the game.
+	// StartGameRequestEvent is received when a client wants to start the game.
 	// Payload: nil
 	StartGameRequestEvent EventType = "start_game"
-
-	// SubmitInputRequestEvent is sent when a player submits their clue or bluff.
-	// Payload: SubmitInputPayload
-	SubmitInputRequestEvent EventType = "submit_input"
 )
 
 // Event is the wire envelope for all WebSocket messages. Both directions use

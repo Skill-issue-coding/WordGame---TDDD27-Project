@@ -196,7 +196,7 @@ func (g *ImpostorGame) Run() {
 // deadline has passed. It is called exclusively from the Run ticker goroutine,
 // so all field access is implicitly single-threaded. Each transition starts the
 // new phase timer via StartPhase and broadcasts the appropriate event:
-//   - PhaseShowWord → PhaseInput: no broadcast; clients already hold InputEndsAt.
+//   - PhaseShowWord → PhaseInput: broadcasts GameNewPhaseEvent with InputEndsAt.
 //   - PhaseInput → PhaseDiscussion: broadcasts ImpostorDiscussionStartedEvent
 //     with the full submission list and the discussion deadline.
 //   - PhaseDiscussion → PhaseVote: broadcasts ImpostorVoteStartedEvent with the
@@ -207,6 +207,7 @@ func (g *ImpostorGame) advancePhase() {
 	case PhaseShowWord:
 		g.phase = PhaseInput
 		g.StartPhase(g.settings.InputDuration)
+		g.SendPhaseTimes()
 
 	case PhaseInput:
 		g.phase = PhaseDiscussion
@@ -382,6 +383,18 @@ func (g *ImpostorGame) processInput(input GameInput) {
 		if err != nil {
 			return
 		}
+		if payload.Target != nil {
+			valid := false
+			for _, p := range g.players {
+				if p == *payload.Target {
+					valid = true
+					break
+				}
+			}
+			if !valid {
+				return
+			}
+		}
 		v := g.votes[input.ClientId]
 		for int(g.cycleNumber) >= len(v) {
 			v = append(v, nil)
@@ -396,7 +409,10 @@ func (g *ImpostorGame) sendBaseState() {
 	var previousRoundSubmissions map[uuid.UUID]string = make(map[uuid.UUID]string)
 	if g.cycleNumber > 0 {
 		for playerId, wordArr := range g.submissions {
-			previousRoundSubmissions[playerId] = wordArr[(g.cycleNumber - 1)]
+			idx := int(g.cycleNumber) - 1
+			if idx < len(wordArr) {
+				previousRoundSubmissions[playerId] = wordArr[idx]
+			}
 		}
 	}
 	for _, playerID := range g.players {
