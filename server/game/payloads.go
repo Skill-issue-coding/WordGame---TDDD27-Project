@@ -25,11 +25,35 @@ const (
 // Server -> Client
 // =============================================================================
 
-type ImpostorClientGameState struct {
-	Role                   ImpostorGameRoles      `json:"role"`
-	Word                   string                 `json:"word"`
-	ActivePlayers          map[uuid.UUID]bool     `json:"active_players"`
-	PreviousSubmittedWords map[uuid.UUID][]string `json:"previous_submitted_words,omitempty"`
+type ImpostorClientGameStatePayload struct {
+	GamePhasePayload `json:"timers"`
+	Role             ImpostorGameRoles  `json:"role"`
+	Word             string             `json:"word"`
+	ActivePlayers    map[uuid.UUID]bool `json:"active_players"`
+}
+
+type ImpostorGamePhaseUpdatePayload struct {
+	GamePhasePayload `json:"timers"`
+	WordsCycle       map[uuid.UUID]string     `json:"words_cycle"`
+	VotesCycle       map[uuid.UUID]*uuid.UUID `json:"votes_cycle_votes"`
+	CurrentPlayer    uuid.UUID                `json:"current_player,omitempty"`
+	Phase            ImpostorPhase            `json:"game_phase"`
+}
+
+type ImpostorGameCycleUpdatePayload struct {
+	Cycles        []ImpostorCycle    `json:"cycles"`
+	ActivePlayers map[uuid.UUID]bool `json:"active_players"`
+}
+
+type ImpostorVoteResultPayload struct {
+	GamePhasePayload `json:"timers"`
+	VotedOut         *uuid.UUID `json:"voted_out,omitempty"`
+	Message          string     `json:"message"`
+}
+
+// ImpostorVoteUpdatePayload is broadcast after each individual vote is cast.
+type ImpostorVoteUpdatePayload struct {
+	Votes map[uuid.UUID]*uuid.UUID `json:"votes"`
 }
 
 // =============================================================================

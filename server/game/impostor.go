@@ -12,13 +12,15 @@ import (
 type ImpostorPhase string
 
 const (
-	SHOW_WORD_DURATION int = 8
+	SHOW_WORD_DURATION    int = 8
+	INTERMEDIATE_DURATION int = 5
 
-	PhaseShowWord   ImpostorPhase = "show_word"
-	PhaseInput      ImpostorPhase = "input"
-	PhaseDiscussion ImpostorPhase = "discussion"
-	PhaseVote       ImpostorPhase = "vote"
-	PhaseResult     ImpostorPhase = "result"
+	PhaseShowWord          ImpostorPhase = "show_word"
+	PhaseInput             ImpostorPhase = "input"
+	PhaseDiscussion        ImpostorPhase = "discussion"
+	PhaseVote              ImpostorPhase = "vote"
+	PhaseIntermediateCycle ImpostorPhase = "intermediate"
+	PhaseResult            ImpostorPhase = "result"
 
 	// Settings matching the client-side settings for Impostor game
 	IMPOSTOR_COUNT_MIN               int = 1
@@ -38,17 +40,21 @@ type ImpostorSettings struct {
 	VoteDuration       int `json:"vote_duration"`
 }
 
-// ImpostorPair holds the two words for a round: the word shown to normal
-// players and the semantically similar word shown to impostors.
+// ImpostorPair holds the normal word and the pool of impostor candidates for a round.
 type ImpostorPair struct {
-	NormalWord   string
-	ImpostorWord string
+	NormalWord         string
+	ImpostorCandidates []string
 }
 
 type PlayerNode struct {
 	self         uuid.UUID
 	nextNode     *PlayerNode
 	previousNode *PlayerNode
+}
+
+type ImpostorCycle struct {
+	Submissions map[uuid.UUID]string     `json:"submissions"`
+	Votes       map[uuid.UUID]*uuid.UUID `json:"votes"`
 }
 
 // ImpostorGame implements the Impostor game mode. Normal players are assigned
@@ -74,19 +80,17 @@ type ImpostorGame struct {
 	// Populated by pickImpostors at the start of Run.
 	impostors map[uuid.UUID]struct{}
 
-	// wordPair holds the two secret words chosen for this round.
+	// impostorWords maps each impostor's ID to their unique word drawn from the candidate pool.
+	impostorWords map[uuid.UUID]string
+
+	// wordPair holds the normal word and the full impostor candidate pool for this round.
 	wordPair ImpostorPair
-
-	// submissions maps each player ID to the word they submitted during
-	// PhaseInput. Last write wins if a player submits more than once.
-	submissions map[uuid.UUID][]string
-
-	// votes maps each voter's player ID to their chosen vote target.
-	// A nil pointer value means the player cast a skip vote.
-	votes map[uuid.UUID][]*uuid.UUID
 
 	// phase tracks the current lifecycle stage of the game.
 	phase ImpostorPhase
+
+	// cycles is an array containing all the submissions and votes for all cycles
+	cycles []ImpostorCycle
 
 	// cycleNumber keeps track of how many cycles the game has completed
 	cycleNumber int8
@@ -115,14 +119,15 @@ func NewImpostorGame(
 	onDone func(),
 ) *ImpostorGame {
 	return &ImpostorGame{
-		GameBase:    newGameBase(outputs, onDone),
-		settings:    settings,
-		dict:        dict,
-		players:     createPlayersCircularList(players),
-		phase:       PhaseShowWord,
-		submissions: make(map[uuid.UUID][]string),
-		votes:       make(map[uuid.UUID][]*uuid.UUID),
-		cycleNumber: 0,
+		GameBase: newGameBase(outputs, onDone),
+		settings: settings,
+		dict:     dict,
+		players:  createPlayersCircularList(players),
+		phase:    PhaseShowWord,
+		cycles: []ImpostorCycle{{
+			Submissions: make(map[uuid.UUID]string),
+			Votes:       make(map[uuid.UUID]*uuid.UUID),
+		}},
 	}
 }
 
@@ -158,6 +163,33 @@ func createPlayersCircularList(players []uuid.UUID) map[uuid.UUID]*PlayerNode {
 	return playerEntriesMap
 }
 
+// getActivePlayers is a helper function that gets all players that have not been eliminated yet
+// returns map[uuid.UUID]bool
+func (g *ImpostorGame) getActivePlayers() map[uuid.UUID]bool {
+	activePlayers := make(map[uuid.UUID]bool, len(g.players))
+	for id, node := range g.players {
+		if node != nil {
+			activePlayers[id] = true
+		}
+	}
+
+	return activePlayers
+}
+
+// doesWordExist is a helper function to check if a word has already been submited
+// returns bool that is true if the word exists
+func (g *ImpostorGame) doesWordExist(word string) bool {
+	for _, cycle := range g.cycles {
+		for _, sub_word := range cycle.Submissions {
+			if sub_word == word {
+				return true
+			}
+		}
+	}
+
+	return false
+}
+
 // getRandomPlayerNode picks a random node from the players map.
 // Returns nil if the map is empty.
 func (g *ImpostorGame) getRandomPlayerNode() *PlayerNode {
@@ -188,6 +220,55 @@ func (g *ImpostorGame) eliminatePlayer(player uuid.UUID) {
 	playerNode.previousNode.nextNode = playerNode.nextNode
 	playerNode.nextNode.previousNode = playerNode.previousNode
 	g.players[player] = nil
+}
+
+// getPlayerWithMostVotes retrieves the player with the most votes
+// returns uuid (nil if skipped or tie) and message if tied or skipped
+func (g *ImpostorGame) getPlayerWithMostVotes() (*uuid.UUID, string) {
+	voteCounts := make(map[uuid.UUID]int)
+	skipCount := 0
+
+	// Sum all the votes
+	for _, votedFor := range g.cycles[g.cycleNumber].Votes {
+		if votedFor == nil {
+			skipCount++
+		} else {
+			voteCounts[*votedFor]++
+		}
+	}
+
+	// Find the highest vote count among actual players
+	maxVotes := 0
+	var topCandidates []uuid.UUID
+
+	for candidate, count := range voteCounts {
+		if count > maxVotes {
+			maxVotes = count
+			topCandidates = []uuid.UUID{candidate} // Found a new max, reset the slice
+		} else if count == maxVotes {
+			topCandidates = append(topCandidates, candidate) // Tie for max, append to slice
+		}
+	}
+
+	// Evaluate the results against skips and ties
+
+	// Case A: Nobody voted at all or more skips than votes on a single player
+	if maxVotes == 0 && skipCount == 0 || skipCount > maxVotes {
+		return nil, "Majoritet röstade för att hoppa över."
+	}
+
+	// Case B: Tie between skipping and a player or multiple players with the same amount of votes
+	if skipCount == maxVotes && maxVotes > 0 || len(topCandidates) > 1 {
+		return nil, "Oavgjort mellan flera spelare eller hoppa över. Ingen blev eliminerad. Går vidare till nästa fas"
+	}
+
+	// Case C: A single player has the most votes
+	if len(topCandidates) == 1 {
+		return &topCandidates[0], ""
+	}
+
+	// Fallback safety (should rarely be hit)
+	return nil, "Röstningen resulterade i inga elimineringar."
 }
 
 // getNormalAndImposterCount is a function that loops through the circular list
@@ -239,10 +320,10 @@ func (g *ImpostorGame) pickImpostorsRecursive(impostors map[uuid.UUID]struct{}, 
 // target, ensuring the impostor's word is plausible but not identical.
 // Returns (ImpostorPair, true) on success, or (ImpostorPair{}, false) if no
 // eligible target exists — for example when preprocessing has not been run.
-func pickImpostorPair(dict *words.Dictionary) (ImpostorPair, bool) {
+func pickImpostorPair(dict *words.Dictionary, impostorCount int) (ImpostorPair, bool) {
 	eligible := make([]words.Target, 0, len(dict.Targets))
 	for _, t := range dict.Targets {
-		if len(t.ImpostorCandidates) > 0 {
+		if len(t.ImpostorCandidates) >= impostorCount {
 			eligible = append(eligible, t)
 		}
 	}
@@ -250,8 +331,23 @@ func pickImpostorPair(dict *words.Dictionary) (ImpostorPair, bool) {
 		return ImpostorPair{}, false
 	}
 	target := eligible[rand.IntN(len(eligible))]
-	impostorWord := target.ImpostorCandidates[rand.IntN(len(target.ImpostorCandidates))]
-	return ImpostorPair{NormalWord: target.Word, ImpostorWord: impostorWord}, true
+	return ImpostorPair{NormalWord: target.Word, ImpostorCandidates: target.ImpostorCandidates}, true
+}
+
+// assignImpostorWords picks a unique word from the candidate pool for each impostor.
+// pickImpostorPair guarantees len(candidates) >= impostorCount, so every impostor
+// gets a distinct word.
+func (g *ImpostorGame) assignImpostorWords() map[uuid.UUID]string {
+	result := make(map[uuid.UUID]string, len(g.impostors))
+	candidates := make([]string, len(g.wordPair.ImpostorCandidates))
+	copy(candidates, g.wordPair.ImpostorCandidates)
+	rand.Shuffle(len(candidates), func(i, j int) { candidates[i], candidates[j] = candidates[j], candidates[i] })
+	i := 0
+	for id := range g.impostors {
+		result[id] = candidates[i]
+		i++
+	}
+	return result
 }
 
 // Run starts the game's main event loop and must be called in its own goroutine.
@@ -272,16 +368,17 @@ func (g *ImpostorGame) Run() {
 	defer g.onDone()
 
 	g.startingPlayer = g.getRandomPlayerNode()
+	g.currentPlayer = g.startingPlayer
 
-	pair, ok := pickImpostorPair(g.dict)
+	pair, ok := pickImpostorPair(g.dict, g.settings.ImpostorCount)
 	if !ok {
 		return
 	}
 	g.wordPair = pair
 	g.impostors = g.pickImpostors()
+	g.impostorWords = g.assignImpostorWords()
 
 	g.StartPhase(SHOW_WORD_DURATION)
-
 	g.sendInitialGameState()
 
 	for {
@@ -313,43 +410,58 @@ func (g *ImpostorGame) advancePhase() {
 	case PhaseShowWord:
 		g.phase = PhaseInput
 		g.StartPhase(g.settings.InputDuration)
+		g.sendGamePhaseUpdate()
 
 	case PhaseInput:
-		if g.currentPlayer == g.startingPlayer {
-			g.phase = PhaseDiscussion
-			g.StartPhase(g.settings.DiscussionDuration)
-			subs := make(map[uuid.UUID]string)
-			for playerId, words := range g.submissions {
-				word := ""
-				if int(g.cycleNumber) < len(words) {
-					word = words[g.cycleNumber]
-				}
-				subs[playerId] = word
-			}
-			g.Broadcast(events.ImpostorDiscussionStartedEvent, ImpostorDiscussionStartedPayload{Submissions: subs})
-			g.SendPhaseTimes()
-			return
-		}
+		g.advanceInputPlayer()
 
 	case PhaseDiscussion:
 		g.phase = PhaseVote
 		g.StartPhase(g.settings.VoteDuration)
-		candidates := make([]uuid.UUID, len(g.players))
-		copy(candidates, g.players)
-		g.Broadcast(events.ImpostorVoteStartedEvent, ImpostorVoteStartedPayload{Candidates: candidates})
-		g.SendPhaseTimes()
+		g.sendGamePhaseUpdate()
 
 	case PhaseVote:
-		over, _ := g.broadcastResult()
-		if over {
+		votedOutPlayer, message := g.getPlayerWithMostVotes()
+		if votedOutPlayer != nil {
+			g.eliminatePlayer(*votedOutPlayer)
+		}
+		g.phase = PhaseIntermediateCycle
+		g.StartPhase(INTERMEDIATE_DURATION)
+		g.Broadcast(events.ImpostorVoteResultEvent, ImpostorVoteResultPayload{VotedOut: votedOutPlayer, Message: message})
+
+	case PhaseIntermediateCycle:
+		gameOver, impostorsWon := g.getCycleResult()
+		if gameOver {
+			g.getGameResults(impostorsWon)
 			g.Stop()
 		} else {
 			g.cycleNumber++
-			g.phase = PhaseShowWord
-			g.StartPhase(SHOW_WORD_DURATION)
-			g.sendBaseState()
+			g.cycles = append(g.cycles, ImpostorCycle{
+				Submissions: make(map[uuid.UUID]string),
+				Votes:       make(map[uuid.UUID]*uuid.UUID),
+			})
+			g.currentPlayer = g.startingPlayer
+			g.phase = PhaseInput
+			g.StartPhase(g.settings.InputDuration)
+			g.sendGameCycleState()
+			g.sendGamePhaseUpdate()
 		}
 	}
+}
+
+// advanceInputPlayer moves to the next player's turn. If the full cycle
+// is complete (we've wrapped back to startingPlayer), it advances to discussion.
+func (g *ImpostorGame) advanceInputPlayer() {
+	next := g.currentPlayer.nextNode
+	if next == g.startingPlayer {
+		// Full cycle done — move to discussion
+		g.phase = PhaseDiscussion
+		g.StartPhase(g.settings.DiscussionDuration)
+	} else {
+		g.currentPlayer = next
+		g.StartPhase(g.settings.InputDuration)
+	}
+	g.sendGamePhaseUpdate()
 }
 
 // processInput handles a single player action forwarded from HandleInput.
@@ -367,19 +479,23 @@ func (g *ImpostorGame) advancePhase() {
 func (g *ImpostorGame) processInput(input GameInput) {
 	switch g.phase {
 	case PhaseInput:
-		if input.Event.Type != events.GameSubmitWordRequestEvent {
+		if input.Event.Type != events.GameSubmitWordRequestEvent || input.ClientId != g.currentPlayer.self {
 			return
 		}
+
 		payload, err := events.DecodePayload[GameSubmitWordPayload](input.Event)
 		if err != nil || payload.Word == "" {
 			return
 		}
-		sub := g.submissions[input.ClientId]
-		for int(g.cycleNumber) >= len(sub) {
-			sub = append(sub, "")
+
+		if g.doesWordExist(payload.Word) {
+			g.Send(&g.currentPlayer.self, events.ErrorEvent, map[string]string{"message": "Order har redan skickats in tidigare."})
+			return
 		}
-		sub[g.cycleNumber] = payload.Word
-		g.submissions[input.ClientId] = sub
+
+		g.cycles[g.cycleNumber].Submissions[input.ClientId] = payload.Word
+		g.advanceInputPlayer()
+
 	case PhaseVote:
 		if input.Event.Type != events.GameSubmitVoteRequestEvent {
 			return
@@ -390,8 +506,8 @@ func (g *ImpostorGame) processInput(input GameInput) {
 		}
 		if payload.Target != nil {
 			valid := false
-			for _, p := range g.players {
-				if p == *payload.Target {
+			for id, node := range g.players {
+				if node != nil && id == *payload.Target {
 					valid = true
 					break
 				}
@@ -400,51 +516,63 @@ func (g *ImpostorGame) processInput(input GameInput) {
 				return
 			}
 		}
-		v := g.votes[input.ClientId]
-		for int(g.cycleNumber) >= len(v) {
-			v = append(v, nil)
-		}
-		v[g.cycleNumber] = payload.Target
-		g.votes[input.ClientId] = v
+		g.cycles[g.cycleNumber].Votes[input.ClientId] = payload.Target
+		g.Broadcast(events.ImpostorVoteUpdateEvent, ImpostorVoteUpdatePayload{
+			Votes: g.cycles[g.cycleNumber].Votes,
+		})
 	}
 }
 
-func (g *ImpostorGame) sendInitialGameState() {
-	activePlayers := make(map[uuid.UUID]bool, len(g.players))
-	for id, node := range g.players {
-		if node != nil {
-			activePlayers[id] = true
-		}
+// getCycleResult is called once a cycle is completed
+// returns gameOver, impostorsWon
+func (g *ImpostorGame) getCycleResult() (bool, bool) {
+	normalCount, impostorCount := g.getNormalAndImpostorCount()
+
+	if impostorCount >= normalCount {
+		return true, true
+	} else if impostorCount == 0 {
+		return true, false
 	}
 
+	return false, false
+}
+
+func (g *ImpostorGame) getGameResults(impostorsWon bool) {
+
+}
+
+func (g *ImpostorGame) sendInitialGameState() {
 	for playerId := range g.players {
 		word := g.wordPair.NormalWord
 		role := ImpostorRoleNormal
 		if _, exists := g.impostors[playerId]; exists {
-			word = g.wordPair.ImpostorWord
+			word = g.impostorWords[playerId]
 			role = ImpostorRoleImpostor
 		}
 
-		state := ImpostorClientGameState{
-			Role:                   role,
-			Word:                   word,
-			ActivePlayers:          activePlayers,
-			PreviousSubmittedWords: g.submissions,
+		state := ImpostorClientGameStatePayload{
+			Role:             role,
+			Word:             word,
+			ActivePlayers:    g.getActivePlayers(),
+			GamePhasePayload: GamePhasePayload{StartTime: g.startTime.UnixMilli(), EndTime: g.endTime.UnixMilli()},
 		}
-		id := playerId
-		g.Send(&id, events.ImpostorNewRoundEvent, state)
+		g.Send(&playerId, events.ImpostorNewRoundEvent, state)
 	}
 }
 
-func (g *ImpostorGame) sendUpdatedGamePhaseState() {
-	activePlayers := make(map[uuid.UUID]bool, len(g.players))
-	for id, node := range g.players {
-		if node != nil {
-			activePlayers[id] = true
-		}
-	}
+func (g *ImpostorGame) sendGameCycleState() {
+	state := ImpostorGameCycleUpdatePayload{Cycles: g.cycles, ActivePlayers: g.getActivePlayers()}
+	g.Broadcast(events.ImpostorNewCycleEvent, state)
 }
 
-func (g *ImpostorGame) sendUpdatedGameRoundState() {
-
+func (g *ImpostorGame) sendGamePhaseUpdate() {
+	phaseTimers := GamePhasePayload{StartTime: g.startTime.UnixMilli(), EndTime: g.endTime.UnixMilli()}
+	state := ImpostorGamePhaseUpdatePayload{
+		GamePhasePayload: phaseTimers,
+		WordsCycle:       g.cycles[g.cycleNumber].Submissions,
+		VotesCycle:       g.cycles[g.cycleNumber].Votes,
+		CurrentPlayer:    g.currentPlayer.self,
+		Phase:            g.phase,
+	}
+	g.Broadcast(events.ImpostorNewPhaseEvent, state)
 }
