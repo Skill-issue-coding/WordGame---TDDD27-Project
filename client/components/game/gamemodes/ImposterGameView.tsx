@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Play, BookOpenText } from "lucide-react";
+import { ArrowRight, Play, Users, HatGlasses, MessageCircle } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import PhaseTransition from "@/components/game/PhaseTransition";
 import CountdownBar from "@/components/game/CountdownBar";
@@ -20,22 +20,17 @@ export const ImpostorView = () => {
   const [guess, setGuess] = useState("");
   const [voted, setVoted] = useState<string | null>(null);
 
-  // const isImpostor = true; // Temporary toggle for testing
-
   // Format players from the lobbyState
   const players = useMemo(() => {
     if (!lobbyState?.users) return [];
     return Object.entries(lobbyState.users).map(([id, p]) => ({
       id,
       name: p.username,
-      color: p.background || "blue", // Fallback color if not in user object
+      color: p.background || "blue", // Fallback color
     }));
   }, [lobbyState?.users]);
 
-  const impostorCount =
-    lobbyState?.settings && "impostor_count" in lobbyState.settings
-      ? lobbyState.settings.impostor_count
-      : 1;
+  const impostorCount = lobbyState?.settings && "impostor_count" in lobbyState.settings ? lobbyState.settings.impostor_count : 1;
 
   // Determine if the current user is an impostor
   const isImpostor = useMemo(() => {
@@ -58,7 +53,7 @@ export const ImpostorView = () => {
         {phase === "reveal" && (
           <PhaseTransition phaseKey="reveal">
             <div className="w-full max-w-md text-center">
-              <div className="text-5xl mb-3">{isImpostor ? "🕵️" : "🤫"}</div>
+              <div className="text-5xl mb-3">{isImpostor ? <HatGlasses /> : <Users />}</div>
               <p
                 className={cn(
                   "text-sm mb-4 uppercase tracking-wider font-display font-bold whitespace-pre-line",
@@ -66,24 +61,12 @@ export const ImpostorView = () => {
                 )}>
                 {isImpostor ? "Du är impostern! \n Här är ditt ledtrådsord" : "Ditt hemliga ord"}
               </p>
-              <div
-                className={cn(
-                  "game-card mb-6 py-10 border-2",
-                  isImpostor ? "border-destructive" : "border-game-green",
-                )}>
+              <div className={cn("game-card mb-6 py-10 border-2", isImpostor ? "border-destructive" : "border-game-green")}>
                 {/* Change word color */}
-                <h2
-                  className={cn(
-                    "font-display text-6xl font-bold",
-                    isImpostor ? "text-destructive" : "text-game-green",
-                  )}>
-                  Äpple
-                </h2>
+                <h2 className={cn("font-display text-6xl font-bold", isImpostor ? "text-destructive" : "text-game-green")}>Äpple</h2>
               </div>
               <p className="text-muted-foreground text-sm mb-6 font-display font-semibold">
-                {isImpostor
-                  ? "Försök lista ut vad de andra pratar om utan att bli påkommen!"
-                  : "Kom ihåg ordet! Låt inte imposters få reda på det."}
+                {isImpostor ? "Försök lista ut vad de andra pratar om utan att bli påkommen!" : "Kom ihåg ordet! Låt inte imposters få reda på det."}
               </p>
               <Button size="lg" onClick={() => setPhase("input")} className="w-full">
                 Jag är redo <ArrowRight />
@@ -105,9 +88,7 @@ export const ImpostorView = () => {
                   {isImpostor ? "Hitta på en bluff" : "Ange en ledtråd"}
                 </p>
                 <p className="text-xs text-muted-foreground font-display">
-                  {isImpostor
-                    ? "Välj ett ord som får dig att smälta in i gruppen"
-                    : "Skriv ett ord relaterat till ditt hemliga ord"}
+                  {isImpostor ? "Välj ett ord som får dig att smälta in i gruppen" : "Skriv ett ord relaterat till ditt hemliga ord"}
                 </p>
               </div>
               <div className="flex gap-3 w-full items-center justify-center">
@@ -137,16 +118,12 @@ export const ImpostorView = () => {
               <CountdownBar duration={15} isRunning onComplete={() => setPhase("vote")} />
               <div className="mt-6 text-center mb-6">
                 <h2 className="font-display text-2xl font-bold text-foreground mb-2">
-                  💬 Diskussions fas
+                  <MessageCircle /> Diskussions fas
                 </h2>
-                <p className="text-muted-foreground text-sm font-display font-semibold">
-                  Berätta — vem är misstänksam?
-                </p>
+                <p className="text-muted-foreground text-sm font-display font-semibold">Berätta — vem är misstänksam?</p>
               </div>
               <div className="game-card mb-6">
-                <h3 className="text-sm font-display font-bold text-muted-foreground uppercase mb-3">
-                  Ledtrådar
-                </h3>
+                <h3 className="text-sm font-display font-bold text-muted-foreground uppercase mb-3">Ledtrådar</h3>
                 <div className="space-y-2">
                   {["fruit", "red", "juice", "orchard"].map((clue, i) => (
                     <div key={i} className="flex items-center gap-3 text-sm">
@@ -169,9 +146,7 @@ export const ImpostorView = () => {
               <CountdownBar duration={10} isRunning />
               <div className="mt-6 text-center mb-6">
                 <h2 className="font-display text-2xl font-bold text-foreground mb-2">Rösta!</h2>
-                <p className="text-muted-foreground text-sm font-display font-semibold">
-                  Vem är en imposter?
-                </p>
+                <p className="text-muted-foreground text-sm font-display font-semibold">Vem är en imposter?</p>
               </div>
               <div className="grid grid-cols-2 gap-4 mb-6">
                 {/*{players.map((p, i) => (
