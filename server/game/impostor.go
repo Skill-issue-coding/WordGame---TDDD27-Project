@@ -435,3 +435,16 @@ func (g *ImpostorGame) sendInitialGameState() {
 		g.Send(&id, events.ImpostorNewRoundEvent, state)
 	}
 }
+
+func (g *ImpostorGame) sendUpdatedGamePhaseState() {
+	activePlayers := make(map[uuid.UUID]bool, len(g.players))
+	for id, node := range g.players {
+		if node != nil {
+			activePlayers[id] = true
+		}
+	}
+}
+
+func (g *ImpostorGame) sendUpdatedGameRoundState() {
+
+}
