@@ -13,7 +13,7 @@ type GamePhasePayload struct {
 // Impostor mode payload types
 // =============================================================================
 
-// ImpostorRole identifies whether a player is a normal player or an impostor.
+// ImpostorGameRoles identifies whether a player is a normal player or an impostor.
 type ImpostorGameRoles string
 
 const (

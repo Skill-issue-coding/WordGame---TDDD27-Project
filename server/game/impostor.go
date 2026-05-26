@@ -72,8 +72,8 @@ type ImpostorGame struct {
 	// to select the word pair for the round.
 	dict *words.Dictionary
 
-	// players is a map that returns a playerlistentry, playerentries is a circular
-	// doubly linked list that keeps track of the playing order of all players
+	// players maps player IDs to nodes in a circular doubly linked list that
+	// represents turn order; eliminated players have a nil entry.
 	players map[uuid.UUID]*PlayerNode
 
 	// impostors is the set of player IDs assigned the impostor role.
@@ -92,7 +92,7 @@ type ImpostorGame struct {
 	// cycles is an array containing all the submissions and votes for all cycles
 	cycles []ImpostorCycle
 
-	// cycleNumber keeps track of how many cycles the game has completed
+	// cycleNumber is the index of the current cycle (0-based).
 	cycleNumber int8
 
 	// startingPlayer keeps track which player started
@@ -191,7 +191,7 @@ func (g *ImpostorGame) doesWordExist(word string) bool {
 }
 
 // getRandomPlayerNode picks a random node from the players map.
-// Returns nil if the map is empty.
+// Assumes g.players is non-empty.
 func (g *ImpostorGame) getRandomPlayerNode() *PlayerNode {
 	target := rand.IntN(len(g.players))
 	i := 0
@@ -271,7 +271,7 @@ func (g *ImpostorGame) getPlayerWithMostVotes() (*uuid.UUID, string) {
 	return nil, "Röstningen resulterade i inga elimineringar."
 }
 
-// getNormalAndImposterCount is a function that loops through the circular list
+// getNormalAndImpostorCount is a function that loops through the circular list
 // and counts the active normal and impostor players
 // returns normalPlayerCount, impostorPlayerCount
 func (g *ImpostorGame) getNormalAndImpostorCount() (int, int) {
@@ -296,7 +296,7 @@ func (g *ImpostorGame) getNormalAndImpostorCount() (int, int) {
 
 // pickImpostors randomly assigns ImpostorCount players from g.players as impostors.
 // Returns a set for O(1) role lookups. The caller is responsible for ensuring
-// ImpostorCount < len(g.players) to avoid infinite recursion.
+// ImpostorCount <= len(g.players) to avoid excessive retries.
 func (g *ImpostorGame) pickImpostors() map[uuid.UUID]struct{} {
 	return g.pickImpostorsRecursive(make(map[uuid.UUID]struct{}), g.settings.ImpostorCount)
 }
@@ -352,12 +352,13 @@ func (g *ImpostorGame) assignImpostorWords() map[uuid.UUID]string {
 
 // Run starts the game's main event loop and must be called in its own goroutine.
 // On startup it picks a word pair via pickImpostorPair and assigns impostor
-// roles via pickImpostors, then privately delivers ImpostorWordAssignedEvent
-// to each player containing their word, role, and the phase timestamps
-// (ShownUntil, InputEndsAt) so the client can render countdown timers.
+// roles via pickImpostors, then privately delivers ImpostorNewRoundEvent
+// to each player containing their word, role, and phase timestamps so the
+// client can render countdown timers.
 // The loop then steps through phases driven by a one-second ticker:
 //
-//	PhaseShowWord → PhaseInput → PhaseDiscussion → PhaseVote → PhaseResult
+//	PhaseShowWord → PhaseInput → PhaseDiscussion → PhaseVote → PhaseIntermediateCycle
+//	(repeats PhaseInput for the next cycle until the game ends)
 //
 // If no eligible word pair exists in the dictionary, Run exits immediately and
 // calls onDone, leaving players on the game-started screen. onDone is always
@@ -398,13 +399,14 @@ func (g *ImpostorGame) Run() {
 // advancePhase transitions the game to the next phase once the current phase's
 // deadline has passed. It is called exclusively from the Run ticker goroutine,
 // so all field access is implicitly single-threaded. Each transition starts the
-// new phase timer via StartPhase and broadcasts the appropriate event:
-//   - PhaseShowWord → PhaseInput: broadcasts GameNewPhaseEvent with InputEndsAt.
-//   - PhaseInput → PhaseDiscussion: broadcasts ImpostorDiscussionStartedEvent
-//     with the full submission list and the discussion deadline.
-//   - PhaseDiscussion → PhaseVote: broadcasts ImpostorVoteStartedEvent with the
-//     candidate list and the vote deadline.
-//   - PhaseVote → PhaseResult: calls broadcastResult then stops the game.
+// new phase timer via StartPhase and broadcasts the appropriate events:
+//   - PhaseShowWord → PhaseInput: broadcasts ImpostorNewPhaseEvent.
+//   - PhaseInput → PhaseDiscussion: handled by advanceInputPlayer; broadcasts
+//     ImpostorNewPhaseEvent when the cycle's input is complete.
+//   - PhaseDiscussion → PhaseVote: broadcasts ImpostorNewPhaseEvent.
+//   - PhaseVote → PhaseIntermediateCycle: broadcasts ImpostorVoteResultEvent.
+//   - PhaseIntermediateCycle → PhaseInput: broadcasts ImpostorNewCycleEvent and
+//     ImpostorNewPhaseEvent, or stops the game if it has ended.
 func (g *ImpostorGame) advancePhase() {
 	switch g.phase {
 	case PhaseShowWord:
@@ -467,9 +469,8 @@ func (g *ImpostorGame) advanceInputPlayer() {
 // processInput handles a single player action forwarded from HandleInput.
 // It is called exclusively from the Run goroutine, so field access is safe
 // without additional locking. Behaviour is phase-dependent:
-//   - PhaseInput: accepts GameSubmitWordRequestEvent. Records the player's word
-//     in submissions; a second submission from the same player overwrites the
-//     first (last write wins).
+//   - PhaseInput: accepts GameSubmitWordRequestEvent from the current player
+//     only. Records the submission and advances to the next player or phase.
 //   - PhaseVote: accepts GameSubmitVoteRequestEvent. Records the player's vote
 //     target in votes; nil target means the player chose to skip. Last write
 //     wins if a player votes more than once before the deadline.

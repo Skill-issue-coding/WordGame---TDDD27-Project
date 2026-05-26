@@ -5,21 +5,21 @@ package events
 // =============================================================================
 
 const (
-	// ImpostorWordAssignedEvent is sent privately to each player at the start of
-	// the Impostor game. It delivers the player's secret word and their role.
-	// Payload: ImpostorWordAssignedPayload
+	// ImpostorNewRoundEvent is sent privately to each player at the start of
+	// the Impostor game. It delivers the player's secret word, role, and timers.
+	// Payload: ImpostorClientGameStatePayload
 	ImpostorNewRoundEvent EventType = "impostor_new_round"
 
-	// ImpostorNewPhaseEvent is sent to all players once a phase (or subphase) is finished
-	// Payload: ImpostorGamePhaseUpdate
+	// ImpostorNewPhaseEvent is sent to all players when the phase or current turn advances.
+	// Payload: ImpostorGamePhaseUpdatePayload
 	ImpostorNewPhaseEvent EventType = "impostor_new_phase"
 
 	// ImpostorVoteResultEvent is sent when a vote phase is over
 	// Payload: ImpostorVoteResultPayload
 	ImpostorVoteResultEvent EventType = "impostor_vote_result"
 
-	// ImpostorNewCycleEvent is sent once a cycle is completed
-	// Payload: ImpostorGamePhaseUpdate
+	// ImpostorNewCycleEvent is sent once a cycle is completed.
+	// Payload: ImpostorGameCycleUpdatePayload
 	ImpostorNewCycleEvent EventType = "impostor_new_cycle"
 
 	// ImpostorVoteUpdateEvent is broadcast immediately when any player casts a
@@ -27,8 +27,8 @@ const (
 	// Payload: ImpostorVoteUpdatePayload
 	ImpostorVoteUpdateEvent EventType = "impostor_vote_update"
 
-	// ImpostorResultEvent is sent when an impostor game is finished
-	// TODO: Implement payload
+	// ImpostorResultEvent is sent when an impostor game is finished.
+	// TODO: Payload: GameResultPayload
 	ImpostorResultEvent EventType = "impostor_game_result"
 )
 
@@ -51,8 +51,8 @@ const (
 	// Payload: GameResultPayload
 	GameResultEvent EventType = "game_result"
 
-	// GameNewPhaseEvent  is broadcast once a game is in a new phase
-	// Payload: StartTime int64, EndTime int64
+	// GameNewPhaseEvent is broadcast once a game is in a new phase.
+	// Payload: GamePhasePayload
 	GameNewPhaseEvent EventType = "new_game_phase"
 )
 
