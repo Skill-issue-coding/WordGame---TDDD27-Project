@@ -298,7 +298,7 @@ func (lobby *GameLobby) ApplySetting(key GameSetting, value float64) {
 	case ModeSynonymDuel:
 		switch key {
 		case ROUND_DURATION:
-			lobby.SynonymDuelSettings.RoundDuration = util.ClampInt(value, game.SYNONYM_ROUND_DURATION_MIN, game.SYNONYM_ROUNDS_MAX)
+			lobby.SynonymDuelSettings.RoundDuration = util.ClampInt(value, game.SYNONYM_ROUND_DURATION_MIN, game.SYNONYM_ROUND_DURATION_MAX)
 		case NUMBER_OF_ROUNDS:
 			lobby.SynonymDuelSettings.Rounds = util.ClampInt(value, game.SYNONYM_ROUNDS_MIN, game.SYNONYM_ROUNDS_MAX)
 		case WORD_TYPE:
