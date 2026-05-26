@@ -246,10 +246,10 @@ func (g *ImpostorGame) advancePhase() {
 
 // broadcastResult tallies the votes collected during PhaseVote and broadcasts
 // ImpostorRoundResultEvent to all players. The eliminated player is the one
-// with a strict majority of votes (most votes with no tie). A tie or zero total
-// votes results in no elimination — eliminated is nil in the payload. The full
-// impostor list and both secret words (NormalWord and ImpostorWord) are always
-// revealed so players can judge how close the pair was.
+// with the most votes, provided there is no tie for the highest vote count. A
+// tie or zero total votes results in no elimination — eliminated is nil in the
+// payload. The full impostor list and both secret words (NormalWord and
+// ImpostorWord) are always revealed so players can judge how close the pair was.
 // broadcastResult tallies votes for the current cycle, removes the eliminated
 // player from active state, checks the win condition, and broadcasts the result.
 // Returns (gameOver, impostorsWin) so the caller can decide whether to start a
