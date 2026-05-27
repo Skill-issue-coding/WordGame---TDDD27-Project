@@ -37,7 +37,7 @@ type ImpostorGamePhaseUpdatePayload struct {
 	WordsCycle       map[uuid.UUID]string     `json:"words_cycle"`
 	VotesCycle       map[uuid.UUID]*uuid.UUID `json:"votes_cycle_votes"`
 	CurrentPlayer    uuid.UUID                `json:"current_player,omitempty"`
-	Phase            ImpostorPhase            `json:"game_phase"`
+	Phase            PhaseKind                `json:"game_phase"`
 }
 
 type ImpostorGameCycleUpdatePayload struct {
@@ -54,6 +54,13 @@ type ImpostorVoteResultPayload struct {
 // ImpostorVoteUpdatePayload is broadcast after each individual vote is cast.
 type ImpostorVoteUpdatePayload struct {
 	Votes map[uuid.UUID]*uuid.UUID `json:"votes"`
+}
+
+type GameResultPayload struct {
+	Cycles  []ImpostorCycle                 `json:"cycles"`
+	Winners []uuid.UUID                     `json:"winners"`
+	Roles   map[uuid.UUID]ImpostorGameRoles `json:"roles"`
+	Words   map[uuid.UUID]string            `json:"words"`
 }
 
 // =============================================================================

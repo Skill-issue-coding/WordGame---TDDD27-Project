@@ -73,7 +73,7 @@ func newGameBase(outputs chan GameOutput, onDone func()) GameBase {
 	return GameBase{
 		outputs:       outputs,
 		onDone:        onDone,
-		inputs:        make(chan GameInput, 16),
+		inputs:        make(chan GameInput, 128),
 		stop:          make(chan struct{}),
 		skipPhaseVote: make(chan struct{}),
 	}
@@ -105,11 +105,20 @@ func (b *GameBase) Stop() {
 }
 
 // Broadcast sends an event to all players in the lobby.
+// Falls back to the stop signal so the game goroutine never blocks permanently
+// if the lobby has stopped draining GameOutputs (e.g. all players left).
 func (b *GameBase) Broadcast(eventType events.EventType, payload any) {
-	b.outputs <- GameOutput{Type: eventType, Payload: payload}
+	select {
+	case b.outputs <- GameOutput{Type: eventType, Payload: payload}:
+	case <-b.stop:
+	}
 }
 
 // Send sends an event to a single player identified by target.
+// Falls back to the stop signal for the same reason as Broadcast.
 func (b *GameBase) Send(target *uuid.UUID, eventType events.EventType, payload any) {
-	b.outputs <- GameOutput{Target: target, Type: eventType, Payload: payload}
+	select {
+	case b.outputs <- GameOutput{Target: target, Type: eventType, Payload: payload}:
+	case <-b.stop:
+	}
 }

@@ -1,39 +1,104 @@
-export type ImpostorGamePhase = "show_word" | "input" | "discussion" | "vote" | "intermediate" | "result";
+/**
+ * @file impostor-types.ts (lib/game)
+ * Domain types for the Impostor game mode. These mirror the Go server's
+ * game/payloads.go structs and are used throughout the React UI and WS layer.
+ */
 
-export type ImpostorRoles = "normal" | "impostor";
+/** The current phase of an Impostor game. Mirrors Go's PhaseKind. */
+export type ImpostorPhase = "show_word" | "input" | "discussion" | "vote" | "intermediate" | "result";
 
+/** A player's role in an Impostor game. */
+export type ImpostorRole = "normal" | "impostor";
+
+/**
+ * All submissions and votes recorded in a single game cycle.
+ * Mirrors Go's ImpostorCycle struct.
+ */
 export type ImpostorCycle = {
+  /** Word submissions keyed by player UUID. */
   submissions: Record<string, string>;
+  /** Votes keyed by voter UUID; null value means a skip vote. */
   votes: Record<string, string | null>;
 };
 
+/** Server-side timestamps for a timed phase. Mirrors Go's GamePhasePayload. */
 export type GameTimers = {
+  /** Phase start time in Unix milliseconds. */
   start_time: number;
+  /** Phase end time in Unix milliseconds (includes server SYNC_DELAY). */
   end_time: number;
 };
 
-export type GamePhaseUpdate = {
-  timers: GameTimers;
-  words_cycle: Record<string, string>;
-  votes_cycle_votes: Record<string, string>;
-  current_player: string;
-  game_phase: ImpostorGamePhase;
-};
-
+/**
+ * Delivered privately to each player at game start with their word and role.
+ * Mirrors Go's ImpostorClientGameStatePayload.
+ */
 export type ImpostorClientGameState = {
   timers: GameTimers;
-  role: ImpostorRoles;
+  role: ImpostorRole;
   word: string;
+  /** Set of currently active (non-eliminated) players, keyed by UUID. */
   active_players: Record<string, boolean>;
 };
 
-export type ImpostorGameCycleUpdate = {
+/**
+ * Broadcast whenever the phase or current input turn changes.
+ * Mirrors Go's ImpostorGamePhaseUpdatePayload.
+ */
+export type ImpostorPhaseUpdate = {
+  timers: GameTimers;
+  /** All word submissions for the current cycle, keyed by player UUID. */
+  words_cycle: Record<string, string>;
+  /** All votes cast so far this cycle, keyed by voter UUID; null = skip vote. */
+  votes_cycle_votes: Record<string, string | null>;
+  /** UUID of the player whose input turn it currently is. */
+  current_player: string;
+  game_phase: ImpostorPhase;
+};
+
+/**
+ * Broadcast at the start of each new cycle with updated player and cycle state.
+ * Mirrors Go's ImpostorGameCycleUpdatePayload.
+ */
+export type ImpostorCycleUpdate = {
   cycles: ImpostorCycle[];
   active_players: Record<string, boolean>;
 };
 
+/**
+ * Broadcast when a vote phase ends, revealing the elimination result.
+ * Mirrors Go's ImpostorVoteResultPayload.
+ *
+ * `voted_out` is absent (not null) when no player was eliminated — the Go
+ * server uses `omitempty` on a pointer, so a nil pointer is omitted entirely.
+ */
 export type ImpostorVoteResult = {
   timers: GameTimers;
-  voted_out: string | null;
+  /** UUID of the eliminated player. Absent if nobody was voted out. */
+  voted_out?: string;
+  /** Human-readable result message (in Swedish). */
   message: string;
+};
+
+/**
+ * Live vote snapshot broadcast each time any player casts a vote.
+ * Mirrors Go's ImpostorVoteUpdatePayload.
+ */
+export type ImpostorVoteUpdate = {
+  /** Current votes keyed by voter UUID; null value = skip vote. */
+  votes: Record<string, string | null>;
+};
+
+/**
+ * Broadcast once when the game ends with full results for all players.
+ * Mirrors Go's GameResultPayload.
+ */
+export type ImpostorGameResult = {
+  cycles: ImpostorCycle[];
+  /** UUIDs of the winning side's players. */
+  winners: string[];
+  /** Each player's role, keyed by UUID. */
+  roles: Record<string, ImpostorRole>;
+  /** Each player's word (normal word or their impostor word), keyed by UUID. */
+  words: Record<string, string>;
 };
