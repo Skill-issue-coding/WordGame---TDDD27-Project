@@ -6,15 +6,15 @@ import { useState } from "react";
 
 const RoomCodeDisplay = () => {
   const [copied, setCopied] = useState(false);
-  const { lobbyState } = useLobbyContext();
+  const { code } = useLobbyContext();
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(lobbyState?.code || "xxxx-xxxx");
+    navigator.clipboard.writeText(code || "xxxx-xxxx");
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const chars = (lobbyState?.code || "xxxx-xxxx").split("");
+  const chars = (code || "xxxx-xxxx").split("");
 
   return (
     <button

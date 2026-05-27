@@ -3,7 +3,6 @@
 import { ArrowLeft, Play, BookOpenText, Loader2, UserRoundX } from "lucide-react";
 import Link from "next/link";
 import { PlayerList } from "@/components/lobby/PlayerList";
-import { SettingsPanel } from "@/components/lobby/GameSettings";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { snapIn } from "@/lib/animation-util";
@@ -13,23 +12,26 @@ import { useLobbyContext } from "@/hooks/lobbycontext";
 import { useWebsocketContext } from "@/hooks/websocketcontext";
 import { cn } from "@/lib/utils";
 import { GAME_MODES } from "@/lib/game/gameModes";
+import { ToastError } from "@/lib/toast-functions";
+import RoomCodeDisplay from "./CodeDisplay";
+import { GameModeSelector, GameSettings } from "./GameSettings";
 
 export default function LobbyView({ code }: { code: string }) {
   const { user } = useUserContext();
-  const { lobbyState } = useLobbyContext();
+  const { host, users, mode } = useLobbyContext();
   const { sendEvent, connectionStatus } = useWebsocketContext();
   const [hasAttemptedJoin, setHasAttemptedJoin] = useState(false);
 
   useEffect(() => {
     if (!code || typeof code !== "string") return;
 
-    if (connectionStatus === "connected" && user && !lobbyState && !hasAttemptedJoin) {
+    if (connectionStatus === "connected" && user && !host && !hasAttemptedJoin) {
       setHasAttemptedJoin(true);
       sendEvent("join_lobby", { lobby_code: code });
     }
-  }, [connectionStatus, user, lobbyState, code, hasAttemptedJoin, sendEvent]);
+  }, [connectionStatus, user, host, code, hasAttemptedJoin, sendEvent]);
 
-  if (!user || !lobbyState) {
+  if (!user || !host) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6">
         <Loader2 className="w-10 h-10 animate-spin text-game-purple mb-4" />
@@ -50,19 +52,22 @@ export default function LobbyView({ code }: { code: string }) {
     );
   }
 
-  const hostUser = lobbyState?.users && lobbyState.host ? lobbyState.users[lobbyState.host] : null;
+  const hostUser = users && host ? users[host] : null;
   const hostName = hostUser?.username;
   const handleLeave = () => sendEvent("leave_lobby", null);
 
-  const isHost = lobbyState.host === user.user_id;
+  const isHost = host === user.user_id;
 
   const handleStartGame = () => {
-    if (!isHost) return;
+    if (!isHost) {
+      ToastError("Endast hosten kan starta spelet.");
+      return;
+    }
     sendEvent("start_game", null);
   };
 
-  const playerCount = Object.keys(lobbyState?.users || {}).length;
-  const currentModeConfig = GAME_MODES.find((m) => m.id === lobbyState?.mode) || GAME_MODES[0];
+  const playerCount = Object.keys(users ?? {}).length;
+  const currentModeConfig = GAME_MODES.find((m) => m.id === mode) || GAME_MODES[0];
   const enoughPlayers = playerCount >= currentModeConfig.min_players;
 
   return (
@@ -78,15 +83,25 @@ export default function LobbyView({ code }: { code: string }) {
             </Link>
           </div>
 
-          <h1 className="text-4xl font-bold font-display text-game-purple max-[565px]:whitespace-break-spaces max-[565px]:text-center max-[565px]:text-2xl max-[565px]:px-2 whitespace-nowrap">
-            {hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}s rum`}
-          </h1>
+          <h1 className="text-4xl font-bold font-display text-game-purple max-[565px]:whitespace-break-spaces max-[565px]:text-center max-[565px]:text-2xl max-[565px]:px-2 whitespace-nowrap">{hostName?.slice(-1) === "s" ? `${hostName} rum` : `${hostName}s rum`}</h1>
           <div className="flex-1" />
         </motion.div>
         <div>
           <div className="flex flex-col md:grid md:grid-cols-5 gap-6">
             <motion.div className="md:col-span-3 h-full" {...snapIn({ delay: 0.16, x: -12, y: 12 })}>
-              <SettingsPanel className="h-full" />
+              <div className="game-card flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border h-full">
+                <div className="flex flex-col gap-4">
+                  <RoomCodeDisplay />
+                  <div className="flex items-center justify-between">
+                    <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelläge</p>
+                  </div>
+                  <GameModeSelector />
+                  <div className="flex items-center justify-between">
+                    <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelinställningar</p>
+                  </div>
+                  <GameSettings />
+                </div>
+              </div>
             </motion.div>
             <motion.div className="md:col-span-2 h-full" {...snapIn({ delay: 0.2, x: 12, y: 12 })}>
               <PlayerList className="h-full max-h-150" />

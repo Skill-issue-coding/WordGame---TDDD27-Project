@@ -49,19 +49,18 @@ export default function UserProfileButton() {
 
   return (
     <>
-      <motion.div {...popIn(0.1)}>
-        <button
-          onClick={() => user && handleOpen(true)}
-          aria-label="Edit profile"
-          aria-disabled={!user}
-          className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center cursor-pointer font-body font-bold text-xl text-white border-4 border-card transition-transform hover:scale-110 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
-          style={{
-            backgroundColor: displayColor,
-            boxShadow: `0 4px 0 0 ${displayColor}88, 0 8px 20px oklch(0.2738 0.0358 274.66 / 0.2)`,
-          }}>
-          {displayName.charAt(0).toUpperCase()}
-        </button>
-      </motion.div>
+      <motion.button
+        {...popIn(0.1)}
+        onClick={() => user && handleOpen(true)}
+        aria-label="Edit profile"
+        aria-disabled={!user}
+        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center cursor-pointer font-body font-bold text-xl text-white border-4 border-card transition-transform hover:scale-110 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
+        style={{
+          backgroundColor: displayColor,
+          boxShadow: `0 4px 0 0 ${displayColor}88, 0 8px 20px oklch(0.2738 0.0358 274.66 / 0.2)`,
+        }}>
+        {displayName.charAt(0).toUpperCase()}
+      </motion.button>
 
       <Dialog open={open} onOpenChange={handleOpen}>
         <DialogContent className="border-2">
@@ -82,7 +81,7 @@ export default function UserProfileButton() {
 
             <div className="w-full">
               <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Användarnamn</label>
-              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Enter a username" maxLength={16} className="font-body text-lg font-bold h-12 border-2 rounded-lg text-center bg-muted" autoFocus />
+              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Skriv in ett användarnamn" maxLength={16} className="font-body text-lg font-bold h-12 border-2 rounded-lg text-center bg-muted" autoFocus />
               <p className="text-xs text-muted-foreground font-display mt-1 text-right">{draftName.length}/16</p>
             </div>
 

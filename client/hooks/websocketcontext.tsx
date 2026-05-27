@@ -43,11 +43,7 @@ export type SendMessageType = <T extends WSSendEventType>(type: T, payload: WSSe
  */
 type ConnectionStatus = "connected" | "disconnected" | "error";
 
-/**
- * Define the shape of our subscriber callbacks.
- * Currently typed as 'any' for the payload, but can be refined later to
- * map specific event strings to specific payload shapes.
- */
+/** Subscriber callback type — payload is narrowed to the specific event's shape via WSReceivedPayloadMap. */
 type EventCallback<T extends WSReceivedEventType> = (payload: WSReceivedPayloadMap[T]) => void;
 
 /** Shape of the value exposed by WebSocketContext. */
@@ -122,24 +118,16 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
     return () => subscribersRef.current.get(eventType)?.delete(callback as EventCallback<WSReceivedEventType>);
   }, []);
 
-  /**
-   * @param attemptRef The number that keeps track of how many
-   * @param timeoutRef The timeout reference
-   * @param maxAttempts The max number of reconnect attempts
-   * @param initialDelay the initial delay
-   * @param isUnmounted Variable to prevent reconnects after the component unmounts
-   */
+  // Reconnect state: attempt counter, pending timeout handle, and backoff constants.
   const attemptRef = useRef(0);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
   const maxAttempts = 10;
   const initialDelay = 1000;
-  let isUnmounted = false;
 
   useEffect(() => {
-    /**
-     * Initializes the connection and attaches all base event listeners.
-     * Wrapped in a function to make future exponential backoff implementations easier.
-     */
+    let isUnmounted = false;
+
+    // Defined as a named function so the exponential-backoff onclose handler can call it recursively.
     const connect = () => {
       // Clear any pending reconnect timers safety check
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
@@ -215,7 +203,7 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
 
   /**
    * sendEvent serialises and sends a typed event to the server.
-   * Memoised on the websocket instance to avoid stale closures in child components.
+   * Stable reference via useCallback — safe to use in child useEffect dep arrays.
    */
   const sendEvent: SendMessageType = useCallback((type, payload) => {
     if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {

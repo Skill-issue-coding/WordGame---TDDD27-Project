@@ -41,6 +41,11 @@ export default function HomeView() {
               placeholder="xxxx-xxxx"
               value={roomCode}
               onChange={(e) => setRoomCode(formatCode(e.target.value.toLowerCase()))}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleJoinLobby();
+                }
+              }}
               className="font-body text-base font-bold tracking-widest text-center bg-muted border-2 h-12 rounded-lg"
               maxLength={9}
             />

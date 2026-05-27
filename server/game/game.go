@@ -33,6 +33,10 @@ type Game interface {
 
 	// EndTime returns the time at which the game finished. Zero if still running.
 	EndTime() time.Time
+
+	// IsPlayerActive reports whether the given player is allowed to participate
+	// (e.g. send chat messages) at this point in the game.
+	IsPlayerActive(uuid.UUID) bool
 }
 
 // GameBase can be embedded in any game struct to satisfy HandleInput, Stop,
@@ -45,8 +49,7 @@ type GameBase struct {
 	onDone        func()
 	inputs        chan GameInput
 	stop          chan struct{}
-	once          sync.Once
-	skipPhaseVote chan struct{}
+	once sync.Once
 }
 
 // GameInput carries a single player action from the lobby to the active game.
@@ -73,14 +76,14 @@ func newGameBase(outputs chan GameOutput, onDone func()) GameBase {
 	return GameBase{
 		outputs:       outputs,
 		onDone:        onDone,
-		inputs:        make(chan GameInput, 128),
-		stop:          make(chan struct{}),
-		skipPhaseVote: make(chan struct{}),
+		inputs: make(chan GameInput, 128),
+		stop:   make(chan struct{}),
 	}
 }
 
-func (b *GameBase) StartTime() time.Time { return b.startTime }
-func (b *GameBase) EndTime() time.Time   { return b.endTime }
+func (b *GameBase) StartTime() time.Time          { return b.startTime }
+func (b *GameBase) EndTime() time.Time             { return b.endTime }
+func (b *GameBase) IsPlayerActive(_ uuid.UUID) bool { return true }
 
 // Resets startTime and endTime when a new phase starts
 func (b *GameBase) StartPhase(duration int) {

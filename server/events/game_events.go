@@ -1,20 +1,11 @@
 package events
 
 // =============================================================================
-// Server → Client: Impostor mode
+// Server → Client: Impostor mode — events unique to this mode
 // =============================================================================
 
 const (
-	// ImpostorNewRoundEvent is sent privately to each player at the start of
-	// the Impostor game. It delivers the player's secret word, role, and timers.
-	// Payload: ImpostorClientGameStatePayload
-	ImpostorNewRoundEvent EventType = "impostor_new_round"
-
-	// ImpostorNewPhaseEvent is sent to all players when the phase or current turn advances.
-	// Payload: ImpostorGamePhaseUpdatePayload
-	ImpostorNewPhaseEvent EventType = "impostor_new_phase"
-
-	// ImpostorVoteResultEvent is sent when a vote phase is over
+	// ImpostorVoteResultEvent is sent when a vote phase is over.
 	// Payload: ImpostorVoteResultPayload
 	ImpostorVoteResultEvent EventType = "impostor_vote_result"
 
@@ -26,33 +17,30 @@ const (
 	// vote, so clients can show live vote statistics during the vote phase.
 	// Payload: ImpostorVoteUpdatePayload
 	ImpostorVoteUpdateEvent EventType = "impostor_vote_update"
-
-	// ImpostorResultEvent is sent when an impostor game is finished.
-	// TODO: Payload: GameResultPayload
-	ImpostorResultEvent EventType = "impostor_game_result"
 )
 
 // =============================================================================
-// Server → Client: shared across multiple modes
+// Server → Client: canonical lifecycle events — used by all game modes.
+// Each mode sends these with its own payload shape; the client uses
+// lobbyState.mode to know how to parse the payload.
 // =============================================================================
 
 const (
-	// GameRoundStartedEvent is broadcast at the start of each round for
-	// Anti-Match, Synonym Duel, and Contexto Battle modes.
-	// Payload: GameRoundStartedPayload
+	// GameRoundStartedEvent is sent at game/round start. For Impostor it is
+	// delivered privately per-player; for other modes it is broadcast.
+	// Payload shape varies by mode (see each mode's payloads file).
 	GameRoundStartedEvent EventType = "game_round_started"
 
-	// GameRoundResultEvent is broadcast when a round ends for Anti-Match,
-	// Synonym Duel, and Contexto Battle modes.
-	// Payload: GameRoundResultPayload
+	// GameRoundResultEvent is broadcast when a round ends with per-player scores.
+	// Payload shape varies by mode.
 	GameRoundResultEvent EventType = "game_round_result"
 
-	// GameResultEvent is broadcast when the game is completely over, for all modes.
-	// Payload: GameResultPayload
+	// GameResultEvent is broadcast when the game is completely over.
+	// Payload shape varies by mode.
 	GameResultEvent EventType = "game_result"
 
-	// GameNewPhaseEvent is broadcast once a game is in a new phase.
-	// Payload: GamePhasePayload
+	// GameNewPhaseEvent is broadcast when the active phase changes.
+	// Payload shape varies by mode.
 	GameNewPhaseEvent EventType = "new_game_phase"
 )
 

@@ -99,10 +99,10 @@ export const MODE_SETTINGS: Record<GameMode, ModeSetting[]> = {
       key: "discussion_duration",
       label: "Diskussionstid",
       type: "slider",
-      min: 10,
-      max: 60,
+      min: 30,
+      max: 150,
       step: 5,
-      default: 30,
+      default: 45,
     },
     {
       key: "vote_duration",

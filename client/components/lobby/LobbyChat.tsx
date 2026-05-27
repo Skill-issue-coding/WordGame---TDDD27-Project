@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
-import { MessageCircle, Send } from "lucide-react";
+import { ChevronDown, MessageCircle, Send } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -14,7 +14,7 @@ import { useWebsocketContext } from "@/hooks/websocketcontext";
 const formatTime = (ts: number) => new Date(ts).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 const ChatButton = () => {
-  const { chatMessages, lobbyState } = useLobbyContext();
+  const { chatMessages, code, phase } = useLobbyContext();
   const { user } = useUserContext();
   const { sendEvent } = useWebsocketContext();
 
@@ -24,10 +24,17 @@ const ChatButton = () => {
   const [lastReadIndex, setLastReadIndex] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  const visible = (location.startsWith("/lobby") || location.startsWith("/game")) && Boolean(lobbyState);
+  // Tracks whether the scroll container is at the bottom (via ref to avoid stale closures in effects).
+  const isAtBottomRef = useRef(true);
+  const [isAtBottom, setIsAtBottom] = useState(true);
+  // readCount = message count the last time the user was at the bottom while the chat was open.
+  const [readCount, setReadCount] = useState(0);
+  const unreadBelow = Math.max(0, chatMessages.length - readCount);
 
+  const visible = location.startsWith("/lobby") && code && phase !== "game_started";
   const unread = Math.max(0, chatMessages.length - lastReadIndex);
 
+  // Keep badge count (closed state) in sync and reset it when popover opens.
   useEffect(() => {
     if (open) {
       setLastReadIndex(chatMessages.length);
@@ -36,10 +43,49 @@ const ChatButton = () => {
     if (lastReadIndex > chatMessages.length) setLastReadIndex(chatMessages.length);
   }, [open, chatMessages, lastReadIndex]);
 
+  // Scroll to bottom immediately when the popover opens.
+  useEffect(() => {
+    if (!open) return;
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+    setReadCount(chatMessages.length);
+    isAtBottomRef.current = true;
+    setIsAtBottom(true);
+    // chatMessages.length intentionally excluded — we only want this on open/close transitions.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
+
+  // Auto-scroll when a new message arrives and the user is already at the bottom.
+  useEffect(() => {
+    if (!open) return;
+    if (isAtBottomRef.current) {
+      const el = scrollRef.current;
+      if (el) el.scrollTop = el.scrollHeight;
+      setReadCount(chatMessages.length);
+    }
+  }, [chatMessages.length, open]);
+
   if (!visible) return null;
 
+  const handleScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const atBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 8;
+    isAtBottomRef.current = atBottom;
+    if (atBottom !== isAtBottom) setIsAtBottom(atBottom);
+    if (atBottom) setReadCount(chatMessages.length);
+  };
+
+  const scrollToBottom = () => {
+    const el = scrollRef.current;
+    if (el) el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+    setReadCount(chatMessages.length);
+    isAtBottomRef.current = true;
+    setIsAtBottom(true);
+  };
+
   const handleSend = () => {
-    if (!lobbyState) return;
+    if (!code) return;
     if (!draft.trim()) return;
     sendEvent("send_chatmessage", { message: draft });
     setDraft("");
@@ -62,31 +108,35 @@ const ChatButton = () => {
           <div className="font-display font-bold text-base">Chattrum</div>
         </div>
 
-        <div ref={scrollRef} className="flex-1 min-h-0 overflow-y-auto px-3 py-2 space-y-3">
-          {chatMessages.length === 0 && <p className="text-center text-sm text-muted-foreground font-display py-8">Inga medelanden ännu. Säg hej! 👋</p>}
-          {chatMessages.map((m) => {
-            const self = m.sender.user_id === user?.user_id;
-            return (
-              <div key={`${m.sender.user_id}-${m.date}`} className={cn("flex gap-3 items-end", self && "flex-row-reverse")}>
-                {/* User Avatar */}
-                <div className="w-7 h-7 rounded-full flex items-center justify-center font-display font-bold text-white text-xs border-2 border-card shrink-0" style={{ backgroundColor: m.sender.background }}>
-                  {m.sender.username.charAt(0).toUpperCase()}
-                </div>
-                <div className={cn("max-w-[75%] flex flex-col min-w-0", self ? "items-end" : "items-start")}>
-                  <div
-                    className={cn(
-                      "px-3 py-2 rounded-2xl border-2 font-display font-semibold text-sm w-fit max-w-full wrap-break-word whitespace-pre-wrap",
-                      self ? "bg-primary text-primary-foreground border-primary rounded-br-md" : "bg-muted border-border text-foreground rounded-bl-md",
-                    )}>
-                    {m.message}
+        <div className="flex-1 min-h-0 relative">
+          <div ref={scrollRef} onScroll={handleScroll} className="h-full overflow-y-auto px-3 py-2 space-y-3">
+            {chatMessages.length === 0 && <p className="text-center text-sm text-muted-foreground font-display py-8">Inga medelanden ännu. Säg hej! 👋</p>}
+            {chatMessages.map((m) => {
+              const self = m.sender.user_id === user?.user_id;
+              return (
+                <div key={`${m.sender.user_id}-${m.date}`} className={cn("flex gap-3 items-end", self && "flex-row-reverse")}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center font-display font-bold text-white text-xs border-2 border-card shrink-0" style={{ backgroundColor: m.sender.background }}>
+                    {m.sender.username.charAt(0).toUpperCase()}
                   </div>
-                  <div className="text-[10px] font-display font-bold text-muted-foreground px-1 mt-1">
-                    {self ? "You" : m.sender.username} · {formatTime(m.date)}
+                  <div className={cn("max-w-[75%] flex flex-col min-w-0", self ? "items-end" : "items-start")}>
+                    <div className={cn("px-3 py-2 rounded-2xl border-2 font-display font-semibold text-sm w-fit max-w-full wrap-break-word whitespace-pre-wrap", self ? "bg-primary text-primary-foreground border-primary rounded-br-md" : "bg-muted border-border text-foreground rounded-bl-md")}>
+                      {m.message}
+                    </div>
+                    <div className="text-[10px] font-display font-bold text-muted-foreground px-1 mt-1">
+                      {self ? "You" : m.sender.username} · {formatTime(m.date)}
+                    </div>
                   </div>
                 </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
+
+          {!isAtBottom && unreadBelow > 0 && (
+            <button onClick={scrollToBottom} className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-display font-bold shadow-lg border-2 border-primary/50 transition-opacity">
+              <ChevronDown className="w-3 h-3" />
+              {unreadBelow} nya meddelanden
+            </button>
+          )}
         </div>
 
         <div className="p-3 border-t-2 border-border shrink-0 flex gap-2">

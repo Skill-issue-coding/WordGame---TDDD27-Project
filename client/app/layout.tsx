@@ -11,6 +11,7 @@ import { Suspense } from "react";
 import { WebSocketProvider } from "@/hooks/websocketcontext";
 import { UserProvider } from "@/hooks/usercontext";
 import { LobbyContextProvider } from "@/hooks/lobbycontext";
+import { GameContextProvider } from "@/hooks/gamecontext";
 import { Background } from "@/components/background/background";
 
 const fredoka = Fredoka({
@@ -60,22 +61,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html
-      lang="en"
-      suppressHydrationWarning
-      className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable, geistHeading.variable, inter.variable, spaceGrotesk.variable, fredoka.variable, nunito.variable)}>
+    <html lang="en" suppressHydrationWarning className={cn("h-full", "antialiased", geistSans.variable, geistMono.variable, "font-sans", figtree.variable, geistHeading.variable, inter.variable, spaceGrotesk.variable, fredoka.variable, nunito.variable)}>
       <body className="min-h-full flex flex-col">
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
           <WebSocketProvider>
             <UserProvider>
               <LobbyContextProvider>
-                <TooltipProvider>
-                  {children}
-                  <Suspense fallback={null}>
-                    <LobbyChat />
-                  </Suspense>
-                  <UserProfileButton />
-                </TooltipProvider>
+                <GameContextProvider>
+                  <TooltipProvider>
+                    {children}
+                    <Suspense fallback={null}>
+                      <LobbyChat />
+                    </Suspense>
+                    <UserProfileButton />
+                  </TooltipProvider>
+                </GameContextProvider>
               </LobbyContextProvider>
             </UserProvider>
           </WebSocketProvider>

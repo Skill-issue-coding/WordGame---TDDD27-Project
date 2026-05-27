@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/rand"
+	"strings"
 )
 
 // palette is the set of background colors a player can be assigned.
@@ -114,4 +115,10 @@ func ClampFloat(val float64, min float64, max float64) float64 {
 		return max
 	}
 	return val
+}
+
+// IsValidWordSubmission reports whether s is a valid word submission:
+// non-empty after trimming leading/trailing whitespace.
+func IsValidWordSubmission(s string) bool {
+	return strings.TrimSpace(s) != ""
 }

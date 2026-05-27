@@ -77,7 +77,6 @@ type UserProfile struct {
 	UserId     uuid.UUID `json:"user_id"`
 	Username   string    `json:"username"`
 	Background string    `json:"background"`
-	Score      int       `json:"score"`
 }
 
 // LobbyState is the complete shared lobby state that is broadcast to every
@@ -100,9 +99,6 @@ type GameLobby struct {
 
 	// Clients is the set of currently connected players in this lobby.
 	Clients map[*Client]bool
-
-	// Broadcast sends a raw message to all clients in the lobby.
-	Broadcast chan []byte
 
 	// Register adds a new client to the lobby.
 	Register chan *Client
@@ -201,4 +197,3 @@ type ChatMessage struct {
 	Message string      `json:"message"`
 	Date    int64       `json:"date"`
 }
-

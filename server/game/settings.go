@@ -6,7 +6,7 @@ package game
 func DefaultImpostorSettings() ImpostorSettings {
 	return ImpostorSettings{
 		InputDuration:      30,
-		DiscussionDuration: 15,
+		DiscussionDuration: 45,
 		ImpostorCount:      1,
 		VoteDuration:       30,
 	}

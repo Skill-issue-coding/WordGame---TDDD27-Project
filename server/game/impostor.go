@@ -30,8 +30,8 @@ const (
 	IMPOSTOR_COUNT_MAX               int = 4
 	IMPOSTOR_INPUT_DURATION_MIN      int = 10
 	IMPOSTOR_INPUT_DURATION_MAX      int = 60
-	IMPOSTOR_DISCUSSION_DURATION_MIN int = 10
-	IMPOSTOR_DISCUSSION_DURATION_MAX int = 60
+	IMPOSTOR_DISCUSSION_DURATION_MIN int = 30
+	IMPOSTOR_DISCUSSION_DURATION_MAX int = 150
 	IMPOSTOR_VOTE_DURATION_MIN       int = 10
 	IMPOSTOR_VOTE_DURATION_MAX       int = 60
 )
@@ -202,6 +202,13 @@ func createPlayersCircularList(players []uuid.UUID) map[uuid.UUID]*PlayerNode {
 	}
 
 	return playerEntriesMap
+}
+
+// IsPlayerActive satisfies the Game interface. A player is active as long as
+// they have not been eliminated (their node is non-nil in the players map).
+func (g *ImpostorGame) IsPlayerActive(id uuid.UUID) bool {
+	node, ok := g.players[id]
+	return ok && node != nil
 }
 
 // getActivePlayers is a helper function that gets all players that have not been eliminated yet
@@ -490,7 +497,7 @@ func (g *ImpostorGame) advancePhase() {
 		g.phase = g.phase.Next
 		g.StartPhase(INTERMEDIATE_DURATION)
 		g.Broadcast(events.ImpostorVoteResultEvent, ImpostorVoteResultPayload{
-			GamePhasePayload: GamePhasePayload{StartTime: g.startTime.UnixMilli(), EndTime: g.endTime.UnixMilli()},
+			GamePhasePayload: GamePhasePayload{StartTime: g.startTime.UnixMilli(), ReadyTime: g.startTime.Add(SYNC_DELAY).UnixMilli(), EndTime: g.endTime.UnixMilli()},
 			VotedOut:         votedOutPlayer,
 			Message:          message,
 		})
@@ -523,6 +530,12 @@ func (g *ImpostorGame) advancePhase() {
 // advanceInputPlayer moves to the next player's turn. If the full cycle
 // is complete (we've wrapped back to startingPlayer), it advances to discussion.
 func (g *ImpostorGame) advanceInputPlayer() {
+	// If the current player's timer expired without a submission, record an
+	// empty string so every active player always has an entry in words_cycle.
+	if _, submitted := g.cycles[g.cycleNumber].Submissions[g.currentPlayer.self]; !submitted {
+		g.cycles[g.cycleNumber].Submissions[g.currentPlayer.self] = ""
+	}
+
 	next := g.currentPlayer.nextNode
 	if next == g.startingPlayer {
 		// Full cycle done — follow input.Next to discussion
@@ -660,13 +673,13 @@ func (g *ImpostorGame) broadcastGameResult(impostorsWon bool) {
 		Roles:   roles,
 		Words:   words,
 	}
-	g.Broadcast(events.ImpostorResultEvent, payload)
+	g.Broadcast(events.GameResultEvent, payload)
 }
 
 // sendInitialGameState is called at the start of an impostor game
 // it sends ImpostorClientGameStatePayload to each player individually
 func (g *ImpostorGame) sendInitialGameState() {
-	timers := GamePhasePayload{StartTime: g.startTime.UnixMilli(), EndTime: g.endTime.UnixMilli()}
+	timers := GamePhasePayload{StartTime: g.startTime.UnixMilli(), ReadyTime: g.startTime.Add(SYNC_DELAY).UnixMilli(), EndTime: g.endTime.UnixMilli()}
 	for playerId := range g.players {
 		word := g.wordPair.NormalWord
 		role := ImpostorRoleNormal
@@ -681,7 +694,7 @@ func (g *ImpostorGame) sendInitialGameState() {
 			ActivePlayers:    g.getActivePlayers(),
 			GamePhasePayload: timers,
 		}
-		g.Send(&playerId, events.ImpostorNewRoundEvent, state)
+		g.Send(&playerId, events.GameRoundStartedEvent, state)
 	}
 }
 
@@ -701,7 +714,7 @@ func (g *ImpostorGame) sendGameCycleState() {
 
 // sendGamePhaseUpdate is called when the game changed phase (for example input to discussion)
 func (g *ImpostorGame) sendGamePhaseUpdate() {
-	phaseTimers := GamePhasePayload{StartTime: g.startTime.UnixMilli(), EndTime: g.endTime.UnixMilli()}
+	phaseTimers := GamePhasePayload{StartTime: g.startTime.UnixMilli(), ReadyTime: g.startTime.Add(SYNC_DELAY).UnixMilli(), EndTime: g.endTime.UnixMilli()}
 
 	// Only meaningful during the input phase; omitted (nil) for all other phases.
 	var currentPlayer *uuid.UUID
@@ -717,5 +730,5 @@ func (g *ImpostorGame) sendGamePhaseUpdate() {
 		CurrentPlayer:    currentPlayer,
 		Phase:            g.phase.Kind,
 	}
-	g.Broadcast(events.ImpostorNewPhaseEvent, state)
+	g.Broadcast(events.GameNewPhaseEvent, state)
 }

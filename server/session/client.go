@@ -5,6 +5,7 @@ import (
 	"log"
 	"server/events"
 	"server/game"
+	"server/util"
 	"strings"
 	"time"
 
@@ -54,6 +55,7 @@ func (c *Client) WritePump() {
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
+			c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			w, err := c.Conn.NextWriter(websocket.TextMessage)
 			if err != nil {
 				return
@@ -63,6 +65,7 @@ func (c *Client) WritePump() {
 				return
 			}
 		case <-ticker.C:
+			c.Conn.SetWriteDeadline(time.Now().Add(10 * time.Second))
 			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
 				return
 			}
@@ -188,7 +191,10 @@ func (c *Client) ReadPump() {
 			}
 
 			if c.Lobby != nil {
-				c.Lobby.SyncRequests <- struct{}{}
+				select {
+				case c.Lobby.SyncRequests <- struct{}{}:
+				default:
+				}
 			}
 
 		case events.ChatMessageRequestEvent:
@@ -200,6 +206,10 @@ func (c *Client) ReadPump() {
 			}
 			if c.Lobby == nil {
 				c.SendError("Du är inte i ett rum")
+				continue
+			}
+			if g := c.Lobby.CurrentGame; g != nil && !g.IsPlayerActive(c.UserId) {
+				c.SendError("Du är inte aktiv och kan inte skicka meddelanden")
 				continue
 			}
 
@@ -247,7 +257,23 @@ func (c *Client) ReadPump() {
 			}
 			c.Lobby.StartGameRequests <- c
 
-		case events.GameSubmitWordRequestEvent, events.GameSubmitGuessRequestEvent, events.GameSubmitVoteRequestEvent:
+		case events.GameSubmitWordRequestEvent, events.GameSubmitGuessRequestEvent:
+			if c.Lobby == nil {
+				c.SendError("Du är inte i ett rum")
+				continue
+			}
+			payload, err := events.DecodePayload[game.GameSubmitWordPayload](event)
+			if err != nil || !util.IsValidWordSubmission(payload.Word) {
+				c.SendError("Ogiltigt ord. Ange ett enstaka ord utan mellanslag.")
+				continue
+			}
+			select {
+			case c.Lobby.GameInputs <- game.GameInput{ClientId: c.UserId, Event: event}:
+			default:
+				log.Printf("[%s] GameInputs full, dropping input from %s", c.Lobby.ID, c.UserId)
+			}
+
+		case events.GameSubmitVoteRequestEvent:
 			if c.Lobby == nil {
 				c.SendError("Du är inte i ett rum")
 				continue

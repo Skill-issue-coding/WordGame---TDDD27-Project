@@ -5,35 +5,40 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Slider } from "@/components/ui/slider";
 import { Timer, RefreshCw, Check, HatGlasses, RulerDimensionLine, Languages } from "lucide-react";
 import { useState, useRef } from "react";
-import CodeDisplay from "@/components/lobby/CodeDisplay";
-import { GAME_MODES, getMode, MODE_SETTINGS, ModeSetting } from "@/lib/game/gameModes";
+import { GAME_MODES, getMode, MODE_SETTINGS } from "@/lib/game/gameModes";
 import { useEffect } from "react";
 import { useLobbyContext } from "@/hooks/lobbycontext";
 import { useUserContext } from "@/hooks/usercontext";
 import { useWebsocketContext } from "@/hooks/websocketcontext";
 import { GameMode, LobbyState } from "@/lib/game/types";
 
-interface SettingsPanelProps {
-  className?: string;
-}
+export function GameModeSelector() {
+  const { sendEvent } = useWebsocketContext();
+  const { user } = useUserContext();
+  const { host, mode } = useLobbyContext();
 
-function GameModeSelector({ selectedMode, onModeChange, disabled }: { selectedMode: GameMode; onModeChange: (id: GameMode) => void; disabled: boolean }) {
-  const mode = getMode(selectedMode);
+  const isHost = user?.user_id === host;
+  const disabled = !isHost;
+
+  const handleModeChange = (newMode: GameMode) => {
+    if (!isHost) return;
+    sendEvent("change_mode", { mode: newMode });
+  };
 
   return (
     <>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
         {GAME_MODES.map((m) => {
-          const active = selectedMode === m.id;
+          const active = mode === m.id;
           return (
             <button
               key={m.id}
-              disabled={disabled}
-              onClick={() => onModeChange(m.id)}
+              disabled={disabled || m.id !== "impostor"}
+              onClick={() => handleModeChange(m.id)}
               className={cn(
                 "relative text-left rounded-lg border-2 p-3 transition-all flex items-center gap-3",
                 active ? `bg-card border-current ${m.textClass} shadow-md` : "bg-muted/40 border-border hover:border-muted-foreground/40",
-                disabled ? "cursor-not-allowed pointer-events-none opacity-50" : "cursor-pointer opacity-80",
+                disabled || m.id !== "impostor" ? "cursor-not-allowed pointer-events-none opacity-50" : "cursor-pointer opacity-80",
               )}>
               <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0", `bg-game-${m.color}`)}>{m.icon}</div>
               <div className="flex-1 min-w-0">
@@ -51,43 +56,49 @@ function GameModeSelector({ selectedMode, onModeChange, disabled }: { selectedMo
       </div>
 
       <div className="rounded-lg bg-muted/40 border-2 border-border p-3">
-        <p className="text-sm text-muted-foreground leading-snug">{mode.description}</p>
+        <p className="text-sm text-muted-foreground leading-snug">{getMode(mode as LobbyState["mode"]).description}</p>
       </div>
     </>
   );
 }
 
-function GameSettings({
-  config,
-  disabled,
-  serverSettings,
-  onSettingUpdate,
-  maxImpostors,
-}: {
-  config: ModeSetting[];
-  disabled: boolean;
-  serverSettings: LobbyState["settings"] | undefined;
-  onSettingUpdate: (key: string, value: number) => void;
-  maxImpostors: number;
-}) {
+export function GameSettings() {
+  const { settings, host, mode, users } = useLobbyContext();
+  const { user } = useUserContext();
+  const { sendEvent } = useWebsocketContext();
+
+  const currentMode = (mode as GameMode) || "impostor";
+  const settingsConfig = MODE_SETTINGS[currentMode];
+
+  const playerCount = Object.keys(users ?? {}).length;
+  const maxImpostors = Math.max(1, Math.floor(playerCount / 3));
+
   const [localvalues, setLocalValues] = useState<Record<string, number>>({});
   const lastSendRef = useRef<Record<string, number>>({});
 
+  const isHost = user?.user_id === host;
+  const disabled = !isHost;
+
+  const handleSettingUpdate = (key: string, value: number) => {
+    if (!isHost) return;
+    sendEvent("update_setting", { key, value });
+  };
+
   // Select lower impostor count if players leave when higher count is selected
   useEffect(() => {
-    const currentImpostorCount = localvalues["impostor_count"] ?? (serverSettings && "impostor_count" in serverSettings ? serverSettings.impostor_count : undefined);
+    const currentImpostorCount = localvalues["impostor_count"] ?? (settings && "impostor_count" in settings ? settings.impostor_count : undefined);
 
     if (currentImpostorCount && currentImpostorCount > maxImpostors) {
       setLocalValues((prev) => ({ ...prev, impostor_count: maxImpostors }));
-      onSettingUpdate("impostor_count", maxImpostors);
+      handleSettingUpdate("impostor_count", maxImpostors);
     }
-  }, [maxImpostors, serverSettings, onSettingUpdate]);
+  }, [maxImpostors, settings, handleSettingUpdate]);
 
   useEffect(() => {
-    if (serverSettings) {
-      setLocalValues(serverSettings as Record<string, number>);
+    if (settings) {
+      setLocalValues(settings as Record<string, number>);
     } else {
-      const defaults = config.reduce(
+      const defaults = settingsConfig.reduce(
         (acc, setting) => {
           acc[setting.key] = setting.default;
           return acc;
@@ -96,7 +107,7 @@ function GameSettings({
       );
       setLocalValues(defaults);
     }
-  }, [serverSettings, config]);
+  }, [settings, settingsConfig]);
 
   const handleSliderDrag = (key: string, val: number) => {
     setLocalValues((prev) => ({ ...prev, [key]: val }));
@@ -105,14 +116,14 @@ function GameSettings({
     const lastSend = lastSendRef.current[key] || 0;
 
     if (now - lastSend > 100) {
-      onSettingUpdate(key, val);
+      handleSettingUpdate(key, val);
       lastSendRef.current[key] = now;
     }
   };
 
   return (
     <div className={cn("grid grid-cols-1 md:grid-cols-2 gap-8 w-full", disabled && "opacity-50")}>
-      {config.map((setting) => {
+      {settingsConfig.map((setting) => {
         const currentValue = localvalues[setting.key] ?? setting.default;
         return (
           <div key={setting.key} className="flex flex-col gap-2.5 flex-1">
@@ -133,16 +144,7 @@ function GameSettings({
 
             {setting.type === "slider" ? (
               <div className={cn("flex items-center gap-4", disabled && "pointer-events-none")}>
-                <Slider
-                  disabled={disabled}
-                  min={setting.min}
-                  max={setting.max}
-                  step={setting.step}
-                  value={[currentValue]}
-                  onValueChange={([v]) => handleSliderDrag(setting.key, v)}
-                  onValueCommit={([v]) => onSettingUpdate(setting.key, v)}
-                  className="flex-1"
-                />
+                <Slider disabled={disabled} min={setting.min} max={setting.max} step={setting.step} value={[currentValue]} onValueChange={([v]) => handleSliderDrag(setting.key, v)} onValueCommit={([v]) => handleSettingUpdate(setting.key, v)} className="flex-1" />
                 <span className="text-sm font-bold w-8 text-right tabular-nums">
                   {localvalues[setting.key] ?? setting.default}
                   {setting.key.includes("duration") ? "s" : ""}
@@ -161,7 +163,7 @@ function GameSettings({
                   if (!v) return;
                   const nextValue = Number(v);
                   setLocalValues((prev) => ({ ...prev, [setting.key]: nextValue }));
-                  onSettingUpdate(setting.key, nextValue);
+                  handleSettingUpdate(setting.key, nextValue);
                 }}
                 /**/
                 className={cn(disabled && "pointer-events-none")}>
@@ -184,46 +186,6 @@ function GameSettings({
           </div>
         );
       })}
-    </div>
-  );
-}
-
-export function SettingsPanel({ className }: SettingsPanelProps) {
-  const { lobbyState } = useLobbyContext();
-  const { user } = useUserContext();
-  const { sendEvent } = useWebsocketContext();
-
-  const isHost = lobbyState?.host === user?.user_id;
-
-  const currentMode = (lobbyState?.mode as GameMode) || "impostor";
-  const settingsConfig = MODE_SETTINGS[currentMode];
-
-  const playerCount = Object.keys(lobbyState?.users || {}).length;
-  const maxImpostors = Math.max(1, Math.floor(playerCount / 3));
-
-  const handleModeChange = (newMode: GameMode) => {
-    if (!isHost) return;
-    sendEvent("change_mode", { mode: newMode });
-  };
-
-  const handleSettingUpdate = (key: string, value: number) => {
-    if (!isHost) return;
-    sendEvent("update_setting", { key, value });
-  };
-
-  return (
-    <div className={cn("game-card flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border", className)}>
-      <div className="flex flex-col gap-4">
-        <CodeDisplay />
-        <div className="flex items-center justify-between">
-          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelläge</p>
-        </div>
-        <GameModeSelector selectedMode={currentMode} onModeChange={handleModeChange} disabled={!isHost} />
-        <div className="flex items-center justify-between">
-          <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelinställningar</p>
-        </div>
-        <GameSettings config={settingsConfig} disabled={!isHost} serverSettings={lobbyState?.settings} onSettingUpdate={handleSettingUpdate} maxImpostors={maxImpostors} />
-      </div>
     </div>
   );
 }

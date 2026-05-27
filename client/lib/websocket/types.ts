@@ -8,17 +8,23 @@
  *
  * Domain breakdown:
  *   lobby.ts         — connection handshake, lobby management, chat
- *   game/impostor.ts — Impostor mode server → client events
- *   game/shared.ts   — round lifecycle events + all client input actions
+ *   game/impostor.ts — Impostor mode server → client events (including canonical
+ *                      lifecycle events game_round_started / new_game_phase / game_result
+ *                      with Impostor-specific payload shapes)
+ *   game/shared.ts   — client → server input actions (game_submit_word, etc.)
+ *
+ * Adding a new game mode: create game/<mode>.ts, define its WSReceivedEvent
+ * union (reusing the canonical event names with mode-specific payloads), and
+ * add it to the WSReceivedEvent union below.
  */
 
 export type { LobbyWSReceivedEvent, LobbyWSSendPayloadMap } from "./lobby";
 export type { ImpostorWSReceivedEvent } from "./game/impostor";
-export type { SharedGameWSReceivedEvent, GameWSSendPayloadMap } from "./game/shared";
+export type { GameWSSendPayloadMap } from "./game/shared";
 
 import type { LobbyWSReceivedEvent, LobbyWSSendPayloadMap } from "./lobby";
 import type { ImpostorWSReceivedEvent } from "./game/impostor";
-import type { SharedGameWSReceivedEvent, GameWSSendPayloadMap } from "./game/shared";
+import type { GameWSSendPayloadMap } from "./game/shared";
 
 // ---------------------------------------------------------------------------
 // Server → Client master union
@@ -27,8 +33,9 @@ import type { SharedGameWSReceivedEvent, GameWSSendPayloadMap } from "./game/sha
 /**
  * Union of every event the Go server can send to the frontend.
  * Discriminate on `type` to narrow to the correct payload shape.
+ * When lobbyState.mode is known, narrow further to the mode-specific union.
  */
-export type WSReceivedEvent = LobbyWSReceivedEvent | ImpostorWSReceivedEvent | SharedGameWSReceivedEvent;
+export type WSReceivedEvent = LobbyWSReceivedEvent | ImpostorWSReceivedEvent;
 
 /** All event type strings the server can send. */
 export type WSReceivedEventType = WSReceivedEvent["type"];

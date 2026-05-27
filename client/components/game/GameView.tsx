@@ -1,20 +1,30 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
+
 import { useLobbyContext } from "@/hooks/lobbycontext";
-import { ImpostorView } from "./gamemodes/ImposterGameView";
+
 import { ContextoGameView } from "./gamemodes/ContextoGameView";
 import { SynonymDuelView } from "./gamemodes/SynonymDuelView";
 import { AntiMatchView } from "./gamemodes/AntiMatchView";
+import { MainImpostorView } from "./impostor/MainImposterView";
 
 export function GameView() {
-  const { lobbyState } = useLobbyContext();
-  if (!lobbyState) return <ImpostorView />; // TODO: Change to redirecting to "/"
+  const { mode } = useLobbyContext();
+  const router = useRouter();
 
-  if (lobbyState.mode === "impostor") return <ImpostorView />;
+  useEffect(() => {
+    if (!mode) router.push("/");
+  }, [mode, router]);
 
-  if (lobbyState.mode === "contexto_battle") return <ContextoGameView />;
+  if (!mode) return null;
 
-  if (lobbyState.mode === "synonym_duel") return <SynonymDuelView />;
+  if (mode === "impostor") return <MainImpostorView />;
 
-  if (lobbyState.mode === "anti_match") return <AntiMatchView />;
+  if (mode === "contexto_battle") return <ContextoGameView />;
+
+  if (mode === "synonym_duel") return <SynonymDuelView />;
+
+  if (mode === "anti_match") return <AntiMatchView />;
 }

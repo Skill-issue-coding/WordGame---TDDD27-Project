@@ -358,6 +358,10 @@
     border-color: var(--game-orange);
   }
 
+  .border-game-red {
+    border-color: var(--game-red);
+  }
+
   /* Heat-based distance colors (Contexto rank coloring) */
   .heat-hot {
     background: linear-gradient(90deg, var(--heat-hot), oklch(77.83% 0.199 151.27 / 0.7));

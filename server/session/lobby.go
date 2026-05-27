@@ -29,7 +29,6 @@ func NewLobby(id string) *GameLobby {
 	lobby := &GameLobby{
 		ID:                    id,
 		Clients:               make(map[*Client]bool),
-		Broadcast:             make(chan []byte),
 		Register:              make(chan *Client),
 		Unregister:            make(chan *Client),
 		ModeUpdateRequests:    make(chan GameMode),
@@ -152,6 +151,8 @@ func (lobby *GameLobby) Run() {
 				client.SendError("Spelet har redan startat.")
 				continue
 			}
+
+			// TODO: Add checks to see if there are actually enough players to start the game
 
 			players := make([]uuid.UUID, 0, len(lobby.Users))
 			for id := range lobby.Users {

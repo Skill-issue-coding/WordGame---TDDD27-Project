@@ -17,7 +17,7 @@
 
 import { ChatMessage, LobbyState } from "@/lib/game/types";
 import { ToastSucess } from "@/lib/toast-functions";
-import { WSSendEventType, WSSendPayloadMap } from "@/lib/websocket/types";
+import { WSSendEventType, WSSendPayloadMap, WSReceivedPayloadMap } from "@/lib/websocket/types";
 import { useRouter } from "next/navigation";
 import { createContext, ReactNode, useContext, useEffect, useState, useRef } from "react";
 import { useWebsocketContext } from "./websocketcontext";
@@ -29,26 +29,29 @@ import { useWebsocketContext } from "./websocketcontext";
  */
 export type SendMessageType = <T extends WSSendEventType>(type: T, payload: WSSendPayloadMap[T]) => void;
 
-/** Shape of the value exposed by GameContext. */
+/** Shape of the value exposed by LobbyContext. */
 export interface LobbyContextProps {
-  /**
-   * The full shared lobby state, updated on every sync_gamestate event.
-   * Null when the player is not in a lobby.
-   */
-  lobbyState: LobbyState | null;
-
-  /** Chatmessages sent internaly in the lobby */
+  /** Human-readable room code (e.g. "AbCd-1234"), or null when not in a lobby. */
+  code: LobbyState["code"] | null;
+  /** Active game mode, or null when not in a lobby. */
+  mode: LobbyState["mode"] | null;
+  /** Current lobby phase, or null when not in a lobby. */
+  phase: LobbyState["phase"] | null;
+  /** user_id of the player with host privileges, or null when not in a lobby. */
+  host: LobbyState["host"] | null;
+  /** All players currently in the lobby, or null when not in a lobby. */
+  users: LobbyState["users"] | null;
+  /** Active mode's settings, or null when not in a lobby. */
+  settings: LobbyState["settings"] | null;
+  /** Chat messages sent within the lobby. */
   chatMessages: ChatMessage[];
 }
 
 export const LobbyContext = createContext<LobbyContextProps | null>(null);
 
 /**
- * useLobbyContext returns the LobbyContext value and throws if called outside
- * of a LobbyContextProvider tree.
- */
-/**
  * Access the current lobby state and chat messages.
+ * Throws if called outside of a LobbyContextProvider tree.
  *
  * Usage:
  * ```tsx
@@ -62,12 +65,8 @@ export function useLobbyContext() {
 }
 
 /**
- * GameContextProvider opens a WebSocket connection on mount and provides
- * the GameContext to its children. Should be placed high in the component
- * tree (e.g. in the root layout) so all routes share the same connection.
- */
-/**
  * Provides the lobby context to all child components.
+ * Must be nested inside WebSocketProvider.
  *
  * Usage:
  * ```tsx
@@ -79,11 +78,11 @@ export function useLobbyContext() {
 export function LobbyContextProvider({ children }: { children: ReactNode }) {
   const { subscribe } = useWebsocketContext();
 
-  // Use refs for the websocket and lobby code to avoid stale closures and unnecessary re-renders
+  // Kept in a ref to avoid stale closures in event handlers without triggering re-renders
   const lobbyCodeRef = useRef<string>("");
 
-  const [lobbyState, setLobbyState] = useState<LobbyState | null>(null);
-  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [lobbyState, setLobbyState] = useState<WSReceivedPayloadMap["sync_gamestate"]["lobbystate"] | null>(null);
+  const [chatMessages, setChatMessages] = useState<WSReceivedPayloadMap["chat_message"][]>([]);
 
   const router = useRouter();
 
@@ -96,7 +95,12 @@ export function LobbyContextProvider({ children }: { children: ReactNode }) {
       lobbyCodeRef.current = "";
     });
 
-    const unsubChat = subscribe("chat_message", (payload) => setChatMessages((prev) => [...prev, payload]));
+    const unsubChat = subscribe("chat_message", (payload) =>
+      setChatMessages((prev) => {
+        const next = [...prev, payload];
+        return next.length > 200 ? next.slice(-200) : next;
+      }),
+    );
 
     const unsubSync = subscribe("sync_gamestate", (payload) => {
       lobbyCodeRef.current = payload.lobbystate.code;
@@ -108,9 +112,7 @@ export function LobbyContextProvider({ children }: { children: ReactNode }) {
       if (lobbyCodeRef.current) router.push(`/lobby/${lobbyCodeRef.current}`);
     });
 
-    const unsubGameStarted = subscribe("game_started", () => {
-      router.push(`/lobby/${lobbyCodeRef.current}/game`);
-    });
+    const unsubGameStarted = subscribe("game_started", () => router.push(`/lobby/${lobbyCodeRef.current}/game`));
 
     return () => {
       unsubJoinError();
@@ -122,7 +124,15 @@ export function LobbyContextProvider({ children }: { children: ReactNode }) {
     };
   }, [router, subscribe]);
 
-  const value: LobbyContextProps = { lobbyState, chatMessages };
+  const value: LobbyContextProps = {
+    code: lobbyState?.code ?? null,
+    mode: lobbyState?.mode ?? null,
+    phase: lobbyState?.phase ?? null,
+    host: lobbyState?.host ?? null,
+    users: lobbyState?.users ?? null,
+    settings: lobbyState?.settings ?? null,
+    chatMessages,
+  };
 
   return <LobbyContext.Provider value={value}>{children}</LobbyContext.Provider>;
 }

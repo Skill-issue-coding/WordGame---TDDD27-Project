@@ -6,6 +6,9 @@ import (
 
 type GamePhasePayload struct {
 	StartTime int64 `json:"start_time"`
+	// ReadyTime is StartTime + SYNC_DELAY. The client shows a "get ready"
+	// overlay until this timestamp, then starts the actual phase countdown.
+	ReadyTime int64 `json:"ready_time"`
 	EndTime   int64 `json:"end_time"`
 }
 

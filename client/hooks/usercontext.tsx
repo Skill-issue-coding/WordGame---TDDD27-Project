@@ -21,6 +21,7 @@ import { ToastError, ToastSucess } from "@/lib/toast-functions";
 import { tryCatch } from "@/lib/try-catch";
 import axios from "axios";
 import { createContext, ReactNode, useContext, useEffect, useState } from "react";
+import { WSReceivedPayloadMap } from "@/lib/websocket/types";
 import { useWebsocketContext } from "./websocketcontext";
 
 export interface UserContextProps {
@@ -88,8 +89,9 @@ const SaveLocalStorageProfile = (profile: LocalStorageProfile) => {
  * ```
  */
 export async function GetNewUsername(userId: string): Promise<string> {
+  const url = process.env.NEXT_PUBLIC_WS_PATH ? `${process.env.NEXT_PUBLIC_BACKEND_PATH}/game/username` : `http://localhost:8080/game/username`;
   const { data, error } = await tryCatch(
-    axios.post<{ username: string; error?: string }>("http://localhost:8080/game/username", {
+    axios.post<{ username: string; error?: string }>(url, {
       user_id: userId,
     }),
   );
@@ -112,12 +114,9 @@ export async function GetNewUsername(userId: string): Promise<string> {
  */
 export function UserProvider({ children }: { children: ReactNode }) {
   const { sendEvent, subscribe } = useWebsocketContext();
-  const [user, setUser] = useState<User | null>(null);
+  const [user, setUser] = useState<WSReceivedPayloadMap["connected_to_hub"]["user"] | null>(null);
 
-  /**
-   * INITIALIZATION: Listen for the server to confirm we are in the hub.
-   * This replaces the switch-case logic from the old GameContext.
-   */
+  // On connected_to_hub, merge the server-assigned profile with any saved localStorage preferences.
   useEffect(() => {
     const unsubscribe = subscribe("connected_to_hub", (payload) => {
       const serverUser = payload.user as User;

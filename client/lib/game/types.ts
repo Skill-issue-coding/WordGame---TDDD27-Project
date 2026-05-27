@@ -30,8 +30,6 @@ export type User = {
   username: string;
   /** Hex color string used as the player's avatar background. */
   background: string;
-  /** Cumulative score for the current game session. */
-  score: number;
 };
 
 /**
@@ -85,11 +83,7 @@ export type AntiMatchSettings = {
   rounds: number;
 };
 
-export type ModeSettings =
-  | { mode: "impostor"; settings: ImpostorSettings }
-  | { mode: "contexto_battle"; settings: ContextoBattleSettings }
-  | { mode: "synonym_duel"; settings: SynonymDuelSettings }
-  | { mode: "anti_match"; settings: AntiMatchSettings };
+export type ModeSettings = { mode: "impostor"; settings: ImpostorSettings } | { mode: "contexto_battle"; settings: ContextoBattleSettings } | { mode: "synonym_duel"; settings: SynonymDuelSettings } | { mode: "anti_match"; settings: AntiMatchSettings };
 
 export type LocalStorageProfile = {
   username?: string;

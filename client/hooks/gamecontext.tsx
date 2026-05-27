@@ -1,0 +1,208 @@
+"use client";
+
+/**
+ * @file gamecontext.tsx
+ * React context that owns the in-progress game state.
+ *
+ * Architecture:
+ * - Must be nested inside LobbyContextProvider (enforced at runtime).
+ * - Subscribes to the three canonical game lifecycle events defined in
+ *   game_events.go: game_round_started, new_game_phase, game_result.
+ * - Mode-specific events (impostor_vote_update etc.) are handled by the
+ *   individual game-view components, not here.
+ * - Exposes a discriminated union (ActiveGameState) so callers can narrow
+ *   all three payload types at once by checking gameState.mode.
+ * - All state resets automatically when phase leaves "game_started".
+ *
+ * Usage:
+ * ```tsx
+ * const { gameState } = useGameContext();
+ * if (gameState?.mode === "impostor") {
+ *   gameState.roundState; // ImpostorClientGameState | null
+ *   gameState.phaseState; // ImpostorPhaseUpdate | null
+ *   gameState.result;     // ImpostorGameResult | null
+ * }
+ * ```
+ */
+
+import { ImpostorClientGameState, ImpostorGameResult, ImpostorPhaseUpdate } from "@/lib/game/impostor-types";
+import { WSReceivedPayloadMap } from "@/lib/websocket/types";
+import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
+import { useLobbyContext } from "./lobbycontext";
+import { useWebsocketContext } from "./websocketcontext";
+
+/**
+ * Discriminated union of per-mode game state.
+ * Checking gameState.mode narrows all three fields to the correct payload
+ * shapes for that mode — no separate casts needed at the call site.
+ *
+ * Add one entry per game mode as they are implemented.
+ */
+export type ActiveGameState =
+  | {
+      mode: "impostor";
+      roundState: ImpostorClientGameState | null;
+      phaseState: ImpostorPhaseUpdate | null;
+      result: ImpostorGameResult | null;
+    }
+  // | { mode: "anti_match"; roundState: AntiMatchRoundState | null; ... }
+  | null;
+
+export interface GameContextProps {
+  /**
+   * The current in-game state, or null when no game is active.
+   * Discriminate on gameState.mode to get fully-typed payloads.
+   */
+  gameState: ActiveGameState;
+}
+
+export const GameContext = createContext<GameContextProps | null>(null);
+
+/**
+ * Access the current in-game state.
+ * Throws if called outside of a GameContextProvider tree.
+ */
+export function useGameContext() {
+  const ctx = useContext(GameContext);
+  if (!ctx) throw new Error("useGameContext must be used within a GameContextProvider");
+  return ctx;
+}
+
+/**
+ * Returns the fully-narrowed impostor game state, or null when the active
+ * mode is not "impostor" or no game is in progress.
+ * Use this in impostor-specific components instead of useGameContext() to
+ * avoid the mode check and get properly typed roundState/phaseState/result.
+ */
+export function useImpostorGame() {
+  const { gameState } = useGameContext();
+  return gameState?.mode === "impostor" ? gameState : null;
+}
+
+/**
+ * Returns false while the server's SYNC_DELAY window is still open (i.e. while
+ * Date.now() < readyTime), then flips to true and stays true.
+ * Pass game?.phaseState?.timers?.ready_time — when undefined, returns true immediately.
+ */
+export function usePhaseReady(readyTime: number | undefined): boolean {
+  const [isReady, setIsReady] = useState(() => !readyTime || Date.now() >= readyTime);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (timerRef.current) clearTimeout(timerRef.current);
+
+    if (!readyTime || Date.now() >= readyTime) {
+      setIsReady(true);
+      return;
+    }
+
+    setIsReady(false);
+    timerRef.current = setTimeout(() => setIsReady(true), readyTime - Date.now());
+
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, [readyTime]);
+
+  return isReady;
+}
+
+/**
+ * Returns the remaining milliseconds until readyTime, updating every 50ms.
+ * Useful for displaying a countdown during the SYNC_DELAY "get ready" window.
+ * Returns 0 when readyTime is undefined or already passed.
+ */
+export function usePhaseCountdown(readyTime: number | undefined): number {
+  const [remaining, setRemaining] = useState(() => (!readyTime ? 0 : Math.max(0, readyTime - Date.now())));
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+
+    if (!readyTime || Date.now() >= readyTime) {
+      setRemaining(0);
+      return;
+    }
+
+    const tick = () => {
+      const ms = Math.max(0, readyTime - Date.now());
+      setRemaining(ms);
+      if (ms === 0 && intervalRef.current) clearInterval(intervalRef.current);
+    };
+
+    intervalRef.current = setInterval(tick, 50);
+    return () => {
+      if (intervalRef.current) clearInterval(intervalRef.current);
+    };
+  }, [readyTime]);
+
+  return remaining;
+}
+
+/**
+ * Provides in-game state to all child components.
+ * Must be nested inside LobbyContextProvider.
+ *
+ * Usage:
+ * ```tsx
+ * <LobbyContextProvider>
+ *   <GameContextProvider>
+ *     <App />
+ *   </GameContextProvider>
+ * </LobbyContextProvider>
+ * ```
+ */
+export function GameContextProvider({ children }: { children: ReactNode }) {
+  const { phase, mode } = useLobbyContext(); // enforces nesting — throws if outside LobbyContextProvider
+  const { subscribe } = useWebsocketContext();
+
+  // Raw internal state typed via WSReceivedPayloadMap — stays in sync with the WS
+  // event definitions automatically. The types widen to a union as more game modes
+  // are added to impostor.ts / antimatch.ts etc. in lib/websocket/game/.
+  const [roundState, setRoundState] = useState<WSReceivedPayloadMap["game_round_started"] | null>(null);
+  const [phaseState, setPhaseState] = useState<WSReceivedPayloadMap["new_game_phase"] | null>(null);
+  const [result, setResult] = useState<WSReceivedPayloadMap["game_result"] | null>(null);
+
+  // Reset all game state when the lobby returns to the waiting room.
+  useEffect(() => {
+    if (phase !== "game_started") {
+      setRoundState(null);
+      setPhaseState(null);
+      setResult(null);
+    }
+  }, [phase]);
+
+  useEffect(() => {
+    const unsubRound = subscribe("game_round_started", setRoundState);
+    const unsubPhase = subscribe("new_game_phase", setPhaseState);
+    const unsubResult = subscribe("game_result", setResult);
+
+    return () => {
+      unsubRound();
+      unsubPhase();
+      unsubResult();
+    };
+  }, [subscribe]);
+
+  // Build the discriminated union from mode. mode is the runtime guarantee that
+  // the payloads match the expected shapes — the server never emits impostor
+  // payloads while mode === "anti_match", so the casts are safe.
+  let gameState: ActiveGameState = null;
+  if (phase === "game_started") {
+    switch (mode) {
+      case "impostor":
+        gameState = {
+          mode: "impostor",
+          roundState: roundState as ImpostorClientGameState | null,
+          phaseState: phaseState as ImpostorPhaseUpdate | null,
+          result: result as ImpostorGameResult | null,
+        };
+        break;
+      // case "anti_match":
+      //   gameState = { mode: "anti_match", roundState: roundState as AntiMatchRoundState | null, ... };
+      //   break;
+    }
+  }
+
+  return <GameContext.Provider value={{ gameState }}>{children}</GameContext.Provider>;
+}

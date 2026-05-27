@@ -1,39 +1,11 @@
 /**
  * @file shared.ts (lib/websocket/game)
- * WebSocket event types shared across all game modes.
+ * Client → Server game input events shared across all game modes.
  *
- * Server → Client: round lifecycle events (game_round_started, game_round_result,
- *   game_result, new_game_phase).
- * Client → Server: all player input actions (submit word, guess, or vote).
+ * Server → Client events use canonical event names defined in game_events.go
+ * (game_round_started, new_game_phase, game_round_result, game_result) but
+ * each mode defines its own payload shape in its own file (e.g. impostor.ts).
  */
-
-import { GameTimers } from "@/lib/game/impostor-types";
-
-// ---------------------------------------------------------------------------
-// Server → Client
-// ---------------------------------------------------------------------------
-
-export type SharedGameWSReceivedEvent =
-  | {
-      /** Broadcast at the start of each round for Anti-Match, Synonym Duel, and Contexto Battle. */
-      type: "game_round_started";
-      payload: { timers: GameTimers };
-    }
-  | {
-      /** Broadcast when a round ends with per-player scores. Shape varies by mode. */
-      type: "game_round_result";
-      payload: unknown; // TODO: define per-mode result payload shapes
-    }
-  | {
-      /** Broadcast when the whole game is over (all rounds complete). Shape varies by mode. */
-      type: "game_result";
-      payload: unknown; // TODO: define per-mode game-over payload shapes
-    }
-  | {
-      /** Phase timer update for modes with timed game phases. */
-      type: "new_game_phase";
-      payload: GameTimers;
-    };
 
 // ---------------------------------------------------------------------------
 // Client → Server

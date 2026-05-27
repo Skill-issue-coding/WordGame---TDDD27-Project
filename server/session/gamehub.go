@@ -49,24 +49,30 @@ func (hub *GameHub) Run() {
 				},
 			})
 
+			hub.LobbiesMutex.RLock()
+			openRooms, inRooms := len(hub.Lobbies), hub.totalPlayers()
+			hub.LobbiesMutex.RUnlock()
 			log.Printf("[Hub] Client connected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
-				client.UserId, len(hub.Clients), len(hub.Lobbies), hub.totalPlayers())
+				client.UserId, len(hub.Clients), openRooms, inRooms)
 
 		case client := <-hub.Unregister:
-			if _, ok := hub.Clients[client]; ok {
-				if client.Lobby != nil {
-					room := client.Lobby
-					client.Lobby = nil
-					// Forward to the lobby's unregister channel in a goroutine
-					// to avoid a deadlock between the hub and lobby event loops.
-					go func() { room.Unregister <- client }()
-				}
+			if client.Lobby != nil {
+				room := client.Lobby
+				client.Lobby = nil
+				// Forward to the lobby's unregister channel in a goroutine
+				// to avoid a deadlock between the hub and lobby event loops.
+				go func() { room.Unregister <- client }()
+			}
 
+			if _, ok := hub.Clients[client]; ok {
 				delete(hub.Clients, client)
 				close(client.Send) // signals WritePump to exit
 
+				hub.LobbiesMutex.RLock()
+				openRooms, inRooms := len(hub.Lobbies), hub.totalPlayers()
+				hub.LobbiesMutex.RUnlock()
 				log.Printf("[Hub] Client disconnected (id=%s). Connected: %d | Rooms open: %d | Players in rooms: %d",
-					client.UserId, len(hub.Clients), len(hub.Lobbies), hub.totalPlayers())
+					client.UserId, len(hub.Clients), openRooms, inRooms)
 			}
 
 		case message := <-hub.Broadcast:
@@ -81,8 +87,11 @@ func (hub *GameHub) Run() {
 			}
 
 		case <-statusTicker.C:
+			hub.LobbiesMutex.RLock()
+			openRooms, inRooms := len(hub.Lobbies), hub.totalPlayers()
+			hub.LobbiesMutex.RUnlock()
 			log.Printf("[Hub] Status — Open rooms: %d | Players in rooms: %d | Connected clients: %d",
-				len(hub.Lobbies), hub.totalPlayers(), len(hub.Clients))
+				openRooms, inRooms, len(hub.Clients))
 		}
 	}
 }
