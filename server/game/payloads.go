@@ -36,7 +36,7 @@ type ImpostorGamePhaseUpdatePayload struct {
 	GamePhasePayload `json:"timers"`
 	WordsCycle       map[uuid.UUID]string     `json:"words_cycle"`
 	VotesCycle       map[uuid.UUID]*uuid.UUID `json:"votes_cycle_votes"`
-	CurrentPlayer    uuid.UUID                `json:"current_player,omitempty"`
+	CurrentPlayer    *uuid.UUID               `json:"current_player,omitempty"`
 	Phase            PhaseKind                `json:"game_phase"`
 }
 

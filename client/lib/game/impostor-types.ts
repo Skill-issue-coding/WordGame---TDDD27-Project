@@ -51,8 +51,8 @@ export type ImpostorPhaseUpdate = {
   words_cycle: Record<string, string>;
   /** All votes cast so far this cycle, keyed by voter UUID; null = skip vote. */
   votes_cycle_votes: Record<string, string | null>;
-  /** UUID of the player whose input turn it currently is. */
-  current_player: string;
+  /** UUID of the player whose input turn it currently is. Absent outside the input phase. */
+  current_player?: string;
   game_phase: ImpostorPhase;
 };
 

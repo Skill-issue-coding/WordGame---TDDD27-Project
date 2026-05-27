@@ -1,6 +1,7 @@
 package game
 
 import (
+	"maps"
 	"math/rand/v2"
 	"server/events"
 	"server/words"
@@ -216,7 +217,7 @@ func (g *ImpostorGame) getActivePlayers() map[uuid.UUID]bool {
 	return activePlayers
 }
 
-// doesWordExist is a helper function to check if a word has already been submited
+// doesWordExist is a helper function to check if a word has already been submitted
 // returns bool that is true if the word exists
 func (g *ImpostorGame) doesWordExist(word string) bool {
 	for _, cycle := range g.cycles {
@@ -295,17 +296,18 @@ func (g *ImpostorGame) getPlayerWithMostVotes() (*uuid.UUID, string) {
 
 	// Evaluate the results against skips and ties
 
-	// Case A: Nobody voted at all or more skips than votes on a single player
-	if maxVotes == 0 && skipCount == 0 || skipCount > maxVotes {
+	if maxVotes == 0 && skipCount == 0 {
+		return nil, "Ingen röstade. Ingen blev eliminerad."
+	}
+
+	if skipCount > maxVotes {
 		return nil, "Majoritet röstade för att hoppa över."
 	}
 
-	// Case B: Tie between skipping and a player or multiple players with the same amount of votes
 	if skipCount == maxVotes && maxVotes > 0 || len(topCandidates) > 1 {
 		return nil, "Oavgjort mellan flera spelare eller hoppa över. Ingen blev eliminerad. Går vidare till nästa fas"
 	}
 
-	// Case C: A single player has the most votes
 	if len(topCandidates) == 1 {
 		return &topCandidates[0], ""
 	}
@@ -487,7 +489,11 @@ func (g *ImpostorGame) advancePhase() {
 		}
 		g.phase = g.phase.Next
 		g.StartPhase(INTERMEDIATE_DURATION)
-		g.Broadcast(events.ImpostorVoteResultEvent, ImpostorVoteResultPayload{VotedOut: votedOutPlayer, Message: message})
+		g.Broadcast(events.ImpostorVoteResultEvent, ImpostorVoteResultPayload{
+			GamePhasePayload: GamePhasePayload{StartTime: g.startTime.UnixMilli(), EndTime: g.endTime.UnixMilli()},
+			VotedOut:         votedOutPlayer,
+			Message:          message,
+		})
 
 	case PhaseKindIntermediate:
 		gameOver, impostorsWon := g.getCycleResult()
@@ -588,7 +594,7 @@ func (g *ImpostorGame) processInput(input GameInput) {
 		}
 		g.cycles[g.cycleNumber].Votes[input.ClientId] = payload.Target
 		g.Broadcast(events.ImpostorVoteUpdateEvent, ImpostorVoteUpdatePayload{
-			Votes: g.cycles[g.cycleNumber].Votes,
+			Votes: maps.Clone(g.cycles[g.cycleNumber].Votes),
 		})
 	}
 }
@@ -640,8 +646,16 @@ func (g *ImpostorGame) broadcastGameResult(impostorsWon bool) {
 		}
 	}
 
+	cycles := make([]ImpostorCycle, len(g.cycles))
+	for i, c := range g.cycles {
+		cycles[i] = ImpostorCycle{
+			Submissions: maps.Clone(c.Submissions),
+			Votes:       maps.Clone(c.Votes),
+		}
+	}
+
 	payload := GameResultPayload{
-		Cycles:  g.cycles,
+		Cycles:  cycles,
 		Winners: winners,
 		Roles:   roles,
 		Words:   words,
@@ -674,18 +688,33 @@ func (g *ImpostorGame) sendInitialGameState() {
 // sendGameCycleState is called when a game has completed one cycle (input -> discussion -> vote)
 // it sends ImpostorGameCycleUpdatePayload (all active players and all words/votes so far)
 func (g *ImpostorGame) sendGameCycleState() {
-	state := ImpostorGameCycleUpdatePayload{Cycles: g.cycles, ActivePlayers: g.getActivePlayers()}
+	cycles := make([]ImpostorCycle, len(g.cycles))
+	for i, c := range g.cycles {
+		cycles[i] = ImpostorCycle{
+			Submissions: maps.Clone(c.Submissions),
+			Votes:       maps.Clone(c.Votes),
+		}
+	}
+	state := ImpostorGameCycleUpdatePayload{Cycles: cycles, ActivePlayers: g.getActivePlayers()}
 	g.Broadcast(events.ImpostorNewCycleEvent, state)
 }
 
 // sendGamePhaseUpdate is called when the game changed phase (for example input to discussion)
 func (g *ImpostorGame) sendGamePhaseUpdate() {
 	phaseTimers := GamePhasePayload{StartTime: g.startTime.UnixMilli(), EndTime: g.endTime.UnixMilli()}
+
+	// Only meaningful during the input phase; omitted (nil) for all other phases.
+	var currentPlayer *uuid.UUID
+	if g.phase.Kind == PhaseKindInput {
+		id := g.currentPlayer.self
+		currentPlayer = &id
+	}
+
 	state := ImpostorGamePhaseUpdatePayload{
 		GamePhasePayload: phaseTimers,
-		WordsCycle:       g.cycles[g.cycleNumber].Submissions,
-		VotesCycle:       g.cycles[g.cycleNumber].Votes,
-		CurrentPlayer:    g.currentPlayer.self,
+		WordsCycle:       maps.Clone(g.cycles[g.cycleNumber].Submissions),
+		VotesCycle:       maps.Clone(g.cycles[g.cycleNumber].Votes),
+		CurrentPlayer:    currentPlayer,
 		Phase:            g.phase.Kind,
 	}
 	g.Broadcast(events.ImpostorNewPhaseEvent, state)
