@@ -92,13 +92,7 @@ export const ImpostorView = () => {
                 </p>
               </div>
               <div className="flex gap-3 w-full items-center justify-center">
-                <Input
-                  value={guess}
-                  onChange={(e) => setGuess(e.target.value)}
-                  placeholder={isImpostor ? "Skriv en bluff..." : "Skriv en ledtråd..."}
-                  className="bg-card border-2 h-12 text-lg font-display font-bold rounded-2xl"
-                  autoFocus
-                />
+                <Input value={guess} onChange={(e) => setGuess(e.target.value)} placeholder={isImpostor ? "Skriv en bluff..." : "Skriv en ledtråd..."} className="bg-card border-2 h-12 text-lg font-display font-bold rounded-2xl" autoFocus />
                 <Button size="lg" onClick={() => setPhase("discuss")}>
                   Skicka
                 </Button>

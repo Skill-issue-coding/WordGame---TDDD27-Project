@@ -135,7 +135,6 @@ func (c *Client) ReadPump() {
 		case events.CreateLobbyRequestEvent:
 			code := c.Hub.CreateUniqueRoom()
 			lobby := c.Hub.GetRoom(code)
-			c.Lobby = lobby
 			lobby.Register <- c
 
 		// join_lobby — validates the room code and registers the client into
@@ -163,7 +162,6 @@ func (c *Client) ReadPump() {
 				continue
 			}
 
-			c.Lobby = lobby
 			lobby.Register <- c
 
 		case events.LeaveLobbyRequestEvent:

@@ -27,7 +27,7 @@
  */
 
 import { ToastError, ToastSucess } from "@/lib/toast-functions";
-import { WSRecievedEvent, WSRecievedEventType, WSRecievedPayloadMap, WSSendEventType, WSSendPayloadMap } from "@/lib/websocket/types";
+import { WSReceivedEvent, WSReceivedEventType, WSReceivedPayloadMap, WSSendEventType, WSSendPayloadMap } from "@/lib/websocket/types";
 import { createContext, ReactNode, useCallback, useContext, useEffect, useRef, useState } from "react";
 
 /**
@@ -48,7 +48,7 @@ type ConnectionStatus = "connected" | "disconnected" | "error";
  * Currently typed as 'any' for the payload, but can be refined later to
  * map specific event strings to specific payload shapes.
  */
-type EventCallback<T extends WSRecievedEventType> = (payload: WSRecievedPayloadMap[T]) => void;
+type EventCallback<T extends WSReceivedEventType> = (payload: WSReceivedPayloadMap[T]) => void;
 
 /** Shape of the value exposed by WebSocketContext. */
 export interface WebsocketContextProps {
@@ -73,7 +73,7 @@ export interface WebsocketContextProps {
    * @param callback The function to execute with the event payload.
    * @returns A cleanup function to immediately unsubscribe (ideal for useEffect returns).
    */
-  subscribe: <T extends WSRecievedEventType>(eventType: T, callback: EventCallback<T>) => () => void;
+  subscribe: <T extends WSReceivedEventType>(eventType: T, callback: EventCallback<T>) => () => void;
 }
 
 export const WebSocketContext = createContext<WebsocketContextProps | null>(null);
@@ -107,19 +107,19 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
    * and the value is a Set of callback functions.
    * Kept in a ref so adding/removing listeners is silent and fast.
    */
-  const subscribersRef = useRef<Map<WSRecievedEventType, Set<EventCallback<WSRecievedEventType>>>>(new Map());
+  const subscribersRef = useRef<Map<WSReceivedEventType, Set<EventCallback<WSReceivedEventType>>>>(new Map());
 
   /**
    * PUBSUB METHOD: Expose this to child contexts so they can listen to events.
    * Wrapped in useCallback so it has a stable signature for child useEffects.
    */
-  const subscribe = useCallback(<T extends WSRecievedEventType>(eventType: T, callback: EventCallback<T>) => {
+  const subscribe = useCallback(<T extends WSReceivedEventType>(eventType: T, callback: EventCallback<T>) => {
     if (!subscribersRef.current.has(eventType)) subscribersRef.current.set(eventType, new Set());
 
-    subscribersRef.current.get(eventType)!.add(callback as EventCallback<WSRecievedEventType>);
+    subscribersRef.current.get(eventType)!.add(callback as EventCallback<WSReceivedEventType>);
 
     // Return a cleanup function so useEffects in child contexts can easily unsubscribe
-    return () => subscribersRef.current.get(eventType)?.delete(callback as EventCallback<WSRecievedEventType>);
+    return () => subscribersRef.current.get(eventType)?.delete(callback as EventCallback<WSReceivedEventType>);
   }, []);
 
   /**
@@ -188,13 +188,13 @@ export function WebSocketProvider({ children }: { children: ReactNode }) {
        * The master message router. Every incoming websocket message hits this first.
        */
       ws.onmessage = (event) => {
-        const parsedEvent = JSON.parse(event.data) as WSRecievedEvent;
+        const parsedEvent = JSON.parse(event.data) as WSReceivedEvent;
         const { type, payload } = parsedEvent;
 
         if (type === "error") ToastError(payload.message);
         if (type === "success") ToastSucess(payload.message);
 
-        const listeners = subscribersRef.current.get(type as WSRecievedEventType);
+        const listeners = subscribersRef.current.get(type as WSReceivedEventType);
         if (listeners) listeners.forEach((callback) => callback(payload));
       };
     };

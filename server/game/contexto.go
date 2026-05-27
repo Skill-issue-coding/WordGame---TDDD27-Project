@@ -16,6 +16,12 @@ type ContextoBattleSettings struct {
 	Rounds        int `json:"rounds"`
 }
 
+type ContextoGame struct {
+	GameBase
+
+	settings ContextoBattleSettings
+}
+
 func DefaultContextoBattleSettings() ContextoBattleSettings {
 	return ContextoBattleSettings{
 		RoundDuration: 120,

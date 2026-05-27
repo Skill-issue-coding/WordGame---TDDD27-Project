@@ -73,7 +73,7 @@ func newGameBase(outputs chan GameOutput, onDone func()) GameBase {
 	return GameBase{
 		outputs:       outputs,
 		onDone:        onDone,
-		inputs:        make(chan GameInput, 16),
+		inputs:        make(chan GameInput, 128),
 		stop:          make(chan struct{}),
 		skipPhaseVote: make(chan struct{}),
 	}
@@ -90,9 +90,13 @@ func (b *GameBase) StartPhase(duration int) {
 }
 
 // HandleInput forwards the input to the game's internal channel.
-// Safe to call from any goroutine; blocks if the input channel is full.
+// Non-blocking: inputs are dropped when the buffer is full so the caller
+// (the lobby's Run goroutine) is never stalled by a slow game consumer.
 func (b *GameBase) HandleInput(input GameInput) {
-	b.inputs <- input
+	select {
+	case b.inputs <- input:
+	default:
+	}
 }
 
 // Stop signals the Run goroutine to exit. Safe to call multiple times.
@@ -101,16 +105,20 @@ func (b *GameBase) Stop() {
 }
 
 // Broadcast sends an event to all players in the lobby.
+// Falls back to the stop signal so the game goroutine never blocks permanently
+// if the lobby has stopped draining GameOutputs (e.g. all players left).
 func (b *GameBase) Broadcast(eventType events.EventType, payload any) {
-	b.outputs <- GameOutput{Type: eventType, Payload: payload}
+	select {
+	case b.outputs <- GameOutput{Type: eventType, Payload: payload}:
+	case <-b.stop:
+	}
 }
 
 // Send sends an event to a single player identified by target.
+// Falls back to the stop signal for the same reason as Broadcast.
 func (b *GameBase) Send(target *uuid.UUID, eventType events.EventType, payload any) {
-	b.outputs <- GameOutput{Target: target, Type: eventType, Payload: payload}
-}
-
-// Broadcasts the current phase timers to all players in the lobby
-func (b *GameBase) SendPhaseTimes() {
-	b.Broadcast(events.GameNewPhaseEvent, NewGamePhasePayload{StartTime: b.startTime.UnixMilli(), EndTime: b.endTime.UnixMilli()})
+	select {
+	case b.outputs <- GameOutput{Target: target, Type: eventType, Payload: payload}:
+	case <-b.stop:
+	}
 }

@@ -5,36 +5,31 @@ package events
 // =============================================================================
 
 const (
-	// ImpostorWordAssignedEvent is sent privately to each player at the start of
-	// the Impostor game. It delivers the player's secret word and their role.
-	// Payload: ImpostorWordAssignedPayload
+	// ImpostorNewRoundEvent is sent privately to each player at the start of
+	// the Impostor game. It delivers the player's secret word, role, and timers.
+	// Payload: ImpostorClientGameStatePayload
 	ImpostorNewRoundEvent EventType = "impostor_new_round"
 
-	// ImpostorDiscussionStartedEvent is broadcast when the input phase ends.
-	// It reveals every player's submitted word for the discussion phase.
-	// Payload: ImpostorDiscussionStartedPayload
-	ImpostorDiscussionStartedEvent EventType = "impostor_discussion_started"
+	// ImpostorNewPhaseEvent is sent to all players when the phase or current turn advances.
+	// Payload: ImpostorGamePhaseUpdatePayload
+	ImpostorNewPhaseEvent EventType = "impostor_new_phase"
 
-	// ImpostorVoteStartedEvent is broadcast when the discussion phase ends.
-	// It opens the voting phase and lists eligible vote targets.
-	// Payload: ImpostorVoteStartedPayload
-	ImpostorVoteStartedEvent EventType = "impostor_vote_started"
+	// ImpostorVoteResultEvent is sent when a vote phase is over
+	// Payload: ImpostorVoteResultPayload
+	ImpostorVoteResultEvent EventType = "impostor_vote_result"
 
-	// ImpostorRoundResultEvent is broadcast when the vote phase ends.
-	// It reveals who was eliminated, their role, and all impostors.
-	// Payload: ImpostorRoundResultPayload
-	ImpostorRoundResultEvent EventType = "impostor_round_result"
-)
+	// ImpostorNewCycleEvent is sent once a cycle is completed.
+	// Payload: ImpostorGameCycleUpdatePayload
+	ImpostorNewCycleEvent EventType = "impostor_new_cycle"
 
-// =============================================================================
-// Server → Client: Contexto Battle mode
-// =============================================================================
+	// ImpostorVoteUpdateEvent is broadcast immediately when any player casts a
+	// vote, so clients can show live vote statistics during the vote phase.
+	// Payload: ImpostorVoteUpdatePayload
+	ImpostorVoteUpdateEvent EventType = "impostor_vote_update"
 
-const (
-	// ContextoGuessResultEvent is sent privately to the guessing player after
-	// each submission. It reports the word's semantic distance to the hidden target.
-	// Payload: ContextoGuessResultPayload
-	ContextoGuessResultEvent EventType = "contexto_guess_result"
+	// ImpostorResultEvent is sent when an impostor game is finished.
+	// TODO: Payload: GameResultPayload
+	ImpostorResultEvent EventType = "impostor_game_result"
 )
 
 // =============================================================================
@@ -56,8 +51,8 @@ const (
 	// Payload: GameResultPayload
 	GameResultEvent EventType = "game_result"
 
-	// GameNewPhaseEvent  is broadcast once a game is in a new phase
-	// Payload: StartTime int64, EndTime int64
+	// GameNewPhaseEvent is broadcast once a game is in a new phase.
+	// Payload: GamePhasePayload
 	GameNewPhaseEvent EventType = "new_game_phase"
 )
 
