@@ -25,7 +25,14 @@
  * ```
  */
 
-import { ImpostorClientGameState, ImpostorGameResult, ImpostorPhaseUpdate } from "@/lib/game/impostor-types";
+import {
+  ImpostorClientGameState,
+  ImpostorGameResult,
+  ImpostorPhaseUpdate,
+  ImpostorVoteUpdate,
+  ImpostorCycleUpdate,
+  ImpostorVoteResult,
+} from "@/lib/game/impostor-types";
 import { WSReceivedPayloadMap } from "@/lib/websocket/types";
 import { createContext, ReactNode, useContext, useEffect, useRef, useState } from "react";
 import { useLobbyContext } from "./lobbycontext";
@@ -44,6 +51,8 @@ export type ActiveGameState =
       roundState: ImpostorClientGameState | null;
       phaseState: ImpostorPhaseUpdate | null;
       result: ImpostorGameResult | null;
+      cycleState: ImpostorCycleUpdate | null;
+      voteResult: ImpostorVoteResult | null;
     }
   // | { mode: "anti_match"; roundState: AntiMatchRoundState | null; ... }
   | null;
@@ -163,12 +172,17 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
   const [phaseState, setPhaseState] = useState<WSReceivedPayloadMap["new_game_phase"] | null>(null);
   const [result, setResult] = useState<WSReceivedPayloadMap["game_result"] | null>(null);
 
+  const [cycleState, setCycleState] = useState<ImpostorCycleUpdate | null>(null);
+  const [voteResult, setVoteResult] = useState<ImpostorVoteResult | null>(null);
+
   // Reset all game state when the lobby returns to the waiting room.
   useEffect(() => {
     if (phase !== "game_started") {
       setRoundState(null);
       setPhaseState(null);
       setResult(null);
+      setCycleState(null);
+      setVoteResult(null);
     }
   }, [phase]);
 
@@ -176,13 +190,48 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
     const unsubRound = subscribe("game_round_started", setRoundState);
     const unsubPhase = subscribe("new_game_phase", setPhaseState);
     const unsubResult = subscribe("game_result", setResult);
+    const unsubVoteUpdate = subscribe("impostor_vote_update", (payload: ImpostorVoteUpdate) => {
+      if (mode === "impostor") {
+        setPhaseState((prev) => {
+          if (!prev) return null;
+          // Cast to the specific phase type for impostor mode and update votes
+          const impostorPrev = prev as ImpostorPhaseUpdate;
+          return {
+            ...impostorPrev,
+            votes_cycle_votes: payload.votes,
+          };
+        });
+      }
+    });
+    const unsubNewCycle = subscribe("impostor_new_cycle", (payload: ImpostorCycleUpdate) => {
+      if (mode === "impostor") {
+        setCycleState(payload);
+        // Also sync active_players into the main roundState so components update automatically
+        setRoundState((prev) => {
+          if (!prev) return null;
+          const impostorPrev = prev as ImpostorClientGameState;
+          return {
+            ...impostorPrev,
+            active_players: payload.active_players,
+          } as WSReceivedPayloadMap["game_round_started"];
+        });
+      }
+    });
+    const unsubVoteResult = subscribe("impostor_vote_result", (payload: ImpostorVoteResult) => {
+      if (mode === "impostor") {
+        setVoteResult(payload);
+      }
+    });
 
     return () => {
       unsubRound();
       unsubPhase();
       unsubResult();
+      unsubVoteUpdate();
+      unsubNewCycle();
+      unsubVoteResult();
     };
-  }, [subscribe]);
+  }, [subscribe, mode]);
 
   // Build the discriminated union from mode. mode is the runtime guarantee that
   // the payloads match the expected shapes — the server never emits impostor
@@ -196,6 +245,8 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
           roundState: roundState as ImpostorClientGameState | null,
           phaseState: phaseState as ImpostorPhaseUpdate | null,
           result: result as ImpostorGameResult | null,
+          cycleState: cycleState,
+          voteResult: voteResult,
         };
         break;
       // case "anti_match":

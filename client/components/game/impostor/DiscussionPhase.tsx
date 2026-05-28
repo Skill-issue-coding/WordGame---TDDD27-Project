@@ -33,7 +33,6 @@ export function DiscussionPhase() {
     setReadCount(chatMessages.length);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
   // Auto-scroll when a new message arrives and the user is already at the bottom.
   useEffect(() => {
     if (isAtBottomRef.current) {
@@ -85,11 +84,20 @@ export function DiscussionPhase() {
           <div className="game-card flex flex-col justify-between flex-3 gap-4">
             <h4 className="text-sm font-display font-bold text-muted-foreground uppercase mb-3">Chatt</h4>
             <div className="flex-1 min-h-0 relative">
-              <div ref={scrollRef} onScroll={handleScroll} className="space-y-3 h-full max-h-100 max-w-135 overflow-y-auto px-3 py-2 w-full rounded-lg">
-                {chatMessages.length === 0 && <p className="text-center text-sm text-muted-foreground font-display py-8">Inga medelanden ännu. Säg skriv vem som är misstänsam.</p>}
+              <div
+                ref={scrollRef}
+                onScroll={handleScroll}
+                className="space-y-3 h-full max-h-100 max-w-135 overflow-y-auto px-3 py-2 w-full rounded-lg">
+                {chatMessages.length === 0 && (
+                  <p className="text-center text-sm text-muted-foreground font-display py-8">
+                    Inga medelanden ännu. Säg skriv vem som är misstänsam.
+                  </p>
+                )}
                 {chatMessages.map((msg, i) => (
                   <div key={i} className="flex items-start gap-2 w-full">
-                    <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-display font-bold text-white mt-0.5" style={{ backgroundColor: msg.sender.background }}>
+                    <span
+                      className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-display font-bold text-white mt-0.5"
+                      style={{ backgroundColor: msg.sender.background }}>
                       {msg.sender.username[0]}
                     </span>
                     <div className="min-w-0 w-full">
@@ -102,7 +110,9 @@ export function DiscussionPhase() {
                 ))}
               </div>
               {!isAtBottom && unreadBelow > 0 && (
-                <button onClick={scrollToBottom} className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-display font-bold shadow-lg border-2 border-primary/50 transition-opacity">
+                <button
+                  onClick={scrollToBottom}
+                  className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-display font-bold shadow-lg border-2 border-primary/50 transition-opacity">
                   <ChevronDown className="w-3 h-3" />
                   {unreadBelow} nya meddelanden
                 </button>
@@ -123,7 +133,12 @@ export function DiscussionPhase() {
                 disabled={!isCurrentUserActive}
                 className="font-body font-semibold h-10 border-2 rounded-2xl"
               />
-              <Button onClick={handleSend} disabled={!draft.trim() || !isCurrentUserActive} size="icon" className="h-10 w-10 shrink-0" aria-label="Skicka meddelande">
+              <Button
+                onClick={handleSend}
+                disabled={!draft.trim() || !isCurrentUserActive}
+                size="icon"
+                className="h-10 w-10 shrink-0"
+                aria-label="Skicka meddelande">
                 <Send className="w-4 h-4" />
               </Button>
             </div>
@@ -137,15 +152,21 @@ export function DiscussionPhase() {
                 return (
                   <div key={userId} className={cn("flex items-center justify-between gap-3", !isActivePlayer && "opacity-40")}>
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-display font-bold text-white" style={{ backgroundColor: player.background }}>
+                      <span
+                        className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-display font-bold text-white"
+                        style={{ backgroundColor: player.background }}>
                         {player.username[0]}
                       </span>
                       <span className="text-sm font-display font-semibold text-muted-foreground truncate">{player.username}</span>
                     </div>
                     {clue ? (
-                      <span className="shrink-0 px-3 py-1 rounded-full bg-card border-2 border-border text-sm font-display font-bold text-foreground">{clue}</span>
+                      <span className="shrink-0 px-3 py-1 rounded-full bg-card border-2 border-border text-sm font-display font-bold text-foreground">
+                        {clue}
+                      </span>
                     ) : (
-                      <span className="shrink-0 px-3 py-1 rounded-full border-2 border-dashed border-border text-sm font-display font-bold text-muted-foreground">—</span>
+                      <span className="shrink-0 px-3 py-1 rounded-full border-2 border-dashed border-border text-sm font-display font-bold text-muted-foreground">
+                        —
+                      </span>
                     )}
                   </div>
                 );
