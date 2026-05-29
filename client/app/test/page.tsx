@@ -1,11 +1,11 @@
-import { VotePhase } from "@/components/game/impostor/VotePhase";
+import { ResultPhase } from "@/components/game/impostor/ResultPhase";
 import { AnimatePresence } from "framer-motion";
 
 export default function TestPage() {
   return (
     <div className="pt-5">
       <AnimatePresence mode="wait">
-        <VotePhase key="vote" />
+        <ResultPhase key="result" />
       </AnimatePresence>
     </div>
   );

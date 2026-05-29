@@ -103,4 +103,5 @@ export type ImpostorGameResult = {
   roles: Record<string, ImpostorRole>;
   /** Each player's word (normal word or their impostor word), keyed by UUID. */
   words: Record<string, string>;
+  normal_word: string;
 };

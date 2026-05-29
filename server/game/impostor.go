@@ -668,10 +668,11 @@ func (g *ImpostorGame) broadcastGameResult(impostorsWon bool) {
 	}
 
 	payload := GameResultPayload{
-		Cycles:  cycles,
-		Winners: winners,
-		Roles:   roles,
-		Words:   words,
+		Cycles:           cycles,
+		Winners:          winners,
+		Roles:            roles,
+		Words:            words,
+		NormalSecretWord: g.wordPair.NormalWord,
 	}
 	g.Broadcast(events.GameResultEvent, payload)
 }

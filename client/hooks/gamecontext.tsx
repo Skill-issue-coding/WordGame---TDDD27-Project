@@ -206,6 +206,7 @@ export function GameContextProvider({ children }: { children: ReactNode }) {
     const unsubNewCycle = subscribe("impostor_new_cycle", (payload: ImpostorCycleUpdate) => {
       if (mode === "impostor") {
         setCycleState(payload);
+        setVoteResult(null); // Clear previous vote result when a new cycle begins
         // Also sync active_players into the main roundState so components update automatically
         setRoundState((prev) => {
           if (!prev) return null;

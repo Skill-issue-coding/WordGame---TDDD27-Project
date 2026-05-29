@@ -60,10 +60,11 @@ type ImpostorVoteUpdatePayload struct {
 }
 
 type GameResultPayload struct {
-	Cycles  []ImpostorCycle                 `json:"cycles"`
-	Winners []uuid.UUID                     `json:"winners"`
-	Roles   map[uuid.UUID]ImpostorGameRoles `json:"roles"`
-	Words   map[uuid.UUID]string            `json:"words"`
+	Cycles           []ImpostorCycle                 `json:"cycles"`
+	Winners          []uuid.UUID                     `json:"winners"`
+	Roles            map[uuid.UUID]ImpostorGameRoles `json:"roles"`
+	Words            map[uuid.UUID]string            `json:"words"`
+	NormalSecretWord string                          `json:"normal_word"`
 }
 
 // =============================================================================

@@ -6,6 +6,8 @@ import { RevealPhase } from "./RevealPhase";
 import { DiscussionPhase } from "./DiscussionPhase";
 import { InputPhase } from "./InputPhase";
 import { VotePhase } from "./VotePhase";
+import { ResultPhase } from "./ResultPhase";
+import { IntermediatePhase } from "./IntermediatePhase";
 
 export const MainImpostorView = () => {
   const game = useImpostorGame();
@@ -18,7 +20,16 @@ export const MainImpostorView = () => {
 
   if (!game) return null;
 
-  const phase = game.phaseState?.game_phase;
+  // Derive the current phase. The backend signals intermediate/result phases
+  // with specific events (`impostor_vote_result`, `game_result`) instead of
+  // a `new_game_phase` event. We need to check for these states to determine the view.
+  let phase = game.phaseState?.game_phase;
+  if (game.result) {
+    phase = "result";
+  } else if (game.voteResult) {
+    // If there's a vote result but no final game result, we are in the intermediate phase.
+    phase = "intermediate";
+  }
 
   if (!isReady) {
     const seconds = Math.floor(remainingMs / 1000);
@@ -46,8 +57,8 @@ export const MainImpostorView = () => {
         {phase === "input" && <InputPhase key="input" />}
         {phase === "discussion" && <DiscussionPhase key="discussion" />}
         {phase === "vote" && <VotePhase key="vote" />}
-        {phase === "intermediate" && <span key="intermediate" />}
-        {phase === "result" && <span key="result" />}
+        {phase === "intermediate" && <IntermediatePhase key="intermediate" />}
+        {phase === "result" && <ResultPhase key="result" />}
       </AnimatePresence>
     </div>
   );
