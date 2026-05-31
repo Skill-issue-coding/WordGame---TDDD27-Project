@@ -34,8 +34,8 @@ export default function LobbyView({ code }: { code: string }) {
   if (!user || !host) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen p-6">
-        <Loader2 className="w-10 h-10 animate-spin text-game-purple mb-4" />
-        <p className="font-display font-semibold text-muted-foreground mb-6 flex">
+        <Loader2 className="w-10 h-10 mb-4 animate-spin text-game-purple" />
+        <p className="flex mb-6 font-semibold font-display text-muted-foreground">
           Ansluter till rummet
           <span className="flex w-6">
             <span className="animate-[loading_1.4s_infinite] ml-0.5">.</span>
@@ -44,7 +44,7 @@ export default function LobbyView({ code }: { code: string }) {
           </span>
         </p>
         <Link href="/">
-          <Button variant="outline" className="font-body font-bold">
+          <Button variant="outline" className="font-bold font-body">
             Avbryt
           </Button>
         </Link>
@@ -74,9 +74,9 @@ export default function LobbyView({ code }: { code: string }) {
     <div className="flex flex-col items-center justify-center min-h-screen p-6">
       <div className="w-full max-w-4xl animate-slide-up">
         <motion.div className="relative flex items-center justify-between mb-6" {...snapIn({ delay: 0.08, strength: 1.2, y: 10 })}>
-          <div className="flex-1 flex justify-start">
+          <div className="flex justify-start flex-1">
             <Link href="/" className="flex items-center" onClick={handleLeave}>
-              <button className="flex items-center gap-2 transition-colors cursor-pointer text-muted-foreground hover:text-foreground">
+              <button className="flex items-center cursor-pointer gap-2 transition-colors text-muted-foreground hover:text-foreground">
                 <ArrowLeft className="w-4 h-4" />
                 <span className="text-sm">Tillbaka</span>
               </button>
@@ -88,27 +88,27 @@ export default function LobbyView({ code }: { code: string }) {
         </motion.div>
         <div>
           <div className="flex flex-col md:grid md:grid-cols-5 gap-6">
-            <motion.div className="md:col-span-3 h-full" {...snapIn({ delay: 0.16, x: -12, y: 12 })}>
-              <div className="game-card flex-1 p-6 border shadow-sm rounded-2xl bg-card border-border h-full">
+            <motion.div className="h-full md:col-span-3" {...snapIn({ delay: 0.16, x: -12, y: 12 })}>
+              <div className="flex-1 h-full p-6 border game-card shadow-sm rounded-2xl bg-card border-border">
                 <div className="flex flex-col gap-4">
                   <RoomCodeDisplay />
                   <div className="flex items-center justify-between">
-                    <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelläge</p>
+                    <p className="text-sm font-bold tracking-wider uppercase font-display text-muted-foreground">Spelläge</p>
                   </div>
                   <GameModeSelector />
                   <div className="flex items-center justify-between">
-                    <p className="font-display text-sm font-bold text-muted-foreground uppercase tracking-wider">Spelinställningar</p>
+                    <p className="text-sm font-bold tracking-wider uppercase font-display text-muted-foreground">Spelinställningar</p>
                   </div>
                   <GameSettings />
                 </div>
               </div>
             </motion.div>
-            <motion.div className="md:col-span-2 h-full" {...snapIn({ delay: 0.2, x: 12, y: 12 })}>
+            <motion.div className="h-full md:col-span-2" {...snapIn({ delay: 0.2, x: 12, y: 12 })}>
               <PlayerList className="h-full max-h-150" />
             </motion.div>
           </div>
-          <motion.div className="flex flex-col sm:flex-row mt-6 gap-6" {...snapIn({ delay: 0.24, y: 14, rotate: 1.5 })}>
-            <Button variant="glass" size="lg" className="gap-2 flex-1 min-h-12 font-body">
+          <motion.div className="flex flex-col mt-6 sm:flex-row gap-6" {...snapIn({ delay: 0.24, y: 14, rotate: 1.5 })}>
+            <Button variant="glass" size="lg" className="flex-1 gap-2 min-h-12 font-body">
               Snabb Guide
               <BookOpenText />
             </Button>

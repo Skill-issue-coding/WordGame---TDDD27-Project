@@ -18,20 +18,20 @@ export function IntermediatePhase() {
 
   return (
     <PhaseTransition phaseKey="Intermediate">
-      <div className="w-full max-w-3xl flex flex-col items-center gap-8">
+      <div className="flex flex-col items-center w-full max-w-3xl gap-8">
         <div className="text-center">
           <h1 className={cn("text-5xl font-display font-bold mb-2")}>{message}</h1>
         </div>
 
         {votedOut && (
           <div className="w-full game-card">
-            <Skull className="size-12 mb-4" />
+            <Skull className="mb-4 size-12" />
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-              <div key={votedOut} className="flex flex-col items-center gap-2 p-3 rounded-lg bg-background">
+              <div key={votedOut} className="flex flex-col items-center p-3 rounded-lg gap-2 bg-background">
                 <span
-                  className="shrink-0 w-12 h-12 rounded-full flex items-center justify-center text-xl font-bold text-white"
+                  className="flex items-center justify-center w-12 h-12 text-xl font-bold text-white rounded-full shrink-0"
                   style={{ backgroundColor: users[votedOut].background }}></span>
-                <span className="font-display font-bold text-center truncate w-full">{users[votedOut].username}</span>
+                <span className="w-full font-bold text-center truncate font-display">{users[votedOut].username}</span>
               </div>
             </div>
           </div>

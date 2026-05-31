@@ -10,13 +10,20 @@ import { useLobbyContext } from "@/hooks/lobbycontext";
 import { useUserContext } from "@/hooks/usercontext";
 import { useWebsocketContext } from "@/hooks/websocketcontext";
 import { useImpostorGame } from "@/hooks/gamecontext";
-import CountdownBar from "../CountdownBar";
+// import { fakeChatMessages, fakePhaseState, fakeRoundState, fakeUsers } from "@/lib/fakedata";
 
 export function DiscussionPhase() {
   const { chatMessages, users } = useLobbyContext();
   const game = useImpostorGame();
   const { user } = useUserContext();
   const { sendEvent } = useWebsocketContext();
+
+  // const chatMessages = fakeChatMessages;
+  // const users = fakeUsers;
+  // const submittedWords = fakePhaseState.words_cycle;
+  // const activePlayers = fakeRoundState.active_players;
+  // const user = fakeUsers["user-1"];
+  // const isCurrentUserActive = activePlayers[user.user_id] ?? false;
 
   const [draft, setDraft] = useState<string>("");
 
@@ -70,108 +77,85 @@ export function DiscussionPhase() {
 
   const submittedWords = game.phaseState.words_cycle;
   const activePlayers = game.roundState.active_players;
-  const isCurrentUserActive = user ? !!activePlayers[user.user_id] : false;
+  const isCurrentUserActive = activePlayers[user.user_id] ?? false;
 
   return (
     <PhaseTransition phaseKey="discuss">
-      <div className="w-full max-w-4xl">
-        <CountdownBar />
-        <div className="mt-6 text-center mb-6">
-          <h2 className="font-display text-2xl font-bold text-foreground mb-2">Diskussions fas</h2>
-          <p className="text-muted-foreground text-sm font-display font-semibold">Berätta, vem är misstänksam?</p>
-        </div>
-        <div className="flex gap-6 w-full justify-between">
-          <div className="game-card flex flex-col justify-between flex-3 gap-4">
-            <h4 className="text-sm font-display font-bold text-muted-foreground uppercase mb-3">Chatt</h4>
-            <div className="flex-1 min-h-0 relative">
-              <div
-                ref={scrollRef}
-                onScroll={handleScroll}
-                className="space-y-3 h-full max-h-100 max-w-135 overflow-y-auto px-3 py-2 w-full rounded-lg">
-                {chatMessages.length === 0 && (
-                  <p className="text-center text-sm text-muted-foreground font-display py-8">
-                    Inga medelanden ännu. Säg skriv vem som är misstänsam.
-                  </p>
-                )}
-                {chatMessages.map((msg, i) => (
-                  <div key={i} className="flex items-start gap-2 w-full">
-                    <span
-                      className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-display font-bold text-white mt-0.5"
-                      style={{ backgroundColor: msg.sender.background }}>
-                      {msg.sender.username[0]}
+      <div className="mb-6 text-center">
+        <h2 className="text-2xl font-bold font-display text-foreground">Diskutera</h2>
+        <p className="text-sm font-semibold text-muted-foreground font-display">Berätta, vem är misstänksam?</p>
+      </div>
+      <div className="flex flex-col justify-between w-full max-w-6xl gap-6 lg:flex-row">
+        <div className="flex flex-col justify-between gap-3 flex-2 game-card">
+          <h4 className="text-sm font-bold uppercase font-display text-muted-foreground">Chatt</h4>
+          <div className="relative">
+            <div ref={scrollRef} onScroll={handleScroll} className="w-full px-3 py-2 space-y-3 overflow-y-auto rounded-lg h-110 max-h-110 bg-muted/50">
+              {chatMessages.length === 0 && <p className="flex items-center justify-center h-full py-8 text-sm text-center text-muted-foreground font-display">Inga medelanden ännu. Säg skriv vem som är misstänsam.</p>}
+              {chatMessages.map((msg, i) => (
+                <div key={i} className="flex items-start w-full gap-2">
+                  <span className="shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs font-display font-bold text-white mt-0.5" style={{ backgroundColor: msg.sender.background }}>
+                    {msg.sender.username[0]}
+                  </span>
+                  <div className="w-full min-w-0">
+                    <span className="mr-1 text-xs font-bold font-display" style={{ color: msg.sender.background }}>
+                      {msg.sender.username}
                     </span>
-                    <div className="min-w-0 w-full">
-                      <span className="text-xs font-display font-bold mr-1" style={{ color: msg.sender.background }}>
-                        {msg.sender.username}
-                      </span>
-                      <span className="text-sm font-display text-foreground wrap-break-word whitespace-pre-wrap">{msg.message}</span>
-                    </div>
+                    <span className="text-sm whitespace-pre-wrap font-display text-foreground wrap-break-word">{msg.message}</span>
                   </div>
-                ))}
-              </div>
-              {!isAtBottom && unreadBelow > 0 && (
-                <button
-                  onClick={scrollToBottom}
-                  className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-display font-bold shadow-lg border-2 border-primary/50 transition-opacity">
-                  <ChevronDown className="w-3 h-3" />
-                  {unreadBelow} nya meddelanden
-                </button>
-              )}
+                </div>
+              ))}
             </div>
-            <div className="flex gap-4">
-              <Input
-                value={draft}
-                onChange={(e) => setDraft(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    handleSend();
-                  }
-                }}
-                placeholder={isCurrentUserActive ? "Skriv ett meddelande..." : "Du är inte aktiv..."}
-                maxLength={200}
-                disabled={!isCurrentUserActive}
-                className="font-body font-semibold h-10 border-2 rounded-2xl"
-              />
-              <Button
-                onClick={handleSend}
-                disabled={!draft.trim() || !isCurrentUserActive}
-                size="icon"
-                className="h-10 w-10 shrink-0"
-                aria-label="Skicka meddelande">
-                <Send className="w-4 h-4" />
-              </Button>
-            </div>
+            {!isAtBottom && unreadBelow > 0 && (
+              <button
+                onClick={scrollToBottom}
+                className="absolute bottom-2 left-1/2 -translate-x-1/2 whitespace-nowrap flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-primary text-primary-foreground text-xs font-display font-bold shadow-lg border-2 border-primary/50 transition-opacity">
+                <ChevronDown className="w-3 h-3" />
+                {unreadBelow} nya meddelanden
+              </button>
+            )}
           </div>
-          <div className="game-card flex-1">
-            <h3 className="text-sm font-display font-bold text-muted-foreground uppercase mb-3">Ledtrådar</h3>
-            <div className="space-y-3">
-              {Object.entries(submittedWords ?? {}).map(([userId, clue]) => {
-                const player = users[userId];
-                const isActivePlayer = activePlayers[userId];
-                return (
-                  <div key={userId} className={cn("flex items-center justify-between gap-3", !isActivePlayer && "opacity-40")}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-display font-bold text-white"
-                        style={{ backgroundColor: player.background }}>
-                        {player.username[0]}
-                      </span>
-                      <span className="text-sm font-display font-semibold text-muted-foreground truncate">{player.username}</span>
-                    </div>
-                    {clue ? (
-                      <span className="shrink-0 px-3 py-1 rounded-full bg-card border-2 border-border text-sm font-display font-bold text-foreground">
-                        {clue}
-                      </span>
-                    ) : (
-                      <span className="shrink-0 px-3 py-1 rounded-full border-2 border-dashed border-border text-sm font-display font-bold text-muted-foreground">
-                        —
-                      </span>
-                    )}
+          <div className="flex gap-4">
+            <Input
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+              placeholder={isCurrentUserActive ? "Skriv ett meddelande..." : "Du är inte aktiv..."}
+              maxLength={200}
+              disabled={!isCurrentUserActive}
+              className="h-10 font-semibold border-2 font-body rounded-2xl"
+            />
+            <Button onClick={handleSend} disabled={!draft.trim() || !isCurrentUserActive} size="icon" className="w-10 h-10 shrink-0" aria-label="Skicka meddelande">
+              <Send className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+        <div className="flex-1 lg:self-start game-card">
+          <h3 className="mb-3 text-sm font-bold uppercase font-display text-muted-foreground">Ledtrådar</h3>
+          <div className="space-y-3">
+            {Object.entries(submittedWords ?? {}).map(([userId, clue]) => {
+              const player = users[userId];
+              const isActivePlayer = activePlayers[userId];
+              return (
+                <div key={userId} className={cn("flex items-center justify-between gap-3", !isActivePlayer && "opacity-40")}>
+                  <div className="flex items-center min-w-0 gap-2">
+                    <span className="flex items-center justify-center text-xs font-bold text-white rounded-full shrink-0 w-7 h-7 font-display" style={{ backgroundColor: player.background }}>
+                      {player.username[0]}
+                    </span>
+                    <span className="text-sm font-semibold truncate font-display text-muted-foreground">{player.username}</span>
                   </div>
-                );
-              })}
-            </div>
+                  {clue ? (
+                    <span className="px-3 py-1 text-sm font-bold border-2 rounded-full shrink-0 bg-card border-border font-display text-foreground">{clue}</span>
+                  ) : (
+                    <span className="px-3 py-1 text-sm font-bold border-2 border-dashed rounded-full shrink-0 border-border font-display text-muted-foreground">—</span>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

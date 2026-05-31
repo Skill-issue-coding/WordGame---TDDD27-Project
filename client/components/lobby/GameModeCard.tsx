@@ -45,7 +45,7 @@ const GameModeCard = ({ title, description, icon, players, color }: GameModeCard
             <TooltipContent>
               <div className="flex items-center gap-1">
                 <p className="flex flex-1 text-sm">{description}</p>
-                <div className="flex items-center gap-1 px-4 py-1 text-xs rounded-full bg-muted/50">
+                <div className="flex items-center px-4 py-1 text-xs rounded-full gap-1 bg-muted/50">
                   <p className="flex text-nowrap">{players}</p>
                   <User className="size-6" />
                 </div>

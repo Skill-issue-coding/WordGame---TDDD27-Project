@@ -13,8 +13,8 @@ export default function Page({ params }: { params: Promise<{ lobbyCode: string }
     <Suspense
       fallback={
         <div className="flex flex-col items-center justify-center min-h-screen p-6">
-          <Loader2 className="w-10 h-10 animate-spin text-game-purple mb-4" />
-          <p className="font-display font-semibold text-muted-foreground flex">
+          <Loader2 className="w-10 h-10 mb-4 animate-spin text-game-purple" />
+          <p className="flex font-semibold font-display text-muted-foreground">
             Hämtar rum
             <span className="flex w-6">
               <span className="animate-[loading_1.4s_infinite] ml-0.5">.</span>

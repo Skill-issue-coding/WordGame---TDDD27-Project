@@ -447,6 +447,7 @@ func (g *ImpostorGame) Run() {
 
 	g.StartPhase(SHOW_WORD_DURATION)
 	g.sendInitialGameState()
+	g.sendGamePhaseUpdate()
 
 	for {
 		select {

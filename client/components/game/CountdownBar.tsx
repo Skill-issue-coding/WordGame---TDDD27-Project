@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { cn } from "@/lib/utils";
-import { useImpostorGame } from "@/hooks/gamecontext";
+// import { useImpostorGame } from "@/hooks/gamecontext";
 
 const barColorMap = {
   green: "heat-hot",
@@ -10,21 +10,23 @@ const barColorMap = {
   red: "heat-cold",
 };
 
+// --- Fake data ---
+const FAKE_DURATION_S = 15;
+
 const CountdownBar = () => {
-  const game = useImpostorGame();
-  if (!game || !game.roundState || !game.phaseState) return null;
-  const timers = game.phaseState.timers;
+  // const game = useImpostorGame();
+  // if (!game || !game.roundState || !game.phaseState) return null;
+  // const timers = game.phaseState.timers;
+  // const endTime = timers.end_time;
+  // const totalDurationMs = timers.end_time - timers.ready_time;
 
-  // endTime drives the countdown; readyTime anchors the progress bar at 100%
-  // when the phase becomes active (after the SYNC_DELAY window).
-  const endTime = timers.end_time;
-  const totalDurationMs = timers.end_time - timers.ready_time;
+  // Initialized inside the component so Date.now() is captured at mount, not module load.
+  const [endTime] = useState(() => Date.now() + FAKE_DURATION_S * 1_000);
+  const totalDurationMs = FAKE_DURATION_S * 1_000;
 
-  const [timeLeft, setTimeLeft] = useState(() => (endTime ? Math.max(0, endTime - Date.now()) : 0));
+  const [timeLeft, setTimeLeft] = useState(() => Math.max(0, endTime - Date.now()));
 
   useEffect(() => {
-    if (!endTime) return;
-
     setTimeLeft(Math.max(0, endTime - Date.now()));
 
     const timer = setInterval(() => {
@@ -56,11 +58,11 @@ const CountdownBar = () => {
   }
 
   return (
-    <div className="w-full">
-      <div className="flex justify-center items-center mb-2">
+    <div className="w-full max-w-4xl mx-auto">
+      <div className="flex items-center justify-center mb-2">
         <span className={cn("font-display text-3xl font-bold tabular-nums px-4 py-1 rounded-xl bg-card border-2 border-border", isUrgent && "text-destructive border-destructive animate-pulse")}>{display}</span>
       </div>
-      <div className="h-3 bg-muted rounded-full overflow-hidden border border-border">
+      <div className="h-3 overflow-hidden border rounded-full bg-muted border-border">
         <div className={cn("h-full rounded-full transition-all duration-100", barColorMap[color])} style={{ width: `${Math.max(0, percent)}%` }} />
       </div>
     </div>

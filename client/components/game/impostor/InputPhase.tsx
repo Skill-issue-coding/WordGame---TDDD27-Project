@@ -1,7 +1,6 @@
 "use client";
 
 import PhaseTransition from "@/components/game/PhaseTransition";
-import CountdownBar from "@/components/game/CountdownBar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useImpostorGame } from "@/hooks/gamecontext";
@@ -11,6 +10,8 @@ import { useState } from "react";
 import { ToastError } from "@/lib/toast-functions";
 import { useUserContext } from "@/hooks/usercontext";
 import { useLobbyContext } from "@/hooks/lobbycontext";
+// import { fakeUsers, isImpostor, isCurrentPlayer, MY_ID, fakeRoundState, fakePhaseState } from "@/lib/fakedata";
+import { Send } from "lucide-react";
 
 export function InputPhase() {
   const { sendEvent } = useWebsocketContext();
@@ -19,7 +20,7 @@ export function InputPhase() {
   const { users } = useLobbyContext();
   const [wordSubmission, setWordSubmission] = useState<string>("");
 
-  if (!game || !game.roundState || !game.phaseState || !game.phaseState || !user || !users) return null;
+  if (!game || !game.roundState || !game.phaseState || !user || !users) return null;
 
   const isImpostor = game.roundState.role === "impostor";
 
@@ -37,73 +38,62 @@ export function InputPhase() {
     sendEvent("game_submit_word", { word: wordSubmission });
   };
 
+  // const submittedWords = fakePhaseState.words_cycle;
+  // const activePlayers = fakeRoundState.active_players;
+  // const users = fakeUsers;
+
   const submittedWords = game.phaseState.words_cycle;
   const activePlayers = game.roundState.active_players;
   const isCurrentPlayer = game.phaseState.current_player === user.user_id;
 
   return (
     <PhaseTransition phaseKey="input">
-      <div className="w-full max-w-md flex flex-col items-center">
-        <CountdownBar />
-        <div className=" w-full max-w-4xl flex justify-between">
+      <div className="flex flex-col items-center w-full max-w-4xl gap-6">
+        <div className="flex flex-col justify-between w-full max-w-4xl gap-6 lg:flex-row">
           {isCurrentPlayer && (
-            <div className="text-center mb-6">
-              <div className="mt-6 text-center mb-6">
-                <p
-                  className={cn(
-                    "text-muted-foreground text-sm mb-2 font-display uppercase tracking-wider font-bold",
-                    isImpostor ? "text-destructive" : "text-muted-foreground",
-                  )}>
-                  {isImpostor ? "Hitta på en bluff" : "Ange en ledtråd"}
-                </p>
-                <p className="text-xs text-muted-foreground font-display">
-                  {isImpostor ? "Välj ett ord som får dig att smälta in i gruppen" : "Skriv ett ord relaterat till ditt hemliga ord"}
-                </p>
+            <div className="flex flex-col items-center self-start justify-center flex-1 gap-6 text-center game-card shrink-0">
+              <div className="text-center">
+                <p className={cn("text-muted-foreground text-sm mb-2 font-display uppercase tracking-wider font-bold", isImpostor ? "text-destructive" : "text-muted-foreground")}>{isImpostor ? "Hitta på en bluff" : "Ange en ledtråd"}</p>
+                <p className="text-xs text-muted-foreground font-display">{isImpostor ? "Välj ett ord som får dig att smälta in i gruppen" : "Skriv ett ord relaterat till ditt hemliga ord"}</p>
               </div>
-              <div className="flex gap-3 w-full items-center justify-center">
+              <div className="flex items-center justify-center w-full gap-3">
                 <Input
                   value={wordSubmission}
                   onChange={(e) => setWordSubmission(e.target.value)}
                   onKeyDown={(e) => {
                     if (e.key == "enter") {
-                      sendWordSubmission;
+                      sendWordSubmission();
                     }
                   }}
                   placeholder={isImpostor ? "Skriv en bluff..." : "Skriv en ledtråd..."}
-                  className="bg-card border-2 h-12 text-lg font-display font-bold rounded-2xl"
+                  className="h-12 text-lg font-bold border-2 bg-card font-display rounded-2xl"
                   maxLength={128}
                   autoFocus
                 />
-                <Button size="lg" onClick={sendWordSubmission}>
-                  Skicka
+                <Button onClick={sendWordSubmission} disabled={!wordSubmission.trim() || !isCurrentPlayer} size="icon" className="size-12 shrink-0" aria-label="Skicka meddelande">
+                  <Send className="size-5" />
                 </Button>
               </div>
             </div>
           )}
-          <div className="game-card flex-1">
-            <h3 className="text-sm font-display font-bold text-muted-foreground uppercase mb-3">Ledtrådar</h3>
+          <div className="flex-1 game-card">
+            <h3 className="mb-3 text-sm font-bold uppercase font-display text-muted-foreground">Ledtrådar</h3>
             <div className="space-y-3">
-              {Object.entries(submittedWords ?? {}).map(([userId, clue]) => {
-                const player = users[userId];
+              {Object.entries(users ?? {}).map(([userId, player]) => {
                 const isActivePlayer = activePlayers[userId];
+                const clue = submittedWords[userId];
                 return (
                   <div key={userId} className={cn("flex items-center justify-between gap-3", !isActivePlayer && "opacity-40")}>
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span
-                        className="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-xs font-display font-bold text-white"
-                        style={{ backgroundColor: player.background }}>
+                    <div className="flex items-center min-w-0 gap-2">
+                      <span className="flex items-center justify-center text-xs font-bold text-white rounded-full shrink-0 w-7 h-7 font-display" style={{ backgroundColor: player.background }}>
                         {player.username[0]}
                       </span>
-                      <span className="text-sm font-display font-semibold text-muted-foreground truncate">{player.username}</span>
+                      <span className="text-sm font-semibold truncate font-display text-muted-foreground">{player.username}</span>
                     </div>
                     {clue ? (
-                      <span className="shrink-0 px-3 py-1 rounded-full bg-card border-2 border-border text-sm font-display font-bold text-foreground">
-                        {clue}
-                      </span>
+                      <span className="px-3 py-1 text-sm font-bold border-2 rounded-full shrink-0 bg-card border-border font-display text-foreground">{clue}</span>
                     ) : (
-                      <span className="shrink-0 px-3 py-1 rounded-full border-2 border-dashed border-border text-sm font-display font-bold text-muted-foreground">
-                        —
-                      </span>
+                      <span className="px-3 py-1 text-sm font-bold border-2 border-dashed rounded-full shrink-0 border-border font-display text-muted-foreground">—</span>
                     )}
                   </div>
                 );

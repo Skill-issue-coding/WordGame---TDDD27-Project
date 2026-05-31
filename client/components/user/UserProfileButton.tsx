@@ -54,7 +54,7 @@ export default function UserProfileButton() {
         onClick={() => user && handleOpen(true)}
         aria-label="Edit profile"
         aria-disabled={!user}
-        className="fixed bottom-6 left-6 z-50 w-14 h-14 rounded-full flex items-center justify-center cursor-pointer font-body font-bold text-xl text-white border-4 border-card transition-transform hover:scale-110 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
+        className="fixed z-50 flex items-center justify-center text-xl font-bold text-white border-4 rounded-full cursor-pointer bottom-6 left-6 w-14 h-14 font-body border-card transition-transform hover:scale-110 active:scale-95 disabled:opacity-70 disabled:hover:scale-100"
         style={{
           backgroundColor: displayColor,
           boxShadow: `0 4px 0 0 ${displayColor}88, 0 8px 20px oklch(0.2738 0.0358 274.66 / 0.2)`,
@@ -65,13 +65,13 @@ export default function UserProfileButton() {
       <Dialog open={open} onOpenChange={handleOpen}>
         <DialogContent className="border-2">
           <DialogHeader>
-            <DialogTitle className="font-display font-bold text-2xl flex items-center gap-2">Din Profil</DialogTitle>
-            <DialogDescription className="font-display font-semibold">Välj ett namn och en färg andra spelare får se.</DialogDescription>
+            <DialogTitle className="flex items-center text-2xl font-bold font-display gap-2">Din Profil</DialogTitle>
+            <DialogDescription className="font-semibold font-display">Välj ett namn och en färg andra spelare får se.</DialogDescription>
           </DialogHeader>
 
-          <div className="flex flex-col items-center gap-4 py-2">
+          <div className="flex flex-col items-center py-2 gap-4">
             <div
-              className="w-24 h-24 rounded-full flex items-center justify-center font-body font-bold text-4xl text-white border-4 border-card"
+              className="flex items-center justify-center w-24 h-24 text-4xl font-bold text-white border-4 rounded-full font-body border-card"
               style={{
                 backgroundColor: draftColor,
                 boxShadow: `0 4px 0 0 ${draftColor}88`,
@@ -80,13 +80,13 @@ export default function UserProfileButton() {
             </div>
 
             <div className="w-full">
-              <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Användarnamn</label>
-              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Skriv in ett användarnamn" maxLength={16} className="font-body text-lg font-bold h-12 border-2 rounded-lg text-center bg-muted" autoFocus />
-              <p className="text-xs text-muted-foreground font-display mt-1 text-right">{draftName.length}/16</p>
+              <label className="block mb-2 text-xs font-bold tracking-wider uppercase font-display text-muted-foreground">Användarnamn</label>
+              <Input value={draftName} onChange={(e) => setDraftName(e.target.value)} placeholder="Skriv in ett användarnamn" maxLength={16} className="h-12 text-lg font-bold text-center border-2 rounded-lg font-body bg-muted" autoFocus />
+              <p className="mt-1 text-xs text-right text-muted-foreground font-display">{draftName.length}/16</p>
             </div>
 
             <div className="w-full">
-              <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Avatar Färg</label>
+              <label className="block mb-2 text-xs font-bold tracking-wider uppercase font-display text-muted-foreground">Avatar Färg</label>
               <div className="grid grid-cols-8 gap-2">
                 {BACKGROUND_COLOR_PALETTE.map((c) => (
                   <button
@@ -102,9 +102,9 @@ export default function UserProfileButton() {
             </div>
 
             <div className="w-full">
-              <label className="text-xs font-display font-bold text-muted-foreground uppercase tracking-wider mb-2 block">Tema</label>
+              <label className="block mb-2 text-xs font-bold tracking-wider uppercase font-display text-muted-foreground">Tema</label>
 
-              <Button variant="glass" onClick={toggleTheme} className="w-full font-body font-bold justify-start gap-3 h-12">
+              <Button variant="glass" onClick={toggleTheme} className="justify-start w-full h-12 font-bold font-body gap-3">
                 {resolvedTheme === "light" ? (
                   <>
                     <Sun className="w-5 h-5 text-game-yellow" />

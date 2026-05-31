@@ -22,20 +22,20 @@ export default function HomeView() {
   const handleJoinLobby = () => sendEvent("join_lobby", { lobby_code: roomCode });
 
   return (
-    <div className="h-screen w-screen overflow-hidden flex flex-col items-center justify-center p-4 sm:p-6">
-      <div className="w-full max-w-md flex flex-col animate-slide-up gap-4">
-        <motion.div className="text-center mb-8" {...popIn(0.15, 1.5)}>
-          <div className="inline-flex items-center justify-center gap-2 mb-2">
+    <div className="flex flex-col items-center justify-center w-screen h-screen p-4 overflow-hidden sm:p-6">
+      <div className="flex flex-col w-full max-w-md animate-slide-up gap-4">
+        <motion.div className="mb-8 text-center" {...popIn(0.15, 1.5)}>
+          <div className="inline-flex items-center justify-center mb-2 gap-2">
             <Gamepad2 className="h-14 w-14 text-game-purple" />
-            <h1 className="font-display text-4xl sm:text-6xl font-bold text-game-purple">
+            <h1 className="text-4xl font-bold font-display sm:text-6xl text-game-purple">
               Ordio<span className="text-game-pink">Arena</span>
             </h1>
           </div>
-          <p className="text-muted-foreground text-base font-display font-semibold">Snabbtänkt multiplayer ordspel</p>
+          <p className="text-base font-semibold text-muted-foreground font-display">Snabbtänkt multiplayer ordspel</p>
         </motion.div>
 
-        <motion.div className="game-card border-game-blue/30 mt-2" {...popIn(0.5)}>
-          <h2 className="font-display text-base font-bold mb-3 text-foreground flex items-center gap-2">Gå med i rum</h2>
+        <motion.div className="mt-2 game-card border-game-blue/30" {...popIn(0.5)}>
+          <h2 className="flex items-center mb-3 text-base font-bold font-display text-foreground gap-2">Gå med i rum</h2>
           <div className="flex gap-2">
             <Input
               placeholder="xxxx-xxxx"
@@ -46,10 +46,10 @@ export default function HomeView() {
                   handleJoinLobby();
                 }
               }}
-              className="font-body text-base font-bold tracking-widest text-center bg-muted border-2 h-12 rounded-lg"
+              className="h-12 text-base font-bold tracking-widest text-center border-2 rounded-lg font-body bg-muted"
               maxLength={9}
             />
-            <Button size="lg" onClick={handleJoinLobby} disabled={roomCode.replace("-", "").length !== 8} className="h-12 px-8 font-bold text-base">
+            <Button size="lg" onClick={handleJoinLobby} disabled={roomCode.replace("-", "").length !== 8} className="h-12 px-8 text-base font-bold">
               Gå med
             </Button>
           </div>
@@ -57,12 +57,12 @@ export default function HomeView() {
 
         <motion.div className="flex items-center gap-3 mt-1.5" {...popIn(0.55)}>
           <div className="flex-1 h-px bg-border" />
-          <span className="font-display font-bold text-xs text-muted-foreground uppercase tracking-widest">eller</span>
+          <span className="text-xs font-bold tracking-widest uppercase font-display text-muted-foreground">eller</span>
           <div className="flex-1 h-px bg-border" />
         </motion.div>
 
         <motion.div {...popIn(0.45)}>
-          <Button size="lg" className="w-full h-16 text-lg font-bold mb-4" onClick={handleCreateLobby}>
+          <Button size="lg" className="w-full h-16 mb-4 text-lg font-bold" onClick={handleCreateLobby}>
             Skapa rum +
           </Button>
         </motion.div>

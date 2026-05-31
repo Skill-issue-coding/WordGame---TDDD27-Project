@@ -83,9 +83,22 @@ export type AntiMatchSettings = {
   rounds: number;
 };
 
-export type ModeSettings = { mode: "impostor"; settings: ImpostorSettings } | { mode: "contexto_battle"; settings: ContextoBattleSettings } | { mode: "synonym_duel"; settings: SynonymDuelSettings } | { mode: "anti_match"; settings: AntiMatchSettings };
+export type ModeSettings =
+  | { mode: "impostor"; settings: ImpostorSettings }
+  | { mode: "contexto_battle"; settings: ContextoBattleSettings }
+  | { mode: "synonym_duel"; settings: SynonymDuelSettings }
+  | { mode: "anti_match"; settings: AntiMatchSettings };
 
 export type LocalStorageProfile = {
   username?: string;
   background?: string;
+};
+
+export type VoteTally = {
+  votersByTarget: Record<string, string[]>;
+  skipVoters: string[];
+  counts: Record<string, number>;
+  skipCount: number;
+  maxVotes: number;
+  leader: string | null | undefined;
 };

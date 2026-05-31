@@ -43,7 +43,7 @@ export function GameModeSelector() {
               <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center text-2xl shrink-0", `bg-game-${m.color}`)}>{m.icon}</div>
               <div className="flex-1 min-w-0">
                 <div className={cn("font-display font-bold text-sm truncate", active ? m.textClass : "text-foreground")}>{m.title}</div>
-                <div className="text-xs text-muted-foreground truncate">{m.players}</div>
+                <div className="text-xs truncate text-muted-foreground">{m.players}</div>
               </div>
               {active && (
                 <div className={cn("w-6 h-6 rounded-full flex items-center justify-center text-white shrink-0", `bg-game-${m.color}`)}>
@@ -55,8 +55,8 @@ export function GameModeSelector() {
         })}
       </div>
 
-      <div className="rounded-lg bg-muted/40 border-2 border-border p-3">
-        <p className="text-sm text-muted-foreground leading-snug">{getMode(mode as LobbyState["mode"]).description}</p>
+      <div className="p-3 border-2 rounded-lg bg-muted/40 border-border">
+        <p className="text-sm leading-snug text-muted-foreground">{getMode(mode as LobbyState["mode"]).description}</p>
       </div>
     </>
   );
@@ -127,7 +127,7 @@ export function GameSettings() {
         const currentValue = localvalues[setting.key] ?? setting.default;
         return (
           <div key={setting.key} className="flex flex-col gap-2.5 flex-1">
-            <div className="flex items-center gap-2 text-sm font-semibold text-foreground">
+            <div className="flex items-center text-sm font-semibold gap-2 text-foreground">
               {setting.key === "impostor_count" ? (
                 <HatGlasses className="w-4 h-4 text-muted-foreground" />
               ) : setting.key.includes("duration") ? (
@@ -145,7 +145,7 @@ export function GameSettings() {
             {setting.type === "slider" ? (
               <div className={cn("flex items-center gap-4", disabled && "pointer-events-none")}>
                 <Slider disabled={disabled} min={setting.min} max={setting.max} step={setting.step} value={[currentValue]} onValueChange={([v]) => handleSliderDrag(setting.key, v)} onValueCommit={([v]) => handleSettingUpdate(setting.key, v)} className="flex-1" />
-                <span className="text-sm font-bold w-8 text-right tabular-nums">
+                <span className="w-8 text-sm font-bold text-right tabular-nums">
                   {localvalues[setting.key] ?? setting.default}
                   {setting.key.includes("duration") ? "s" : ""}
                 </span>
