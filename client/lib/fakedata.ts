@@ -1,5 +1,5 @@
 import { ChatMessage, User } from "./game/types";
-import { ImpostorClientGameState, ImpostorPhaseUpdate } from "@/lib/game/impostor-types";
+import { ImpostorClientGameState, ImpostorPhaseUpdate, ImpostorVoteResult } from "@/lib/game/impostor-types";
 
 export const fakeUsers: Record<string, User> = {
   "user-1": { user_id: "user-1", username: "Emil", background: "#4f46e5" },
@@ -21,7 +21,7 @@ export const isCurrentPlayer = true;
 export const MY_ID = "user-1";
 
 export const fakeRoundState: ImpostorClientGameState = {
-  timers: { start_time: Date.now(), ready_time: Date.now(), end_time: Date.now() + 60_000 },
+  timers: { start_time: Date.now(), ready_time: Date.now() + 2_500, end_time: Date.now() + 60_000 },
   role: isImpostor ? "impostor" : "normal",
   word: "Sommarsemester",
   active_players: {
@@ -66,10 +66,17 @@ export const fakePhaseState: ImpostorPhaseUpdate = {
     "user-11": "user-5",
   },
   current_player: isCurrentPlayer ? MY_ID : "user-2",
-  game_phase: "discussion", //! Change this to the state
+  game_phase: "result", //! Change this to the state
 };
 
 export const isCurrentUserActive = !!fakeRoundState.active_players[MY_ID];
+
+// Toggle: set voted_out to undefined to style the "nobody was eliminated" state
+export const fakeVoteResult: ImpostorVoteResult = {
+  timers: { start_time: Date.now(), ready_time: Date.now(), end_time: Date.now() + 5_000 },
+  voted_out: "user-3", // Bob — had the most votes in votes_cycle_votes
+  message: "",
+};
 
 export const fakeChatMessages: ChatMessage[] = [
   { sender: fakeUsers["user-2"], message: "Har någon ett konstigt ord?", date: Date.now() - 120_000 },

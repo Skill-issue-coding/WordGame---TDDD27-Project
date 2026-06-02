@@ -10,20 +10,20 @@ import { useLobbyContext } from "@/hooks/lobbycontext";
 import { useUserContext } from "@/hooks/usercontext";
 import { useWebsocketContext } from "@/hooks/websocketcontext";
 import { useImpostorGame } from "@/hooks/gamecontext";
-// import { fakeChatMessages, fakePhaseState, fakeRoundState, fakeUsers } from "@/lib/fakedata";
+import { fakeChatMessages, fakePhaseState, fakeRoundState, fakeUsers } from "@/lib/fakedata";
 
 export function DiscussionPhase() {
-  const { chatMessages, users } = useLobbyContext();
-  const game = useImpostorGame();
-  const { user } = useUserContext();
-  const { sendEvent } = useWebsocketContext();
+  // const { chatMessages, users } = useLobbyContext();
+  // const game = useImpostorGame();
+  // const { user } = useUserContext();
+  // const { sendEvent } = useWebsocketContext();
 
-  // const chatMessages = fakeChatMessages;
-  // const users = fakeUsers;
-  // const submittedWords = fakePhaseState.words_cycle;
-  // const activePlayers = fakeRoundState.active_players;
-  // const user = fakeUsers["user-1"];
-  // const isCurrentUserActive = activePlayers[user.user_id] ?? false;
+  const chatMessages = fakeChatMessages;
+  const users = fakeUsers;
+  const submittedWords = fakePhaseState.words_cycle;
+  const activePlayers = fakeRoundState.active_players;
+  const user = fakeUsers["user-1"];
+  const isCurrentUserActive = activePlayers[user.user_id] ?? false;
 
   const [draft, setDraft] = useState<string>("");
 
@@ -67,17 +67,17 @@ export function DiscussionPhase() {
   };
 
   const handleSend = () => {
-    if (!draft.trim()) return;
-    sendEvent("send_chatmessage", { message: draft });
-    setDraft("");
-    setIsAtBottom(true);
+    // if (!draft.trim()) return;
+    // sendEvent("send_chatmessage", { message: draft });
+    // setDraft("");
+    // setIsAtBottom(true);
   };
 
-  if (!game || !game.phaseState || !game.roundState || !users || !user) return null;
+  // if (!game || !game.phaseState || !game.roundState || !users || !user) return null;
 
-  const submittedWords = game.phaseState.words_cycle;
-  const activePlayers = game.roundState.active_players;
-  const isCurrentUserActive = activePlayers[user.user_id] ?? false;
+  // const submittedWords = game.phaseState.words_cycle;
+  // const activePlayers = game.roundState.active_players;
+  // const isCurrentUserActive = activePlayers[user.user_id] ?? false;
 
   return (
     <PhaseTransition phaseKey="discuss">
