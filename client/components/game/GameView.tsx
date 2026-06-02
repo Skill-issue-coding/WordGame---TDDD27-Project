@@ -11,7 +11,7 @@ import { AntiMatchView } from "./gamemodes/AntiMatchView";
 import { MainImpostorView } from "./gamemodes/MainImposterView";
 
 // --- Fake data toggle ---
-const FAKE_MODE: GameMode = "impostor";
+const FAKE_MODE: GameMode = "anti_match";
 
 export function GameView() {
   // const { mode } = useLobbyContext();

@@ -92,5 +92,10 @@ export const fakeChatMessages: ChatMessage[] = [
   { sender: fakeUsers["user-3"], message: 'Jag håller med, "Björn" är jättesus.', date: Date.now() - 30_000 },
   { sender: fakeUsers["user-1"], message: "Hmm, då röstar jag på Ida.", date: Date.now() - 20_000 },
   { sender: fakeUsers["user-2"], message: "Jag med.", date: Date.now() - 10_000 },
-  { sender: fakeUsers["user-8"], message: "Ni gör ett misstag!!nfewuifnewiufweiufhewiuhfeiuwhfeuihfiuewhfiuewhfwehfuewhfibvjhfd vd vd shjv dfhvdfhjvdfshjvdfhjvdfhjvfhjdvhjfd bdf jbfd. fdh dfh", date: Date.now() - 5_000 },
+  {
+    sender: fakeUsers["user-8"],
+    message:
+      "Ni gör ett misstag!!nfewuifnewiufweiufhewiuhfeiuwhfeuihfiuewhfiuewhfwehfuewhfibvjhfd vd vd shjv dfhvdfhjvdfshjvdfhjvdfhjvfhjdvhjfd bdf jbfd. fdh dfh",
+    date: Date.now() - 5_000,
+  },
 ];
